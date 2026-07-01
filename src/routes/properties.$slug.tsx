@@ -1,19 +1,123 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { MapPin, CheckCircle2, Clock, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MapPin, CheckCircle2, Clock, Download, Loader2 } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { PlotMap } from "@/components/properties/PlotMap";
 import { PlotPanel } from "@/components/properties/PlotPanel";
 import { PhaseCard } from "@/components/properties/PhaseCard";
-import { getPhaseBySlug, phases, type Plot } from "@/lib/phases";
+import { usePhase, type Plot, type Phase } from "@/lib/phases";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/properties/$slug")({
-  loader: ({ params }) => {
-    const phase = getPhaseBySlug(params.slug);
-    if (!phase) throw notFound();
-    return { phase };
+  loader: async ({ params }) => {
+    // 1. Fetch phase from Supabase
+    const { data: dbPhase, error: phaseErr } = await supabase
+      .from("phases")
+      .select("*")
+      .eq("slug", params.slug)
+      .single();
+
+    if (phaseErr || !dbPhase) {
+      throw notFound();
+    }
+
+    // 2. Fetch plot sizes
+    const { data: dbSizes } = await supabase
+      .from("plot_sizes")
+      .select("*")
+      .eq("phase_id", dbPhase.id)
+      .order("cash_price");
+
+    // 3. Fetch plots
+    const { data: dbPlots } = await supabase
+      .from("plots")
+      .select("*")
+      .eq("phase_id", dbPhase.id)
+      .order("plot_number");
+
+    // 4. Fetch 3 similar phases (excluding current)
+    const { data: rawSimilar } = await supabase
+      .from("phases")
+      .select("*")
+      .neq("id", dbPhase.id)
+      .limit(3);
+
+    const similarIds = rawSimilar ? rawSimilar.map((p) => p.id) : [];
+    const { data: similarSizes } = similarIds.length
+      ? await supabase.from("plot_sizes").select("*").in("phase_id", similarIds)
+      : { data: [] };
+
+    // Adapt similar phases for PhaseCard
+    const similarAdapted = (rawSimilar ?? []).map((p) => {
+      const sizesForPhase = (similarSizes ?? []).filter((s) => s.phase_id === p.id);
+      const defaultSize = sizesForPhase.find((s) => s.is_default) ?? sizesForPhase[0];
+      const startingPrice = sizesForPhase.length
+        ? Math.min(...sizesForPhase.map((s) => s.cash_price))
+        : 320000;
+
+      return {
+        slug: p.slug,
+        name: p.name,
+        phaseNumber: p.phase_number ?? undefined,
+        location: p.location,
+        region: p.region,
+        status: p.status === "active" ? "ACTIVE" : p.status === "sold_out" ? "SOLD OUT" : "COMING SOON",
+        totalPlots: p.total_plots,
+        available: p.available_count,
+        booked: p.booked_count,
+        sold: p.sold_count,
+        image: p.image_url ?? "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
+        description: p.description ?? "",
+        features: p.features ?? [],
+        startingPrice,
+        size: defaultSize ? defaultSize.label : "50x100 ft",
+        plots: [],
+      };
+    });
+
+    // Adapt loader phase for server-side render
+    const defaultSize = (dbSizes ?? []).find((s) => s.is_default) ?? (dbSizes ?? [])[0];
+    const startingPrice = (dbSizes ?? []).length
+      ? Math.min(...(dbSizes ?? []).map((s) => s.cash_price))
+      : 0;
+
+    const mappedPlots = (dbPlots ?? []).map((p) => {
+      const sizeObj = (dbSizes ?? []).find((s) => s.id === p.size_id) ?? defaultSize;
+      return {
+        id: p.plot_number,
+        row: p.row_num,
+        col: p.col_num,
+        status: p.status as "available" | "booked" | "sold",
+        size: sizeObj ? sizeObj.label.replace(" ft", "") : "50x100",
+        price: sizeObj ? sizeObj.cash_price : 0,
+      };
+    });
+
+    const initialPhase: Phase = {
+      slug: dbPhase.slug,
+      name: dbPhase.name,
+      phaseNumber: dbPhase.phase_number ?? undefined,
+      location: dbPhase.location,
+      region: dbPhase.region,
+      status: dbPhase.status === "active" ? "ACTIVE" : dbPhase.status === "sold_out" ? "SOLD OUT" : "COMING SOON",
+      totalPlots: dbPhase.total_plots,
+      available: dbPhase.available_count,
+      booked: dbPhase.booked_count,
+      sold: dbPhase.sold_count,
+      image: dbPhase.image_url ?? "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
+      description: dbPhase.description ?? "",
+      features: dbPhase.features ?? [],
+      startingPrice,
+      size: defaultSize ? defaultSize.label : "50x100 ft",
+      plots: mappedPlots,
+    };
+
+    return {
+      initialPhase,
+      similar: similarAdapted,
+    };
   },
   component: PhaseDetailPage,
   notFoundComponent: () => (
@@ -26,9 +130,9 @@ export const Route = createFileRoute("/properties/$slug")({
       </div>
     </div>
   ),
-  head: ({ params }) => {
-    const phase = getPhaseBySlug(params.slug);
-    const title = phase ? `${phase.name} — Phase ${phase.phaseNumber} | Gatepath Realtors` : "Phase | Gatepath Realtors";
+  head: ({ loaderData }) => {
+    const phase = loaderData?.initialPhase;
+    const title = phase ? `${phase.name} — Phase ${phase.phaseNumber ?? ""} | Gatepath Realtors` : "Phase | Gatepath Realtors";
     const desc = phase?.description ?? "Browse plots in this phase.";
     return {
       meta: [
@@ -36,31 +140,51 @@ export const Route = createFileRoute("/properties/$slug")({
         { name: "description", content: desc },
         { property: "og:title", content: title },
         { property: "og:description", content: desc },
-        ...(phase ? [{ property: "og:image" as const, content: phase.image }] : []),
+        ...(phase?.image ? [{ property: "og:image" as const, content: phase.image }] : []),
       ],
     };
   },
 });
 
 function PhaseDetailPage() {
-  const { phase } = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const { initialPhase, similar } = Route.useLoaderData();
+  const { phase: livePhase, loading, error } = usePhase(slug);
+
   const [selected, setSelected] = useState<Plot | null>(null);
   const [tab, setTab] = useState<"location" | "infra" | "legal" | "payment">("location");
   const [availOnly, setAvailOnly] = useState(false);
 
+  // Fallback to initial loader data during hydration/real-time setup
+  const phase = livePhase || initialPhase;
+
   const onSelect = (p: Plot) => {
     setSelected(p);
-    if (window.innerWidth < 1024) {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
       setTimeout(() => {
         document.getElementById("plot-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 50);
     }
   };
 
-  const similar = phases
-    .filter((p) => p.slug !== phase.slug)
-    .sort((a, b) => b.available - a.available)
-    .slice(0, 3);
+  if (!phase && loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    );
+  }
+
+  if (error || !phase) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h2 className="font-serif text-2xl text-red-500">Error loading phase</h2>
+          <p className="text-muted-foreground mt-2">{error || "Could not retrieve details."}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,9 +207,11 @@ function PhaseDetailPage() {
               <Link to="/properties" className="hover:text-accent">Properties</Link> ›{" "}
               <span>{phase.name}</span>
             </div>
-            <span className="mt-3 inline-block bg-accent text-white font-numbers font-semibold text-[11px] px-3.5 py-1.5 rounded-full">
-              PHASE {phase.phaseNumber} — {phase.status}
-            </span>
+            {phase.phaseNumber && (
+              <span className="mt-3 inline-block bg-accent text-white font-numbers font-semibold text-[11px] px-3.5 py-1.5 rounded-full">
+                PHASE {phase.phaseNumber} — {phase.status}
+              </span>
+            )}
             <h1 className="mt-3 font-serif font-bold text-[42px] md:text-[72px] text-white leading-[1.0]">
               {phase.name}
             </h1>
@@ -168,13 +294,10 @@ function PhaseDetailPage() {
               >
                 Show Available Only
               </button>
-              <button className="border border-[#D0CCC5] p-2 rounded-md hover:border-primary transition-colors" aria-label="Download map">
-                <Download size={16} />
-              </button>
             </div>
 
             <p className="mt-4 text-[12px] text-muted-foreground italic">
-              Map is for illustrative purposes. Exact plot boundaries are confirmed during site visit. Last updated: {new Date().toLocaleDateString()}
+              Map is for illustrative purposes. Exact plot boundaries are confirmed during site visit.
             </p>
           </div>
         </div>
@@ -183,7 +306,7 @@ function PhaseDetailPage() {
           <PlotPanel
             phase={phase}
             plot={selected}
-            onSelectPlot={setSelected}
+            onSelectPlot={onSelect}
             onClear={() => setSelected(null)}
           />
         </div>
@@ -272,8 +395,8 @@ function PhaseDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {[
                   { name: "Plan A — Full Payment", body: "Pay 100% upfront and enjoy a 5% discount on the listed price.", tag: "5% Discount" },
-                  { name: "Plan B — 12 Months", body: "30% deposit, balance spread over 12 monthly installments.", tag: "30% Deposit" },
-                  { name: "Plan C — 24 Months", body: "20% deposit, balance over 24 months. 5% facilitation fee applies.", tag: "20% Deposit" },
+                  { name: "Plan B — 6 Months", body: "30% deposit, balance spread over 6 monthly installments.", tag: "30% Deposit" },
+                  { name: "Plan C — 12 Months", body: "20% deposit, balance over 12 months. installment markup applies.", tag: "20% Deposit" },
                 ].map((p) => (
                   <div key={p.name} className="border border-[#E5E0D8] rounded-lg p-5 hover:border-accent transition-colors">
                     <div className="text-[11px] font-numbers font-semibold text-accent uppercase tracking-wider">{p.tag}</div>
@@ -294,7 +417,9 @@ function PhaseDetailPage() {
             You May Also Like
           </h2>
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-            {similar.map((p) => <PhaseCard key={p.slug} phase={p} />)}
+            {similar.map((p) => (
+              <PhaseCard key={p.slug} phase={p as Parameters<typeof PhaseCard>[0]["phase"]} />
+            ))}
           </div>
         </div>
       </section>

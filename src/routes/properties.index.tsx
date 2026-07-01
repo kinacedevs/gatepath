@@ -6,7 +6,6 @@ import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhases } from "@/lib/phases";
-import type { Phase } from "@/lib/types";
 
 export const Route = createFileRoute("/properties/")({
   component: PropertiesPage,
@@ -32,44 +31,19 @@ const LOCATIONS = [
   "Matuu", "Sagana", "Makutano", "Juja", "Pumwani", "Nairobi",
 ];
 
-/** Map Supabase Phase row → props expected by PhaseCard */
-function adaptPhase(p: Phase) {
-  return {
-    slug: p.slug,
-    name: p.name,
-    phaseNumber: p.phase_number ?? undefined,
-    location: p.location,
-    region: p.region,
-    status: p.status === "active" ? "ACTIVE" : p.status === "sold_out" ? "SOLD OUT" : "COMING SOON",
-    totalPlots: p.total_plots,
-    available: p.available_count,
-    booked: p.booked_count,
-    sold: p.sold_count,
-    image: p.image_url ?? "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
-    description: p.description ?? "",
-    features: p.features ?? [],
-    startingPrice: 0, // resolved from plot_sizes separately
-    size: "",         // resolved from plot_sizes separately
-    plots: [],        // resolved on detail page
-  };
-}
-
 function PropertiesPage() {
-  const { phases: rawPhases, loading, error } = usePhases();
+  const { phases, loading, error } = usePhases();
   const [loc, setLoc] = useState("All Locations");
   const [status, setStatus] = useState("All Status");
   const [price, setPrice] = useState("Any Price");
   const [q, setQ] = useState("");
-
-  const phases = rawPhases.map(adaptPhase);
 
   const filtered = useMemo(() => {
     return phases.filter((p) => {
       if (loc !== "All Locations" && !p.location.toLowerCase().includes(loc.toLowerCase())) return false;
       if (status !== "All Status" && p.status !== status) return false;
       if (price !== "Any Price") {
-        // Price filter is approximate — use starting price from phase
-        const sp = 0; // will be refined once plot_sizes are joined
+        const sp = p.startingPrice;
         if (price === "Under Ksh 400K" && sp >= 400000) return false;
         if (price === "Ksh 400K–700K" && (sp < 400000 || sp > 700000)) return false;
         if (price === "Ksh 700K–1M" && (sp < 700000 || sp > 1000000)) return false;
@@ -91,8 +65,8 @@ function PropertiesPage() {
   const selectCls =
     "font-sans text-[14px] text-foreground bg-white border-[1.5px] border-[#D0CCC5] rounded-md py-2.5 pl-3.5 pr-9 hover:border-primary focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/10 transition-colors appearance-none cursor-pointer";
 
-  const activeCount = rawPhases.filter((p) => p.status === "active").length;
-  const totalAvailable = rawPhases.reduce((s, p) => s + p.available_count, 0);
+  const activeCount = phases.filter((p) => p.status === "ACTIVE").length;
+  const totalAvailable = phases.reduce((s, p) => s + p.available, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -177,7 +151,7 @@ function PropertiesPage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-              {filtered.map((p) => <PhaseCard key={p.slug} phase={p as Parameters<typeof PhaseCard>[0]["phase"]} />)}
+              {filtered.map((p) => <PhaseCard key={p.slug} phase={p} />)}
             </div>
           )}
         </div>
