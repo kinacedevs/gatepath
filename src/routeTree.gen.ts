@@ -14,6 +14,7 @@ import { Route as PaymentRouteImport } from './routes/payment'
 import { Route as InquireRouteImport } from './routes/inquire'
 import { Route as DiasporaRouteImport } from './routes/diaspora'
 import { Route as BookVisitRouteImport } from './routes/book-visit'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PropertiesIndexRouteImport } from './routes/properties.index'
 import { Route as PropertiesSlugRouteImport } from './routes/properties.$slug'
@@ -43,6 +44,11 @@ const BookVisitRoute = BookVisitRouteImport.update({
   path: '/book-visit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -61,6 +67,7 @@ const PropertiesSlugRoute = PropertiesSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/book-visit': typeof BookVisitRoute
   '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/book-visit': typeof BookVisitRoute
   '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/book-visit': typeof BookVisitRoute
   '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/book-visit'
     | '/diaspora'
     | '/inquire'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/book-visit'
     | '/diaspora'
     | '/inquire'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/book-visit'
     | '/diaspora'
     | '/inquire'
@@ -125,6 +137,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   BookVisitRoute: typeof BookVisitRoute
   DiasporaRoute: typeof DiasporaRoute
   InquireRoute: typeof InquireRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookVisitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -197,6 +217,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   BookVisitRoute: BookVisitRoute,
   DiasporaRoute: DiasporaRoute,
   InquireRoute: InquireRoute,
