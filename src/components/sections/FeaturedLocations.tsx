@@ -3,14 +3,14 @@ import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/Reveal";
 
 const locationToSlug: Record<string, string> = {
-  Malindi: "malindi-greens",
-  Sagana: "sagana-valley",
-  Diani: "diani-heights",
-  Nanyuki: "nanyuki-ridge",
-  Thika: "thika-sunrise",
-  Matuu: "matuu-plains",
-  Kithimani: "kithimani-gardens",
-  Kiambu: "kiambu-crest",
+  Malindi: "malindi-acres-phase-5",
+  Sagana: "baraka-plains-phase-6",
+  Diani: "diani-plots",
+  Nanyuki: "waridi-gardens-phase-1",
+  Thika: "juja-plot",
+  Matuu: "watali-gardens-phase-1",
+  Kithimani: "zuri-court-phase-1",
+  Kiambu: "watali-gardens-phase-2",
 };
 
 const locations = [

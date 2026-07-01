@@ -64,7 +64,6 @@ export function Footer() {
                 )}
               </li>
             ))}
-            <li><a href="#" className="text-white/40 text-[12px] hover:text-accent">CEO Dashboard</a></li>
           </ul>
         </div>
 

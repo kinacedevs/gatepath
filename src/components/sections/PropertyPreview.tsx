@@ -2,7 +2,7 @@ import { MapPin, ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/Reveal";
 
-const phaseSlugs = ["malindi-greens", "sagana-valley", "nanyuki-ridge"];
+const phaseSlugs = ["baraka-plains-phase-6", "amani-gardens-phase-3", "malindi-acres-phase-5"];
 
 type Status = "AVAILABLE" | "BOOKED" | "SOLD";
 
@@ -10,26 +10,26 @@ const plots: {
   phase: string; title: string; loc: string; price: string; status: Status; img: string;
 }[] = [
   {
-    phase: "Phase 4 — Malindi Greens",
-    title: "Plot 12 — 50×100 ft",
-    loc: "Malindi, Coast",
-    price: "380,000",
+    phase: "Phase 6 — Baraka Plains",
+    title: "Plot 10 — 50×100 ft",
+    loc: "Sagana, Kirinyaga",
+    price: "320,000",
+    status: "AVAILABLE",
+    img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    phase: "Phase 3 — Amani Gardens",
+    title: "Plot 2 — 50×100 ft",
+    loc: "Sagana, Kirinyaga",
+    price: "350,000",
     status: "AVAILABLE",
     img: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    phase: "Phase 2 — Sagana Valley",
-    title: "Plot 7 — 100×100 ft",
-    loc: "Sagana, Kirinyaga",
-    price: "720,000",
-    status: "BOOKED",
-    img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    phase: "Phase 6 — Nanyuki Ridge",
-    title: "Plot 3 — 50×100 ft",
-    loc: "Nanyuki, Laikipia",
-    price: "490,000",
+    phase: "Phase 5 — Malindi Acres",
+    title: "Plot 1 — 50×100 ft",
+    loc: "Malindi, Coast",
+    price: "380,000",
     status: "AVAILABLE",
     img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
   },

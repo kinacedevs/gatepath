@@ -10,9 +10,9 @@ const statusStyles: Record<Phase["status"], string> = {
 
 export function PhaseCard({ phase }: { phase: Phase }) {
   // Build a mini availability strip of 8 squares
-  const ratio = (n: number) => Math.round((n / phase.totalPlots) * 8);
-  const a = ratio(phase.available);
-  const b = ratio(phase.booked);
+  const ratio = (n: number) => phase.totalPlots > 0 ? Math.round((n / phase.totalPlots) * 8) : 0;
+  const a = Math.max(0, Math.min(8, ratio(phase.available)));
+  const b = Math.max(0, Math.min(8, ratio(phase.booked)));
   const s = Math.max(0, 8 - a - b);
   const strip: ("a" | "b" | "s")[] = [
     ...Array(a).fill("a"),

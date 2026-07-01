@@ -26,14 +26,14 @@ type Search = {
 
 export const Route = createFileRoute("/inquire")({
   validateSearch: (s: Record<string, unknown>): Search => ({
-    phase: typeof s.phase === "string" ? s.phase : undefined,
-    phaseName: typeof s.phaseName === "string" ? s.phaseName : undefined,
-    phaseNumber: typeof s.phaseNumber === "string" ? s.phaseNumber : undefined,
-    plotId: typeof s.plotId === "string" ? s.plotId : undefined,
-    plotNumber: typeof s.plotNumber === "string" ? s.plotNumber : undefined,
-    size: typeof s.size === "string" ? s.size : undefined,
-    price: typeof s.price === "string" ? s.price : undefined,
-    location: typeof s.location === "string" ? s.location : undefined,
+    phase: s.phase !== undefined ? String(s.phase) : undefined,
+    phaseName: s.phaseName !== undefined ? String(s.phaseName) : undefined,
+    phaseNumber: s.phaseNumber !== undefined ? String(s.phaseNumber) : undefined,
+    plotId: s.plotId !== undefined ? String(s.plotId) : undefined,
+    plotNumber: s.plotNumber !== undefined ? String(s.plotNumber) : undefined,
+    size: s.size !== undefined ? String(s.size) : undefined,
+    price: s.price !== undefined ? String(s.price) : undefined,
+    location: s.location !== undefined ? String(s.location) : undefined,
   }),
   component: InquiryPage,
   head: () => ({

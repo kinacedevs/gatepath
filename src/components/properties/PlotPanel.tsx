@@ -170,7 +170,7 @@ export function PlotPanel({
           Start My Inquiry for Plot #{plot.id} →
         </a>
         <a
-          href="#contact"
+          href={inquireHref}
           className="mt-3 block w-full text-center border-[1.5px] border-primary text-primary font-medium text-[14px] py-3 rounded-lg hover:bg-primary hover:text-white transition-all"
         >
           Book Free Site Visit Instead

@@ -42,7 +42,7 @@ export function Navbar() {
       }`}
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-10 h-[100px] flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 min-w-0 flex-1 mr-2" aria-label="Gatepath Realtors — Home">
+        <Link to="/" className="flex items-center gap-3 min-w-0 mr-4" aria-label="Gatepath Realtors — Home">
           <img
             src={logoIcon}
             alt="Gatepath Realtors"
@@ -53,7 +53,7 @@ export function Navbar() {
               filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.28))",
             }}
           />
-          <span className="flex flex-col leading-tight min-w-0 flex-1">
+          <span className="flex flex-col leading-tight min-w-0">
             <span className={`font-serif font-bold tracking-[0.04em] truncate ${solid ? "text-white" : "text-primary"}`} style={{ fontSize: "clamp(14px, 4.2vw, 23px)" }}>
               GATEPATH REALTORS
             </span>
@@ -64,7 +64,7 @@ export function Navbar() {
         </Link>
 
 
-        <nav className="hidden lg:flex items-center gap-9">
+        <nav className="hidden lg:flex items-center gap-6">
           {links.map((l) =>
             l.to ? (
               <Link key={l.label} to={l.to} className={linkCls(false)} activeProps={{ className: "text-accent" }}>
