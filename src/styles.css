@@ -1,0 +1,163 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ivory: var(--ivory);
+  --color-stone: var(--stone);
+  --color-available: var(--available);
+  --color-booked: var(--booked);
+  --color-sold: var(--sold);
+  --font-serif: var(--font-serif);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-numbers: var(--font-numbers);
+  --shadow-card: var(--shadow-card);
+  --shadow-hover: var(--shadow-hover);
+  --shadow-soft: var(--shadow-soft);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  /* Brand — Gatepath blue & gold */
+  --background: #F8F4EE;                          /* warm ivory */
+  --ivory: #F8F4EE;
+  --stone: #F0F4F8;                               /* light blue-tinted stone */
+  --foreground: #1C1C1C;                          /* charcoal */
+
+  --primary: #0B7FC7;                             /* Gatepath cerulean blue */
+  --primary-foreground: #FFFFFF;
+  --primary-dark: #0960A0;
+  --primary-deep: #074B7D;
+  --nav: #074B7D;
+  --footer-deep: #063A61;
+
+  --accent: #E8A020;                              /* Gatepath warm gold */
+  --accent-foreground: #1C1C1C;
+  --accent-dark: #C8861A;
+
+  --secondary: #F0F4F8;
+  --secondary-foreground: #1C1C1C;
+
+  --muted: #EEF2F6;
+  --muted-foreground: #5A5A5A;
+
+  --card: #FFFFFF;
+  --card-foreground: #1C1C1C;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #1C1C1C;
+
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #DCE4EC;
+  --input: #DCE4EC;
+  --ring: #E8A020;
+
+  --available: #22C55E;
+  --booked: #F59E0B;
+  --sold: #EF4444;
+
+  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-numbers: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 4px 24px rgba(11, 127, 199, 0.10);
+  --shadow-hover: 0 8px 40px rgba(11, 127, 199, 0.18);
+  --shadow-soft: 0 4px 20px rgba(11, 127, 199, 0.12);
+
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+}
+
+@layer utilities {
+  .font-serif   { font-family: var(--font-serif); }
+  .font-display { font-family: var(--font-display); }
+  .font-sans    { font-family: var(--font-sans); }
+  .font-numbers { font-family: var(--font-numbers); }
+
+  .gold-divider {
+    height: 1px;
+    width: 60px;
+    background: var(--accent);
+  }
+
+  .eyebrow {
+    font-family: var(--font-numbers);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .fade-in-up {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    will-change: opacity, transform;
+  }
+  .fade-in-up.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
+  }
+  .marquee-pause:hover .animate-marquee { animation-play-state: paused; }
+
+  @keyframes bounceDown {
+    0%, 100% { transform: translateY(0); opacity: 0.7; }
+    50%      { transform: translateY(8px); opacity: 1; }
+  }
+  .animate-bounce-down { animation: bounceDown 1.8s ease-in-out infinite; }
+}
