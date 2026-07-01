@@ -69,7 +69,7 @@ function sanitize(val: string): string {
   return val.replace(/[<>"'&]/g, "").trim();
 }
 
-export function DiasporaPage() {
+function DiasporaPage() {
   // Exchange calculator states
   const [kesAmount, setKesAmount] = useState<number>(320000);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>("USD");

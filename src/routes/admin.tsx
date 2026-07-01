@@ -40,7 +40,7 @@ export const Route = createFileRoute("/admin")({
 
 type Tab = "overview" | "inquiries" | "bookings" | "staff" | "plots";
 
-export function AdminPage() {
+function AdminPage() {
   const navigate = useNavigate();
 
   // Auth States

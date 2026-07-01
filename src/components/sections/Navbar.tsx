@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import logoIcon from "@/assets/logo-icon.png.asset.json";
+import logoIcon from "@/assets/logo-icon.png";
 
 
 type NavLink = { label: string; href?: string; to?: string };
@@ -41,12 +41,12 @@ export function Navbar() {
         solid ? "bg-primary shadow-[0_4px_24px_rgba(11,127,199,0.18)]" : "bg-transparent"
       }`}
     >
-      <div className="mx-auto max-w-7xl px-6 lg:px-10 h-[120px] flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2" aria-label="Gatepath Realtors — Home">
+      <div className="mx-auto max-w-7xl px-6 lg:px-10 h-[100px] flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 min-w-0 flex-1 mr-2" aria-label="Gatepath Realtors — Home">
           <img
-            src={logoIcon.url}
+            src={logoIcon}
             alt="Gatepath Realtors"
-            className="shrink-0 h-[88px] w-[88px] sm:h-[120px] sm:w-[120px] lg:h-[140px] lg:w-[140px]"
+            className="shrink-0 h-[64px] w-[64px] sm:h-[72px] sm:w-[72px] lg:h-[80px] lg:w-[80px]"
             style={{
               objectFit: "contain",
               display: "block",

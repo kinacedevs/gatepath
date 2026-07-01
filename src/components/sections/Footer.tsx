@@ -1,6 +1,6 @@
 import { Facebook, Instagram, Music2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import logoIcon from "@/assets/logo-icon.png.asset.json";
+import logoIcon from "@/assets/logo-icon.png";
 
 
 const locations = [
@@ -16,7 +16,7 @@ export function Footer() {
         <div>
           <Link to="/" aria-label="Gatepath Realtors — Home" className="flex items-center gap-3">
             <img
-              src={logoIcon.url}
+              src={logoIcon}
               alt="Gatepath Realtors"
               style={{
                 height: 64,

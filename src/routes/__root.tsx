@@ -10,7 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { InquiryProvider } from "@/context/InquiryContext";
-import logoIcon from "@/assets/logo-icon.png.asset.json";
+import logoIcon from "@/assets/logo-icon.png";
 
 
 function NotFoundComponent() {
@@ -90,8 +90,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f65cc7c1-9682-48f1-b644-1287deb79a53/id-preview-358fba6a--50066243-621a-4e2e-a38a-a86a151bbde0.lovable.app-1779732432810.png" },
     ],
     links: [
-      { rel: "icon", type: "image/png", href: logoIcon.url },
-      { rel: "apple-touch-icon", href: logoIcon.url },
+      { rel: "icon", type: "image/png", href: logoIcon },
+      { rel: "apple-touch-icon", href: logoIcon },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

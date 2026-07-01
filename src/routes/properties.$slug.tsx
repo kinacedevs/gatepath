@@ -20,6 +20,7 @@ export const Route = createFileRoute("/properties/$slug")({
       .single();
 
     if (phaseErr || !dbPhase) {
+      console.error("[Gatepath Loader Error] Slug:", params.slug, "Error:", phaseErr);
       throw notFound();
     }
 

@@ -1,6 +1,6 @@
 import { Linkedin, Facebook, Instagram } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
-import ceoJoe from "@/assets/ceo-joe-muchiri.jpg.asset.json";
+import ceoJoe from "@/assets/ceo-joe-muchiri.jpg";
 
 export function CeoSection() {
   return (
@@ -9,7 +9,7 @@ export function CeoSection() {
         <Reveal className="relative mx-auto lg:mx-0">
           <div style={{ position: "relative", width: "100%", maxWidth: 460 }}>
             <img
-              src={ceoJoe.url}
+              src={ceoJoe}
               alt="Joe Muchiri — CEO & Managing Director, Gatepath Realtors"
               style={{
                 width: "100%",

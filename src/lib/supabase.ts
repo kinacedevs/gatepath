@@ -6,13 +6,20 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = (import.meta.env?.VITE_SUPABASE_URL || (typeof process !== "undefined" ? process.env?.VITE_SUPABASE_URL : "") || "") as string;
+const supabaseAnonKey = (import.meta.env?.VITE_SUPABASE_ANON_KEY || (typeof process !== "undefined" ? process.env?.VITE_SUPABASE_ANON_KEY : "") || "") as string;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error(
     "[Gatepath] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. " +
       "Add them to .dev.vars for local dev, and to Cloudflare env for production."
+  );
+} else {
+  console.log(
+    "[Gatepath Supabase Init] URL:",
+    supabaseUrl ? "Defined" : "MISSING",
+    "Key:",
+    supabaseAnonKey ? "Defined" : "MISSING"
   );
 }
 
