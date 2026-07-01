@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ThankYouRouteImport } from './routes/thank-you'
 import { Route as PaymentRouteImport } from './routes/payment'
 import { Route as InquireRouteImport } from './routes/inquire'
+import { Route as DiasporaRouteImport } from './routes/diaspora'
 import { Route as BookVisitRouteImport } from './routes/book-visit'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PropertiesIndexRouteImport } from './routes/properties.index'
@@ -30,6 +31,11 @@ const PaymentRoute = PaymentRouteImport.update({
 const InquireRoute = InquireRouteImport.update({
   id: '/inquire',
   path: '/inquire',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiasporaRoute = DiasporaRouteImport.update({
+  id: '/diaspora',
+  path: '/diaspora',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookVisitRoute = BookVisitRouteImport.update({
@@ -56,6 +62,7 @@ const PropertiesSlugRoute = PropertiesSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/book-visit': typeof BookVisitRoute
+  '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
   '/payment': typeof PaymentRoute
   '/thank-you': typeof ThankYouRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/book-visit': typeof BookVisitRoute
+  '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
   '/payment': typeof PaymentRoute
   '/thank-you': typeof ThankYouRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/book-visit': typeof BookVisitRoute
+  '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
   '/payment': typeof PaymentRoute
   '/thank-you': typeof ThankYouRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/book-visit'
+    | '/diaspora'
     | '/inquire'
     | '/payment'
     | '/thank-you'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/book-visit'
+    | '/diaspora'
     | '/inquire'
     | '/payment'
     | '/thank-you'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/book-visit'
+    | '/diaspora'
     | '/inquire'
     | '/payment'
     | '/thank-you'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BookVisitRoute: typeof BookVisitRoute
+  DiasporaRoute: typeof DiasporaRoute
   InquireRoute: typeof InquireRoute
   PaymentRoute: typeof PaymentRoute
   ThankYouRoute: typeof ThankYouRoute
@@ -142,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/inquire'
       fullPath: '/inquire'
       preLoaderRoute: typeof InquireRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diaspora': {
+      id: '/diaspora'
+      path: '/diaspora'
+      fullPath: '/diaspora'
+      preLoaderRoute: typeof DiasporaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book-visit': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookVisitRoute: BookVisitRoute,
+  DiasporaRoute: DiasporaRoute,
   InquireRoute: InquireRoute,
   PaymentRoute: PaymentRoute,
   ThankYouRoute: ThankYouRoute,
