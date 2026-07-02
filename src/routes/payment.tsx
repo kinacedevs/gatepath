@@ -67,12 +67,21 @@ function PaymentPage() {
       alert("Payment system loading. Please try again in a moment.");
       return;
     }
+    // Map our method selection to Paystack channel slugs
+    const channels =
+      method === "mpesa"
+        ? ["mobile_money"]
+        : method === "card"
+          ? ["card"]
+          : ["bank", "card"];
+
     const handler = PaystackPop.setup({
       key: PAYSTACK_KEY,
       email: form.email,
       amount: deposit * 100,
       currency: "KES",
       ref: `GR-${form.plotNumber}-${Date.now()}`,
+      channels,
       metadata: {
         custom_fields: [
           { display_name: "Buyer Name", variable_name: "buyer_name", value: form.fullName },
