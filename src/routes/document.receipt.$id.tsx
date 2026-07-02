@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Printer, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
 
 export const Route = createFileRoute("/document/receipt/$id")({
   component: ReceiptDocumentPage,
@@ -126,13 +127,13 @@ function ReceiptDocumentPage() {
         
         {/* Subtle Watermark logo background */}
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none">
-          <img src="/logo-icon.png" alt="" className="w-96 h-96 object-contain" />
+          <img src={logoIcon} alt="" className="w-96 h-96 object-contain" />
         </div>
 
         {/* Receipt Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-8 border-b border-[#E5E0D8]">
           <div className="flex items-center gap-3">
-            <img src="/logo-icon.png" alt="Logo" className="w-12 h-12 object-contain" />
+            <img src={logoIcon} alt="Logo" className="w-12 h-12 object-contain" />
             <div>
               <h1 className="font-serif font-bold text-xl md:text-2xl text-[#0B7FC7] tracking-tight">
                 GATEPATH REALTORS

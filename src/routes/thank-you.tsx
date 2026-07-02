@@ -44,12 +44,84 @@ function ThankYouPage() {
   useEffect(() => {
     async function fetchTransactionDetails() {
       if (!ref) return;
-      const { data: payment } = await supabase
+
+      // 1. Check if payment already exists
+      let { data: payment } = await supabase
         .from("payments")
         .select("*")
         .eq("paystack_reference", ref)
         .maybeSingle();
 
+      // 2. If it does not exist, reconcile client-side (helps local testing without webhooks)
+      if (!payment) {
+        const plotNum = plot ? parseInt(plot) : null;
+        let inquiry = null;
+
+        if (plotNum) {
+          const { data: matched } = await supabase
+            .from("inquiries")
+            .select("*")
+            .eq("plot_number_ref", plotNum)
+            .eq("phase_name", phase || "")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          inquiry = matched;
+        }
+
+        // Create transaction records
+        if (inquiry) {
+          const { data: createdPayment } = await supabase
+            .from("payments")
+            .insert({
+              inquiry_id: inquiry.id,
+              paystack_reference: ref,
+              amount: amountNum,
+              deposit_amount: amountNum,
+              loan_period_months: form.loanPeriod || 6,
+              payment_method: form.paymentMethod || "card",
+              status: "success",
+            })
+            .select("*")
+            .single();
+
+          payment = createdPayment;
+
+          if (payment) {
+            // Create agreement
+            const { data: ag } = await supabase
+              .from("agreements")
+              .insert({
+                inquiry_id: inquiry.id,
+                payment_id: payment.id,
+                ceo_signed: false,
+              })
+              .select("*")
+              .single();
+
+            // Create booking
+            await supabase
+              .from("bookings")
+              .insert({
+                inquiry_id: inquiry.id,
+                visit_date: form.visitDate || new Date(Date.now() + 86400000).toISOString().split("T")[0],
+                visit_time: form.visitTime || "morning",
+                attendees: parseInt(form.attendees) || 1,
+                visit_notes: form.visitNotes || null,
+                status: "pending",
+              });
+
+            // Update the plot status to booked in plots table
+            await supabase
+              .from("plots")
+              .update({ status: "booked" })
+              .eq("plot_number", plotNum)
+              .eq("phase_name", phase || "");
+          }
+        }
+      }
+
+      // 3. Load payment and agreement records
       if (payment) {
         setPaymentRecord(payment);
         const { data: agreement } = await supabase
@@ -63,7 +135,7 @@ function ThankYouPage() {
       }
     }
     fetchTransactionDetails();
-  }, [ref]);
+  }, [ref, plot, phase, amountNum, form]);
 
   const amountNum = Number(amount) || 0;
 

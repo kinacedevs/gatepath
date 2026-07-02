@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Printer, ShieldCheck, ArrowLeft, Loader2, Award } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
 
 export const Route = createFileRoute("/document/agreement/$id")({
   component: AgreementDocumentPage,
@@ -133,7 +134,7 @@ function AgreementDocumentPage() {
         
         {/* Header */}
         <div className="text-center pb-8 border-b border-[#E5E0D8] mb-10">
-          <img src="/logo-icon.png" alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" />
+          <img src={logoIcon} alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" />
           <h1 className="font-serif font-bold text-2xl text-[#0B7FC7] tracking-tight uppercase">
             Agreement for Sale of Land
           </h1>
