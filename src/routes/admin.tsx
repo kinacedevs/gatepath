@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Edit2,
   CheckCircle,
+  BookOpen,
 } from "lucide-react";
 import type {
   Inquiry,
@@ -28,6 +29,7 @@ import type {
   Agreement,
   AdminUser,
   Phase,
+  BlogPost,
   Plot,
 } from "@/lib/types";
 
@@ -38,7 +40,7 @@ export const Route = createFileRoute("/admin")({
   }),
 });
 
-type Tab = "overview" | "inquiries" | "bookings" | "staff" | "plots";
+type Tab = "overview" | "inquiries" | "bookings" | "staff" | "plots" | "blog";
 
 function AdminPage() {
   const navigate = useNavigate();
@@ -64,6 +66,19 @@ function AdminPage() {
   const [staff, setStaff] = useState<AdminUser[]>([]);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [plots, setPlots] = useState<Plot[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+
+  // Blog Management States
+  const [creatingBlog, setCreatingBlog] = useState(false);
+  const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
+  const [blogTitle, setBlogTitle] = useState("");
+  const [blogSlug, setBlogSlug] = useState("");
+  const [blogCategory, setBlogCategory] = useState<"Investment" | "Legal" | "Buying Guide" | "Company News">("Investment");
+  const [blogSummary, setBlogSummary] = useState("");
+  const [blogContent, setBlogContent] = useState("");
+  const [blogTags, setBlogTags] = useState("");
+  const [blogImage, setBlogImage] = useState("");
+  const [blogStatus, setBlogStatus] = useState<"draft" | "published">("published");
 
   // Selection states
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>("");
@@ -129,6 +144,7 @@ function AdminPage() {
         staffRes,
         phasesRes,
         plotsRes,
+        blogRes,
       ] = await Promise.all([
         supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
         supabase.from("bookings").select("*").order("created_at", { ascending: false }),
@@ -137,6 +153,7 @@ function AdminPage() {
         supabase.from("admin_users").select("*").order("role"),
         supabase.from("phases").select("*").order("name"),
         supabase.from("plots").select("*").order("plot_number"),
+        supabase.from("blog_posts").select("*").order("created_at", { ascending: false }),
       ]);
 
       setInquiries(inquiriesRes.data ?? []);
@@ -146,6 +163,7 @@ function AdminPage() {
       setStaff(staffRes.data ?? []);
       setPhases(phasesRes.data ?? []);
       setPlots(plotsRes.data ?? []);
+      setBlogPosts((blogRes.data as BlogPost[]) ?? []);
 
       if (phasesRes.data && phasesRes.data.length > 0) {
         setSelectedPhaseId(phasesRes.data[0].id);
@@ -335,6 +353,102 @@ function AdminPage() {
     }
   };
 
+  // Blog Management Handlers (CEO & Managers only)
+  const handleSaveBlogPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (adminRole === "agent") {
+      alert("Access Denied: Agents cannot manage blog posts.");
+      return;
+    }
+
+    const postData = {
+      title: blogTitle.trim(),
+      slug: blogSlug.trim() || blogTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+      category: blogCategory,
+      summary: blogSummary.trim(),
+      content: blogContent.trim(),
+      tags: blogTags.split(",").map((t) => t.trim()).filter(Boolean),
+      featured_image: blogImage.trim() || null,
+      status: blogStatus,
+      author_name: adminName || "Joe Muchiri",
+    };
+
+    if (editingBlog) {
+      // UPDATE
+      const { error } = await supabase
+        .from("blog_posts")
+        .update(postData)
+        .eq("id", editingBlog.id);
+
+      if (error) {
+        alert("Error updating blog post: " + error.message);
+      } else {
+        setEditingBlog(null);
+        setCreatingBlog(false);
+        loadAllData();
+      }
+    } else {
+      // INSERT
+      const { error } = await supabase
+        .from("blog_posts")
+        .insert(postData);
+
+      if (error) {
+        alert("Error creating blog post: " + error.message);
+      } else {
+        setCreatingBlog(false);
+        loadAllData();
+      }
+    }
+  };
+
+  const handleDeleteBlogPost = async (id: string) => {
+    if (adminRole === "agent") {
+      alert("Access Denied: Agents cannot delete blog posts.");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this blog post?")) return;
+
+    const { error } = await supabase
+      .from("blog_posts")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert("Error deleting post: " + error.message);
+    } else {
+      loadAllData();
+    }
+  };
+
+  const openCreateBlog = () => {
+    setEditingBlog(null);
+    setBlogTitle("");
+    setBlogSlug("");
+    setBlogCategory("Investment");
+    setBlogSummary("");
+    setBlogContent("");
+    setBlogTags("");
+    setBlogImage("");
+    setBlogStatus("published");
+    setCreatingBlog(true);
+  };
+
+  const openEditBlog = (post: BlogPost) => {
+    setEditingBlog(post);
+    setBlogTitle(post.title);
+    setBlogSlug(post.slug);
+    setBlogCategory(post.category);
+    setBlogSummary(post.summary);
+    setBlogContent(post.content);
+    setBlogTags(post.tags.join(", "));
+    setBlogImage(post.featured_image || "");
+    setBlogStatus(post.status);
+    setCreatingBlog(true);
+  };
+
   // 5. MEMOIZED STATS
   const stats = useMemo(() => {
     const totalRev = payments
@@ -494,6 +608,7 @@ function AdminPage() {
             { id: "inquiries", label: "Inquiries Queue", icon: FileText, count: stats.pendingInquiries },
             { id: "bookings", label: "Bookings & Site Visits", icon: Calendar },
             { id: "plots", label: "Plot Status Control", icon: MapPin },
+            { id: "blog", label: "Manage Blog Posts", icon: BookOpen },
             { id: "staff", label: "Staff & Roles", icon: Users },
           ].map((item) => {
             const Icon = item.icon;
@@ -912,6 +1027,95 @@ function AdminPage() {
               </div>
             </div>
           )}
+
+          {activeTab === "blog" && (
+            <div className="bg-white rounded-xl border border-[#E5E0D8] shadow-sm overflow-hidden animate-in fade-in duration-300">
+              <div className="p-6 border-b border-[#E5E0D8] flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif font-bold text-[20px] text-primary">Content Marketing & Blog Manager</h3>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">Create and publish optimization articles to boost SEO rank and feed Meta Ads campaigns.</p>
+                </div>
+                {adminRole !== "agent" && (
+                  <button
+                    onClick={openCreateBlog}
+                    className="flex items-center gap-2 bg-[#E8A020] text-white font-semibold text-[13px] px-5 py-2.5 rounded-lg hover:bg-[#C8861A] transition-all"
+                  >
+                    <Plus size={15} /> Add New Article
+                  </button>
+                )}
+              </div>
+
+              {blogPosts.length === 0 ? (
+                <div className="text-center py-16">
+                  <BookOpen size={48} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-muted-foreground text-[14px]">No articles found in the database system.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-[13px]">
+                    <thead>
+                      <tr className="bg-gray-50 text-muted-foreground border-b border-gray-150 uppercase tracking-wider text-[11px] font-semibold">
+                        <th className="py-4 px-6">Featured Image</th>
+                        <th className="py-4 px-6">Title & Summary</th>
+                        <th className="py-4 px-6">Category</th>
+                        <th className="py-4 px-6">Author</th>
+                        <th className="py-4 px-6">Status</th>
+                        <th className="py-4 px-6 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-sans">
+                      {blogPosts.map((post) => (
+                        <tr key={post.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="py-4 px-6 whitespace-nowrap">
+                            <div className="w-16 h-10 rounded overflow-hidden bg-gray-100 border border-gray-200">
+                              <img src={post.featured_image || ""} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 max-w-sm">
+                            <div className="font-semibold text-primary truncate">{post.title}</div>
+                            <div className="text-muted-foreground text-[12px] truncate mt-0.5">{post.summary}</div>
+                          </td>
+                          <td className="py-4 px-6 font-medium text-gray-700">{post.category}</td>
+                          <td className="py-4 px-6 text-gray-500">{post.author_name}</td>
+                          <td className="py-4 px-6">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${
+                              post.status === "published" 
+                                ? "bg-green-50 border border-green-200 text-green-700" 
+                                : "bg-yellow-50 border border-yellow-250 text-yellow-700"
+                            }`}>
+                              {post.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-right whitespace-nowrap">
+                            {adminRole !== "agent" ? (
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => openEditBlog(post)}
+                                  className="p-2 border border-gray-200 hover:border-[#E8A020] hover:text-[#E8A020] rounded-lg transition-all"
+                                  title="Edit"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteBlogPost(post.id)}
+                                  className="p-2 border border-gray-200 hover:border-red-500 hover:text-red-500 rounded-lg transition-all"
+                                  title="Delete"
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground italic text-[11px]">View only</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
 
@@ -1092,6 +1296,138 @@ function AdminPage() {
                   className="flex-1 py-2.5 bg-[#E8A020] text-white rounded-lg font-semibold text-[13px] hover:bg-[#C8861A]"
                 >
                   Save Status
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {creatingBlog && (
+        <div className="fixed inset-0 z-50 bg-[#06243A]/50 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-2xl rounded-2xl p-8 shadow-2xl border border-[#E5E0D8] max-h-[85vh] overflow-y-auto relative">
+            <button
+              onClick={() => setCreatingBlog(false)}
+              className="absolute top-6 right-6 text-muted-foreground hover:text-primary"
+            >
+              <X size={20} />
+            </button>
+
+            <h3 className="font-serif font-bold text-[24px] text-primary">
+              {editingBlog ? "Edit Blog Article" : "Create New Article"}
+            </h3>
+            <p className="text-[13px] text-muted-foreground mt-1">Publish SEO optimized guides and news updates to the blog section.</p>
+
+            <form onSubmit={handleSaveBlogPost} className="mt-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={blogTitle}
+                    onChange={(e) => setBlogTitle(e.target.value)}
+                    placeholder="e.g. How to Buy Land Safely"
+                    className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Slug (URL link)</label>
+                  <input
+                    type="text"
+                    value={blogSlug}
+                    onChange={(e) => setBlogSlug(e.target.value)}
+                    placeholder="e.g. how-to-buy-land-safely"
+                    className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Category</label>
+                  <select
+                    value={blogCategory}
+                    onChange={(e: any) => setBlogCategory(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px] bg-white"
+                  >
+                    <option value="Investment">Investment</option>
+                    <option value="Legal">Legal</option>
+                    <option value="Buying Guide">Buying Guide</option>
+                    <option value="Company News">Company News</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Status</label>
+                  <select
+                    value={blogStatus}
+                    onChange={(e: any) => setBlogStatus(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px] bg-white"
+                  >
+                    <option value="published">Published</option>
+                    <option value="draft">Draft</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Featured Image URL</label>
+                <input
+                  type="text"
+                  value={blogImage}
+                  onChange={(e) => setBlogImage(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Summary (1-2 sentences for preview card)</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={blogSummary}
+                  onChange={(e) => setBlogSummary(e.target.value)}
+                  placeholder="A brief overview to display on listing pages..."
+                  className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Content (Use double linebreaks to separate paragraphs)</label>
+                <textarea
+                  required
+                  rows={8}
+                  value={blogContent}
+                  onChange={(e) => setBlogContent(e.target.value)}
+                  placeholder="Write your article body here. Start lines with '### ' for section headers."
+                  className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px] font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Tags (Comma separated)</label>
+                <input
+                  type="text"
+                  value={blogTags}
+                  onChange={(e) => setBlogTags(e.target.value)}
+                  placeholder="e.g. Title Deeds, Legal, Diaspora"
+                  className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px]"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-[#E5E0D8]">
+                <button
+                  type="button"
+                  onClick={() => setCreatingBlog(false)}
+                  className="px-6 py-2.5 border border-[#D5D0C8] text-foreground rounded-lg font-semibold text-[13px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#E8A020] text-white rounded-lg font-semibold text-[13px] hover:bg-[#C8861A]"
+                >
+                  Save Post
                 </button>
               </div>
             </form>

@@ -7,7 +7,7 @@ import { InquiryStepper } from "@/components/InquiryStepper";
 import { PlotSummaryCard } from "@/components/inquiry/PlotSummaryCard";
 import { useInquiry } from "@/context/InquiryContext";
 
-const PAYSTACK_KEY = "pk_test_b0065a39ea3c50c3b60c0ab7a84832b0ea31080a";
+const PAYSTACK_KEY = (import.meta.env?.VITE_PAYSTACK_PUBLIC_KEY || "pk_test_b0065a39ea3c50c3b60c0ab7a84832b0ea31080a") as string;
 
 export const Route = createFileRoute("/payment")({
   component: PaymentPage,

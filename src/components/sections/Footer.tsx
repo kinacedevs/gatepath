@@ -55,7 +55,7 @@ export function Footer() {
         <div>
           <h4 className="font-numbers font-medium text-[11px] tracking-[0.3em] text-accent">QUICK LINKS</h4>
           <ul className="mt-5 space-y-3 text-[14px] text-white/70">
-            {[["Home","/"],["Properties","/properties"],["Locations","/properties"],["About Us","#about"],["Contact","#contact"]].map(([l,h]) => (
+            {[["Home","/"],["Properties","/properties"],["Locations","/properties"],["Blog","/blog"],["About Us","#about"],["Contact","#contact"]].map(([l,h]) => (
               <li key={l}>
                 {h.startsWith("/") ? (
                   <Link to={h} className="hover:text-accent hover:underline transition-colors">{l}</Link>

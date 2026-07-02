@@ -148,6 +148,21 @@ export type AdminUser = {
   created_at: string;
 };
 
+export type BlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  content: string;
+  featured_image: string | null;
+  category: "Investment" | "Legal" | "Buying Guide" | "Company News";
+  author_name: string;
+  tags: string[];
+  status: "draft" | "published";
+  created_at: string;
+  updated_at: string;
+};
+
 // ─── Insert types ─────────────────────────────────────────────────────────────
 
 export type InquiryInsert = Omit<Inquiry, "id" | "created_at" | "updated_at" | "status"> & {
@@ -206,6 +221,11 @@ export type Database = {
         Row: AdminUser;
         Insert: Omit<AdminUser, "created_at">;
         Update: Partial<Omit<AdminUser, "id" | "created_at">>;
+      };
+      blog_posts: {
+        Row: BlogPost;
+        Insert: Omit<BlogPost, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<BlogPost, "id" | "created_at" | "updated_at">>;
       };
     };
   };

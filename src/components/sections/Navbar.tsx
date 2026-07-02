@@ -11,6 +11,7 @@ const links: NavLink[] = [
   { label: "Properties", to: "/properties" },
   { label: "Diaspora", to: "/diaspora" },
   { label: "Locations", href: "/#locations" },
+  { label: "Blog", to: "/blog" },
   { label: "About Us", href: "/#about" },
   { label: "Contact", href: "/#contact" },
 ];

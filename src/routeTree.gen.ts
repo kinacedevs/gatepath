@@ -17,7 +17,9 @@ import { Route as BookVisitRouteImport } from './routes/book-visit'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PropertiesIndexRouteImport } from './routes/properties.index'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as PropertiesSlugRouteImport } from './routes/properties.$slug'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 
 const ThankYouRoute = ThankYouRouteImport.update({
   id: '/thank-you',
@@ -59,9 +61,19 @@ const PropertiesIndexRoute = PropertiesIndexRouteImport.update({
   path: '/properties/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PropertiesSlugRoute = PropertiesSlugRouteImport.update({
   id: '/properties/$slug',
   path: '/properties/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -73,7 +85,9 @@ export interface FileRoutesByFullPath {
   '/inquire': typeof InquireRoute
   '/payment': typeof PaymentRoute
   '/thank-you': typeof ThankYouRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -84,7 +98,9 @@ export interface FileRoutesByTo {
   '/inquire': typeof InquireRoute
   '/payment': typeof PaymentRoute
   '/thank-you': typeof ThankYouRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
+  '/blog': typeof BlogIndexRoute
   '/properties': typeof PropertiesIndexRoute
 }
 export interface FileRoutesById {
@@ -96,7 +112,9 @@ export interface FileRoutesById {
   '/inquire': typeof InquireRoute
   '/payment': typeof PaymentRoute
   '/thank-you': typeof ThankYouRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
 }
 export interface FileRouteTypes {
@@ -109,7 +127,9 @@ export interface FileRouteTypes {
     | '/inquire'
     | '/payment'
     | '/thank-you'
+    | '/blog/$slug'
     | '/properties/$slug'
+    | '/blog/'
     | '/properties/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -120,7 +140,9 @@ export interface FileRouteTypes {
     | '/inquire'
     | '/payment'
     | '/thank-you'
+    | '/blog/$slug'
     | '/properties/$slug'
+    | '/blog'
     | '/properties'
   id:
     | '__root__'
@@ -131,7 +153,9 @@ export interface FileRouteTypes {
     | '/inquire'
     | '/payment'
     | '/thank-you'
+    | '/blog/$slug'
     | '/properties/$slug'
+    | '/blog/'
     | '/properties/'
   fileRoutesById: FileRoutesById
 }
@@ -143,7 +167,9 @@ export interface RootRouteChildren {
   InquireRoute: typeof InquireRoute
   PaymentRoute: typeof PaymentRoute
   ThankYouRoute: typeof ThankYouRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   PropertiesSlugRoute: typeof PropertiesSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   PropertiesIndexRoute: typeof PropertiesIndexRoute
 }
 
@@ -205,11 +231,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropertiesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/properties/$slug': {
       id: '/properties/$slug'
       path: '/properties/$slug'
       fullPath: '/properties/$slug'
       preLoaderRoute: typeof PropertiesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -223,7 +263,9 @@ const rootRouteChildren: RootRouteChildren = {
   InquireRoute: InquireRoute,
   PaymentRoute: PaymentRoute,
   ThankYouRoute: ThankYouRoute,
+  BlogSlugRoute: BlogSlugRoute,
   PropertiesSlugRoute: PropertiesSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
   PropertiesIndexRoute: PropertiesIndexRoute,
 }
 export const routeTree = rootRouteImport
