@@ -5,6 +5,7 @@ import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { useInquiry } from "@/context/InquiryContext";
+import { supabase } from "@/lib/supabase";
 
 type Search = {
   ref?: string;
@@ -35,7 +36,34 @@ function ThankYouPage() {
   const { ref, plot, phase, name, amount } = Route.useSearch();
   const { form } = useInquiry();
   const [animate, setAnimate] = useState(false);
+  const [paymentRecord, setPaymentRecord] = useState<any>(null);
+  const [agreementRecord, setAgreementRecord] = useState<any>(null);
+
   useEffect(() => { setTimeout(() => setAnimate(true), 50); }, []);
+
+  useEffect(() => {
+    async function fetchTransactionDetails() {
+      if (!ref) return;
+      const { data: payment } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("paystack_reference", ref)
+        .maybeSingle();
+
+      if (payment) {
+        setPaymentRecord(payment);
+        const { data: agreement } = await supabase
+          .from("agreements")
+          .select("*")
+          .eq("payment_id", payment.id)
+          .maybeSingle();
+        if (agreement) {
+          setAgreementRecord(agreement);
+        }
+      }
+    }
+    fetchTransactionDetails();
+  }, [ref]);
 
   const amountNum = Number(amount) || 0;
 
@@ -104,20 +132,91 @@ function ThankYouPage() {
             <p style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "#5A5A5A", marginTop: 8 }}>
               Your signed documents will appear here once the CEO approves your payment. You will also receive them by email and WhatsApp.
             </p>
-            {[
-              { icon: Receipt, label: `Payment Receipt — Plot #${plot || form.plotNumber}` },
-              { icon: FileText, label: "Purchase Agreement" },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="mt-4 flex items-center justify-between" style={{ padding: "12px 16px", border: "1px solid #E5E0D8", borderRadius: 8 }}>
-                <div className="flex items-center gap-3">
-                  <Icon size={24} style={{ color: "#E8A020" }} />
-                  <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 500, fontSize: 14, color: "#1C1C1C" }}>{label}</span>
-                </div>
-                <span style={{ background: "#FEF3C7", color: "#92400E", fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 999 }}>
-                  Awaiting Signature
+            {/* Receipt */}
+            <div className="mt-4 flex items-center justify-between" style={{ padding: "12px 16px", border: "1px solid #E5E0D8", borderRadius: 8 }}>
+              <div className="flex items-center gap-3">
+                <Receipt size={24} style={{ color: "#E8A020" }} />
+                <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 500, fontSize: 14, color: "#1C1C1C" }}>
+                  Payment Receipt — Plot #{plot || form.plotNumber}
                 </span>
               </div>
-            ))}
+              {paymentRecord ? (
+                <Link
+                  to="/document/receipt/$id"
+                  params={{ id: paymentRecord.id }}
+                  style={{
+                    background: "rgba(34,197,94,0.1)",
+                    color: "#22C55E",
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    textDecoration: "none",
+                  }}
+                  className="hover:bg-[rgba(34,197,94,0.15)] transition-all"
+                >
+                  View & Print Receipt ✓
+                </Link>
+              ) : (
+                <span style={{ background: "#FEF3C7", color: "#92400E", fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 999 }}>
+                  Generating...
+                </span>
+              )}
+            </div>
+
+            {/* Agreement */}
+            <div className="mt-4 flex items-center justify-between" style={{ padding: "12px 16px", border: "1px solid #E5E0D8", borderRadius: 8 }}>
+              <div className="flex items-center gap-3">
+                <FileText size={24} style={{ color: "#E8A020" }} />
+                <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 500, fontSize: 14, color: "#1C1C1C" }}>
+                  Purchase Agreement
+                </span>
+              </div>
+              {agreementRecord ? (
+                agreementRecord.ceo_signed ? (
+                  <Link
+                    to="/document/agreement/$id"
+                    params={{ id: agreementRecord.inquiry_id }}
+                    style={{
+                      background: "rgba(34,197,94,0.1)",
+                      color: "#22C55E",
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: "6px 14px",
+                      borderRadius: 8,
+                      textDecoration: "none",
+                    }}
+                    className="hover:bg-[rgba(34,197,94,0.15)] transition-all"
+                  >
+                    View Signed Agreement ✓
+                  </Link>
+                ) : (
+                  <Link
+                    to="/document/agreement/$id"
+                    params={{ id: agreementRecord.inquiry_id }}
+                    style={{
+                      background: "#FEF3C7",
+                      color: "#92400E",
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: "6px 14px",
+                      borderRadius: 8,
+                      textDecoration: "none",
+                    }}
+                    className="hover:bg-[#FDE68A] transition-all"
+                  >
+                    View Draft (Pending CEO)
+                  </Link>
+                )
+              ) : (
+                <span style={{ background: "#F3F4F6", color: "#4B5563", fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 999 }}>
+                  Awaiting Review
+                </span>
+              )}
+            </div>
             <p style={{ fontFamily: "Inter, sans-serif", fontStyle: "italic", fontSize: 13, color: "#5A5A5A", marginTop: 16 }}>
               You will receive an email and WhatsApp notification the moment these are ready.
             </p>

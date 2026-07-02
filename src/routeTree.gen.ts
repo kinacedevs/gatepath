@@ -20,6 +20,8 @@ import { Route as PropertiesIndexRouteImport } from './routes/properties.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as PropertiesSlugRouteImport } from './routes/properties.$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as DocumentReceiptIdRouteImport } from './routes/document.receipt.$id'
+import { Route as DocumentAgreementIdRouteImport } from './routes/document.agreement.$id'
 
 const ThankYouRoute = ThankYouRouteImport.update({
   id: '/thank-you',
@@ -76,6 +78,16 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentReceiptIdRoute = DocumentReceiptIdRouteImport.update({
+  id: '/document/receipt/$id',
+  path: '/document/receipt/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentAgreementIdRoute = DocumentAgreementIdRouteImport.update({
+  id: '/document/agreement/$id',
+  path: '/document/agreement/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +101,8 @@ export interface FileRoutesByFullPath {
   '/properties/$slug': typeof PropertiesSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
+  '/document/agreement/$id': typeof DocumentAgreementIdRoute
+  '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +116,8 @@ export interface FileRoutesByTo {
   '/properties/$slug': typeof PropertiesSlugRoute
   '/blog': typeof BlogIndexRoute
   '/properties': typeof PropertiesIndexRoute
+  '/document/agreement/$id': typeof DocumentAgreementIdRoute
+  '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +132,8 @@ export interface FileRoutesById {
   '/properties/$slug': typeof PropertiesSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
+  '/document/agreement/$id': typeof DocumentAgreementIdRoute
+  '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +149,8 @@ export interface FileRouteTypes {
     | '/properties/$slug'
     | '/blog/'
     | '/properties/'
+    | '/document/agreement/$id'
+    | '/document/receipt/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +164,8 @@ export interface FileRouteTypes {
     | '/properties/$slug'
     | '/blog'
     | '/properties'
+    | '/document/agreement/$id'
+    | '/document/receipt/$id'
   id:
     | '__root__'
     | '/'
@@ -157,6 +179,8 @@ export interface FileRouteTypes {
     | '/properties/$slug'
     | '/blog/'
     | '/properties/'
+    | '/document/agreement/$id'
+    | '/document/receipt/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +195,8 @@ export interface RootRouteChildren {
   PropertiesSlugRoute: typeof PropertiesSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   PropertiesIndexRoute: typeof PropertiesIndexRoute
+  DocumentAgreementIdRoute: typeof DocumentAgreementIdRoute
+  DocumentReceiptIdRoute: typeof DocumentReceiptIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +278,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/document/receipt/$id': {
+      id: '/document/receipt/$id'
+      path: '/document/receipt/$id'
+      fullPath: '/document/receipt/$id'
+      preLoaderRoute: typeof DocumentReceiptIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/document/agreement/$id': {
+      id: '/document/agreement/$id'
+      path: '/document/agreement/$id'
+      fullPath: '/document/agreement/$id'
+      preLoaderRoute: typeof DocumentAgreementIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -267,6 +307,8 @@ const rootRouteChildren: RootRouteChildren = {
   PropertiesSlugRoute: PropertiesSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   PropertiesIndexRoute: PropertiesIndexRoute,
+  DocumentAgreementIdRoute: DocumentAgreementIdRoute,
+  DocumentReceiptIdRoute: DocumentReceiptIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

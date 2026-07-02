@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import {
@@ -1232,20 +1232,46 @@ function AdminPage() {
                   const signed = agreements.some(
                     (a) => a.inquiry_id === selectedInquiry.id && a.ceo_signed
                   );
-                  return signed ? (
-                    <div className="flex items-center gap-2 text-green-700 bg-green-50 px-4 py-3 rounded-lg border border-green-200 font-semibold text-[14px]">
-                      <Check size={18} /> Purchase Agreement digitally signed by CEO
-                    </div>
-                  ) : adminRole === "ceo" ? (
-                    <button
-                      onClick={() => handleCeoSignature(selectedInquiry.id)}
-                      className="px-6 py-3 bg-[#E8A020] text-white hover:bg-[#C8861A] rounded-lg text-[14px] font-semibold transition-all flex items-center gap-2"
-                    >
-                      <PenTool size={16} /> Sign Purchase Agreement (CEO e-Signature)
-                    </button>
-                  ) : (
-                    <div className="text-[14px] text-muted-foreground italic">
-                      Awaiting CEO e-signature. Only the CEO can sign agreements.
+                  const linkedPayment = payments.find(
+                    (p) => p.inquiry_id === selectedInquiry.id && p.status === "success"
+                  );
+                  return (
+                    <div className="flex flex-wrap items-center gap-3">
+                      {linkedPayment && (
+                        <Link
+                          to="/document/receipt/$id"
+                          params={{ id: linkedPayment.id }}
+                          target="_blank"
+                          className="px-4 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-lg text-[13px] font-semibold transition-all flex items-center gap-1.5"
+                        >
+                          View Receipt
+                        </Link>
+                      )}
+                      <Link
+                        to="/document/agreement/$id"
+                        params={{ id: selectedInquiry.id }}
+                        target="_blank"
+                        className="px-4 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-lg text-[13px] font-semibold transition-all flex items-center gap-1.5"
+                      >
+                        {signed ? "View Signed Agreement" : "View Draft Agreement"}
+                      </Link>
+
+                      {signed ? (
+                        <div className="flex items-center gap-2 text-green-700 bg-green-50 px-4 py-2.5 rounded-lg border border-green-200 font-semibold text-[13px]">
+                          <Check size={16} /> Signed ✓
+                        </div>
+                      ) : adminRole === "ceo" ? (
+                        <button
+                          onClick={() => handleCeoSignature(selectedInquiry.id)}
+                          className="px-6 py-2.5 bg-[#E8A020] text-white hover:bg-[#C8861A] rounded-lg text-[13px] font-semibold transition-all flex items-center gap-2"
+                        >
+                          <PenTool size={14} /> Sign Agreement
+                        </button>
+                      ) : (
+                        <div className="text-[13px] text-muted-foreground italic">
+                          Awaiting CEO Signature
+                        </div>
+                      )}
                     </div>
                   );
                 })()
