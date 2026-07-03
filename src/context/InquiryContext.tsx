@@ -60,6 +60,10 @@ export interface InquiryFormData {
   depositAmount: number;
   loanPeriod: number;
   paymentMethod: string;
+
+  // ── Step 4 — Reservation hold option ──
+  reservePlot: boolean;
+  transportMode: "air" | "road" | "self" | "";
 }
 
 const defaultForm: InquiryFormData = {
@@ -102,6 +106,8 @@ const defaultForm: InquiryFormData = {
   depositAmount: 0,
   loanPeriod: 6,
   paymentMethod: "mpesa",
+  reservePlot: false,
+  transportMode: "",
 };
 
 const SESSION_KEY = "gatepath_inquiry_v2";

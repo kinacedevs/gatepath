@@ -31,15 +31,17 @@ function PaymentPage() {
   const { form, setForm } = useInquiry();
   const navigate = useNavigate();
   const totalPrice = form.plotPrice;
-  const minDeposit = Math.round(totalPrice * 0.1);
-  const defaultDeposit = Math.round(totalPrice * 0.3);
+  const minDeposit = form.reservePlot ? 15000 : Math.round(totalPrice * 0.1);
+  const defaultDeposit = form.reservePlot ? 15000 : Math.round(totalPrice * 0.3);
 
   const [deposit, setDeposit] = useState(form.depositAmount || defaultDeposit || 0);
   const [period, setPeriod] = useState(form.loanPeriod || 12);
   const [method, setMethod] = useState(form.paymentMethod || "mpesa");
 
   useEffect(() => {
-    if (!form.visitDate) navigate({ to: "/book-visit" });
+    // If fullName is missing, go back to inquire. If not reserving and no visit date, go back to book-visit.
+    if (!form.fullName) navigate({ to: "/inquire" });
+    else if (!form.reservePlot && !form.visitDate) navigate({ to: "/book-visit" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -132,11 +134,14 @@ function PaymentPage() {
 
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "40px 24px" }}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-            {/* Calculator */}
             <div style={{ background: "#FFFFFF", borderRadius: 12, padding: "36px 28px", boxShadow: "0 4px 24px rgba(11,127,199,0.08)", border: "1px solid #E5E0D8" }}>
-              <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 600, fontSize: 11, color: "#E8A020", letterSpacing: "0.2em" }}>PAYMENT CALCULATOR</div>
+              <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 600, fontSize: 11, color: "#E8A020", letterSpacing: "0.2em" }}>
+                {form.reservePlot ? "RESERVATION DEPOSIT HOLD" : "PAYMENT CALCULATOR"}
+              </div>
               <p style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "#5A5A5A", marginTop: 6 }}>
-                Plan your payments before committing. Adjust the sliders to see monthly costs.
+                {form.reservePlot
+                  ? "Select the amount you want to pay to hold this plot. The minimum required fee is Ksh 15,000. This secures your plot for 14 days."
+                  : "Plan your payments before committing. Adjust the sliders to see monthly costs."}
               </p>
 
               {/* Plot price */}
@@ -153,9 +158,11 @@ function PaymentPage() {
               {/* Deposit */}
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-2">
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 500, color: "#1C1C1C" }}>Your Deposit Amount *</div>
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 500, color: "#1C1C1C" }}>
+                    {form.reservePlot ? "Your Reservation Payment Amount *" : "Your Deposit Amount *"}
+                  </div>
                   <span style={{ background: "#E8A020", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 12, padding: "4px 12px", borderRadius: 999 }}>
-                    {pct}% deposit
+                    {form.reservePlot ? "Reservation Hold Fee" : `${pct}% deposit`}
                   </span>
                 </div>
                 <input
@@ -168,7 +175,11 @@ function PaymentPage() {
                   style={{ width: "100%", accentColor: "#0B7FC7" }}
                 />
                 <div className="flex justify-between mt-1" style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "#5A5A5A" }}>
-                  <span>Min: 10% (Ksh {minDeposit.toLocaleString()})</span>
+                  <span>
+                    {form.reservePlot
+                      ? `Min: Ksh 15,000`
+                      : `Min: 10% (Ksh ${minDeposit.toLocaleString()})`}
+                  </span>
                   <span>Full payment (Ksh {totalPrice.toLocaleString()})</span>
                 </div>
                 <input

@@ -6,6 +6,7 @@ import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { useInquiry } from "@/context/InquiryContext";
 import { supabase } from "@/lib/supabase";
+import { sendReservationNotificationFn } from "@/lib/notifications";
 
 type Search = {
   ref?: string;
@@ -38,6 +39,8 @@ function ThankYouPage() {
   const [animate, setAnimate] = useState(false);
   const [paymentRecord, setPaymentRecord] = useState<any>(null);
   const [agreementRecord, setAgreementRecord] = useState<any>(null);
+  const [inquiryRecord, setInquiryRecord] = useState<any>(null);
+  const [bookingRecord, setBookingRecord] = useState<any>(null);
 
   useEffect(() => { setTimeout(() => setAnimate(true), 50); }, []);
 
@@ -89,25 +92,24 @@ function ThankYouPage() {
 
           if (payment) {
             // Create agreement
-            const { data: ag } = await supabase
+            await supabase
               .from("agreements")
               .insert({
                 inquiry_id: inquiry.id,
                 payment_id: payment.id,
                 ceo_signed: false,
-              })
-              .select("*")
-              .single();
+              });
 
-            // Create booking
+            // Create booking if they specified a date, or if they wanted to hold and booked transport
             await supabase
               .from("bookings")
               .insert({
                 inquiry_id: inquiry.id,
-                visit_date: form.visitDate || new Date(Date.now() + 86400000).toISOString().split("T")[0],
-                visit_time: form.visitTime || "morning",
+                visit_date: form.visitDate || null,
+                visit_time: form.visitTime || null,
                 attendees: parseInt(form.attendees) || 1,
                 visit_notes: form.visitNotes || null,
+                transport_mode: form.transportMode || null,
                 status: "pending",
               });
 
@@ -117,13 +119,53 @@ function ThankYouPage() {
               .update({ status: "booked" })
               .eq("plot_number", plotNum)
               .eq("phase_name", phase || "");
+
+            // Send email & SMS notifications
+            try {
+              sendReservationNotificationFn({
+                buyerName: inquiry.client_full_name,
+                buyerEmail: inquiry.client_email,
+                buyerPhone: inquiry.client_phone,
+                plotNumber: String(inquiry.plot_number_ref),
+                phaseName: inquiry.phase_name || "",
+                amount: amountNum,
+                reference: ref,
+                isHold: inquiry.payment_preference === "reserve",
+                visitDate: form.visitDate || undefined,
+                transportMode: form.transportMode || undefined,
+              });
+            } catch (err) {
+              console.error("[Gatepath] Failed to send notification:", err);
+            }
           }
         }
       }
 
-      // 3. Load payment and agreement records
+      // 3. Load payment, inquiry, booking, and agreement records
       if (payment) {
         setPaymentRecord(payment);
+
+        // Load inquiry
+        const { data: inq } = await supabase
+          .from("inquiries")
+          .select("*")
+          .eq("id", payment.inquiry_id)
+          .maybeSingle();
+        if (inq) {
+          setInquiryRecord(inq);
+        }
+
+        // Load booking
+        const { data: book } = await supabase
+          .from("bookings")
+          .select("*")
+          .eq("inquiry_id", payment.inquiry_id)
+          .maybeSingle();
+        if (book) {
+          setBookingRecord(book);
+        }
+
+        // Load agreement
         const { data: agreement } = await supabase
           .from("agreements")
           .select("*")
@@ -138,6 +180,19 @@ function ThankYouPage() {
   }, [ref, plot, phase, amountNum, form]);
 
   const amountNum = Number(amount) || 0;
+
+  const isReserve = inquiryRecord?.payment_preference === "reserve" || form.reservePlot;
+  const clientName = inquiryRecord?.client_full_name || name || form.fullName || "Valued Client";
+  const plotNum = inquiryRecord?.plot_number_ref || plot || form.plotNumber;
+  const phaseName = inquiryRecord?.phase_name || phase || form.phaseName;
+  const displayAmount = paymentRecord?.amount || amountNum;
+
+  const visitDateText = bookingRecord?.visit_date
+    ? `${bookingRecord.visit_date} — ${bookingRecord.visit_time || "morning"}`
+    : "To be scheduled later";
+  const transportText = bookingRecord?.transport_mode
+    ? ` via ${bookingRecord.transport_mode.toUpperCase()}`
+    : "";
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8F4EE" }}>
@@ -154,13 +209,14 @@ function ThankYouPage() {
               background: "rgba(34,197,94,0.1)",
             }}
           >
-            <Check size={44} strokeWidth={3} style={{ color: "#22C55E" }} />
           </div>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "clamp(34px, 6vw, 52px)", color: "#FFFFFF", marginTop: 24, lineHeight: 1.15 }}>
-            Payment Received. Your Plot is Secured. ✓
+            {isReserve ? "Plot Reserved Successfully! ✓" : "Payment Received. Your Plot is Secured. ✓"}
           </h1>
           <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 300, fontSize: 18, color: "rgba(255,255,255,0.8)", marginTop: 16, maxWidth: 720, marginInline: "auto" }}>
-            Thank you, {name || form.fullName}. Your deposit of <strong>Ksh {amountNum.toLocaleString()}</strong> for Plot #{plot || form.plotNumber}, {phase || form.phaseName} has been successfully received.
+            {isReserve
+              ? `Thank you, ${clientName}. Your holding fee of Ksh ${displayAmount.toLocaleString()} for Plot #${plotNum}, ${phaseName} has been received. This plot is now held for you for 14 days.`
+              : `Thank you, ${clientName}. Your deposit of Ksh ${displayAmount.toLocaleString()} for Plot #${plotNum}, ${phaseName} has been successfully received.`}
           </p>
           {ref && (
             <div className="mt-6 inline-block" style={{ background: "rgba(232,160,32,0.15)", padding: "8px 20px", borderRadius: 100, fontFamily: "Montserrat, sans-serif", fontWeight: 500, fontSize: 13, color: "#E8A020" }}>
@@ -177,9 +233,9 @@ function ThankYouPage() {
             </h2>
             <div className="space-y-8">
               {[
-                ["CEO Review & Signature", "⏱ Within 4 hours on business days", "Our CEO/MD will review your payment and electronically sign your purchase agreement."],
-                ["Documents Delivered to You", "📧 Same day as signing", `Your signed purchase agreement and official payment receipt will be sent to ${form.email || "your email"} and via WhatsApp to ${form.phone || "your phone"}.`],
-                ["Site Visit Confirmation", `📅 ${form.visitDate || "your scheduled date"} — ${form.visitTime}`, "Our agent will WhatsApp you to confirm the meeting point and any access details for your visit."],
+                ["CEO Review & Signature", "⏱ Within 4 hours on business days", "Our CEO/MD will review your transaction and electronically sign your purchase agreement."],
+                ["Documents Delivered to You", "📧 Same day as signing", `Your purchase agreement and official payment receipt will be sent to ${inquiryRecord?.client_email || form.email || "your email"} and via WhatsApp to ${inquiryRecord?.client_phone || form.phone || "your phone"}.`],
+                ["Site Visit Status", `📅 ${visitDateText}${transportText}`, bookingRecord?.visit_date ? "Our agent will WhatsApp you to confirm the meeting point and any access details for your visit." : "You can coordinate with our office to schedule a free site visit at your convenience during your 14-day hold period."],
                 ["You're a Gatepath Landowner!", "🏆 Welcome to the family", "Your plot is secured. Your journey to land ownership has begun."],
               ].map(([title, time, desc], i) => (
                 <div key={i} className="flex gap-5">
@@ -209,7 +265,7 @@ function ThankYouPage() {
               <div className="flex items-center gap-3">
                 <Receipt size={24} style={{ color: "#E8A020" }} />
                 <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 500, fontSize: 14, color: "#1C1C1C" }}>
-                  Payment Receipt — Plot #{plot || form.plotNumber}
+                  Payment Receipt — Plot #{plotNum}
                 </span>
               </div>
               {paymentRecord ? (

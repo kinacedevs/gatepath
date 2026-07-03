@@ -161,8 +161,8 @@ function ReceiptDocumentPage() {
               ISSUED BY
             </h3>
             <p className="font-semibold text-[#0B7FC7]">Gatepath Realtors Limited</p>
-            <p className="text-muted-foreground mt-1">Bruce House, 12th Floor, Standard St.</p>
-            <p className="text-muted-foreground">Nairobi, Kenya</p>
+            <p className="text-muted-foreground mt-1">1st Floor, CNM Centre,</p>
+            <p className="text-muted-foreground">Ruiru Eastern Bypass, Nairobi, Kenya</p>
             <p className="text-muted-foreground mt-1">Phone: +254 799 488 488</p>
             <p className="text-muted-foreground">Email: sales@gatepathrealtors.com</p>
           </div>

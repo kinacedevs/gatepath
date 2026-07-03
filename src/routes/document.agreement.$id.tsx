@@ -155,7 +155,7 @@ function AgreementDocumentPage() {
           <div className="pl-6 border-l-2 border-[#E8A020]">
             <p>
               <strong>GATEPATH REALTORS LIMITED</strong>, a company incorporated in the Republic of Kenya with its
-              registered office at Bruce House, 12th Floor, Standard St., P.O. Box 488-00100, Nairobi, Kenya
+              registered office at 1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi, Kenya
               (hereinafter referred to as the <strong>"Vendor"</strong>, which expression shall where the context so
               admits include its successors and assigns) of the one part;
             </p>

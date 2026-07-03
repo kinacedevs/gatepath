@@ -413,6 +413,20 @@ function InquiryPage() {
                 />
               </div>
 
+              {/* Reserve plot check */}
+              <div className="mb-5 flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="reservePlot"
+                  checked={form.reservePlot}
+                  onChange={(e) => setForm({ reservePlot: e.target.checked })}
+                  style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#0B7FC7" }}
+                />
+                <label htmlFor="reservePlot" style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600, color: "#0B7FC7", cursor: "pointer" }}>
+                  Reserve plot
+                </label>
+              </div>
+
               <div style={{ height: 1, background: "#E5E0D8", margin: "4px 0 24px" }} />
 
               {/* ─────────────────────────────────────────────── */}

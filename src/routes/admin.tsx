@@ -32,6 +32,7 @@ import type {
   BlogPost,
   Plot,
 } from "@/lib/types";
+import { sendAgreementSignedNotificationFn } from "@/lib/notifications";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -281,6 +282,12 @@ function AdminPage() {
     }
 
     alert("Purchase Agreement successfully signed digitally by CEO!");
+    
+    // Trigger Resend email & AT SMS alerts asynchronously
+    sendAgreementSignedNotificationFn({ inquiryId }).catch((err) => {
+      console.error("[Gatepath CEO Sign] Notification error:", err);
+    });
+
     loadAllData();
   };
 

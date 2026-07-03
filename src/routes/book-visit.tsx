@@ -24,6 +24,7 @@ function BookVisitPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [bannerError, setBannerError] = useState(false);
+  const [skipSiteVisit, setSkipSiteVisit] = useState(false);
 
   useEffect(() => {
     if (!form.fullName) navigate({ to: "/inquire" });
@@ -34,9 +35,12 @@ function BookVisitPage() {
   const maxDate = new Date(Date.now() + 60 * 86400000).toISOString().split("T")[0];
 
   const errors: Record<string, string> = {};
-  if (!form.visitDate) errors.visitDate = "Please select a visit date";
-  else if (new Date(form.visitDate).getDay() === 0) errors.visitDate = "We are closed on Sundays. Please select Monday–Saturday.";
-  if (!form.visitTime) errors.visitTime = "Please select a time";
+  if (!skipSiteVisit) {
+    if (!form.visitDate) errors.visitDate = "Please select a visit date";
+    else if (new Date(form.visitDate).getDay() === 0) errors.visitDate = "We are closed on Sundays. Please select Monday–Saturday.";
+    if (!form.visitTime) errors.visitTime = "Please select a time";
+    if (!form.transportMode) errors.transportMode = "Please select a transport mode";
+  }
 
   const showErr = (k: string) => (touched[k] || submitted) && errors[k];
 
@@ -111,85 +115,152 @@ function BookVisitPage() {
 
               <div className="my-7" style={{ height: 1, background: "#E5E0D8" }} />
 
-              <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 600, fontSize: 11, color: "#E8A020", letterSpacing: "0.2em", marginBottom: 16 }}>SCHEDULE YOUR VISIT</div>
-
-              {/* Date */}
-              <div className="mb-5">
-                <label style={labelStyle}>Preferred Visit Date *</label>
-                <input
-                  name="visitDate"
-                  type="date"
-                  min={tomorrow}
-                  max={maxDate}
-                  value={form.visitDate}
-                  onChange={(e) => setForm({ visitDate: e.target.value })}
-                  onBlur={() => setTouched((t) => ({ ...t, visitDate: true }))}
-                  style={inputStyle("visitDate")}
-                />
-                {showErr("visitDate") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.visitDate}</div>}
+              <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 600, fontSize: 11, color: "#E8A020", letterSpacing: "0.2em", marginBottom: 16 }}>
+                {form.reservePlot ? "RESERVATION & SITE VISIT" : "SCHEDULE YOUR VISIT"}
               </div>
 
-              {/* Time */}
-              <label style={labelStyle}>Preferred Time *</label>
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                {[
-                  { id: "morning", icon: "🌅", title: "Morning Visit", sub: "8:00 AM – 12:00 PM" },
-                  { id: "afternoon", icon: "🌆", title: "Afternoon Visit", sub: "1:00 PM – 5:00 PM" },
-                ].map((opt) => {
-                  const selected = form.visitTime === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setForm({ visitTime: opt.id })}
-                      style={{
-                        textAlign: "left",
-                        border: `1.5px solid ${selected ? "#0B7FC7" : "#E5E0D8"}`,
-                        borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #E5E0D8",
-                        borderRadius: 8, padding: "14px 16px",
-                        background: selected ? "#F0F4F8" : "#FFFFFF", cursor: "pointer",
-                      }}
-                    >
-                      <div style={{ fontSize: 22, marginBottom: 6 }}>{opt.icon}</div>
-                      <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: "#0B7FC7" }}>{opt.title}</div>
-                      <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+              {/* Toggle to skip site visit for reserved plots */}
+              {form.reservePlot && (
+                <div className="mb-6 p-4 rounded-xl border border-[#D5D0C8] bg-[#F8F4EE] flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="skipVisitCheck"
+                    checked={skipSiteVisit}
+                    onChange={(e) => {
+                      setSkipSiteVisit(e.target.checked);
+                      if (e.target.checked) {
+                        setForm({ visitDate: "", visitTime: "", transportMode: "", attendees: "1" });
+                      }
+                    }}
+                    style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#0B7FC7" }}
+                  />
+                  <label htmlFor="skipVisitCheck" style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600, color: "#0B7FC7", cursor: "pointer" }}>
+                    I will schedule my site visit later / Drive myself directly
+                  </label>
+                </div>
+              )}
+
+              {skipSiteVisit ? (
+                <div className="mb-6 p-5 bg-[#F0F4F8] border-l-4 border-[#0B7FC7] rounded-r-lg font-sans text-[14px] text-[#5A5A5A] leading-relaxed">
+                  <p className="font-semibold text-[#0B7FC7] text-[15px] mb-2">Direct Reservation Mode</p>
+                  You have chosen to reserve this plot directly. No site visit will be scheduled at this stage. You can proceed directly to the payment page to secure your reservation hold.
+                </div>
+              ) : (
+                <>
+                  {/* Date */}
+                  <div className="mb-5">
+                    <label style={labelStyle}>Preferred Visit Date *</label>
+                    <input
+                      name="visitDate"
+                      type="date"
+                      min={tomorrow}
+                      max={maxDate}
+                      value={form.visitDate}
+                      onChange={(e) => setForm({ visitDate: e.target.value })}
+                      onBlur={() => setTouched((t) => ({ ...t, visitDate: true }))}
+                      style={inputStyle("visitDate")}
+                    />
+                    {showErr("visitDate") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.visitDate}</div>}
+                  </div>
+
+                  {/* Time */}
+                  <label style={labelStyle}>Preferred Time *</label>
+                  <div className="grid grid-cols-2 gap-3 mb-5">
+                    {[
+                      { id: "morning", icon: "🌅", title: "Morning Visit", sub: "8:00 AM – 12:00 PM" },
+                      { id: "afternoon", icon: "🌆", title: "Afternoon Visit", sub: "1:00 PM – 5:00 PM" },
+                    ].map((opt) => {
+                      const selected = form.visitTime === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setForm({ visitTime: opt.id })}
+                          style={{
+                            textAlign: "left",
+                            border: `1.5px solid ${selected ? "#0B7FC7" : "#D5D0C8"}`,
+                            borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
+                            borderRadius: 8, padding: "14px 16px",
+                            background: selected ? "#F0F4F8" : "#FFFFFF", cursor: "pointer",
+                          }}
+                        >
+                          <div style={{ fontSize: 22, marginBottom: 6 }}>{opt.icon}</div>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: "#0B7FC7" }}>{opt.title}</div>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Transport Mode */}
+                  <label style={labelStyle}>Means of Transport *</label>
+                  <div className="grid grid-cols-3 gap-2.5 mb-5">
+                    {[
+                      { id: "self" as const, icon: "🚗", title: "Self Transport", sub: "Drive yourself" },
+                      { id: "road" as const, icon: "🚐", title: "Corporate Van", sub: "Office road van" },
+                      { id: "air" as const, icon: "✈️", title: "Air Transport", sub: "Coast sites only" },
+                    ].map((opt) => {
+                      const selected = form.transportMode === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setForm({ transportMode: opt.id })}
+                          style={{
+                            textAlign: "left",
+                            border: `1.5px solid ${selected ? "#0B7FC7" : "#D5D0C8"}`,
+                            borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
+                            borderRadius: 8, padding: "12px 10px",
+                            background: selected ? "#F0F4F8" : "#FFFFFF", cursor: "pointer",
+                          }}
+                        >
+                          <div style={{ fontSize: 18, marginBottom: 4 }}>{opt.icon}</div>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 12, color: "#0B7FC7" }}>{opt.title}</div>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {showErr("transportMode") && (
+                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: -2, marginBottom: 12 }}>
+                      {errors.transportMode}
+                    </div>
+                  )}
+
+                  {/* Attendees */}
+                  <label style={labelStyle}>How many people will attend? *</label>
+                  <div className="mb-5" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #E5E0D8", borderRadius: 8, padding: "10px 16px", maxWidth: 240 }}>
+                    <button type="button" onClick={() => handleAttendees(-1)} style={{ background: "none", border: "none", cursor: "pointer", color: "#5A5A5A" }}>
+                      <Minus size={20} />
                     </button>
-                  );
-                })}
-              </div>
+                    <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 20, color: "#0B7FC7", minWidth: 48, textAlign: "center" }}>{form.attendees}</div>
+                    <button type="button" onClick={() => handleAttendees(1)} style={{ background: "none", border: "none", cursor: "pointer", color: "#5A5A5A" }}>
+                      <Plus size={20} />
+                    </button>
+                  </div>
 
-              {/* Attendees */}
-              <label style={labelStyle}>How many people will attend? *</label>
-              <div className="mb-5" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #E5E0D8", borderRadius: 8, padding: "10px 16px", maxWidth: 240 }}>
-                <button type="button" onClick={() => handleAttendees(-1)} style={{ background: "none", border: "none", cursor: "pointer", color: "#5A5A5A" }}>
-                  <Minus size={20} />
-                </button>
-                <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 20, color: "#0B7FC7", minWidth: 48, textAlign: "center" }}>{form.attendees}</div>
-                <button type="button" onClick={() => handleAttendees(1)} style={{ background: "none", border: "none", cursor: "pointer", color: "#5A5A5A" }}>
-                  <Plus size={20} />
-                </button>
-              </div>
+                  {/* Notes */}
+                  <div className="mb-5">
+                    <label style={labelStyle}>Any special requirements for the visit? (Optional)</label>
+                    <textarea
+                      rows={3}
+                      value={form.visitNotes}
+                      placeholder="e.g. I will be coming from Mombasa — please confirm the meeting point in advance."
+                      onChange={(e) => setForm({ visitNotes: e.target.value })}
+                      style={{ ...inputStyle("visitNotes"), resize: "vertical" }}
+                    />
+                  </div>
 
-              {/* Notes */}
-              <div className="mb-5">
-                <label style={labelStyle}>Any special requirements for the visit? (Optional)</label>
-                <textarea
-                  rows={3}
-                  value={form.visitNotes}
-                  placeholder="e.g. I will be coming from Mombasa — please confirm the meeting point in advance."
-                  onChange={(e) => setForm({ visitNotes: e.target.value })}
-                  style={{ ...inputStyle("visitNotes"), resize: "vertical" }}
-                />
-              </div>
-
-              {/* Info box */}
-              <div style={{ background: "#F0F4F8", borderLeft: "3px solid #E8A020", borderRadius: "0 8px 8px 0", padding: "16px 20px", fontFamily: "Inter, sans-serif", fontSize: 13, color: "#5A5A5A", lineHeight: 1.8 }}>
-                <div style={{ fontWeight: 600, color: "#0B7FC7", marginBottom: 8 }}>ℹ️ About Your Site Visit</div>
-                • Site visits are 100% free — no commitment required<br />
-                • Our agent will confirm via WhatsApp within 2 hours of booking<br />
-                • Meeting point directions will be shared on confirmation<br />
-                • Please bring your national ID for verification
-              </div>
+                  {/* Info box */}
+                  <div style={{ background: "#F0F4F8", borderLeft: "3px solid #E8A020", borderRadius: "0 8px 8px 0", padding: "16px 20px", fontFamily: "Inter, sans-serif", fontSize: 13, color: "#5A5A5A", lineHeight: 1.8 }}>
+                    <div style={{ fontWeight: 600, color: "#0B7FC7", marginBottom: 8 }}>ℹ️ About Your Site Visit</div>
+                    • Site visits are 100% free — no commitment required<br />
+                    • Our agent will confirm via WhatsApp within 2 hours of booking<br />
+                    • Meeting point directions will be shared on confirmation<br />
+                    • Please bring your national ID for verification
+                  </div>
+                </>
+              )}
 
               <button
                 type="submit"
