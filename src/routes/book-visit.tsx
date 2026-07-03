@@ -26,6 +26,25 @@ function BookVisitPage() {
   const [bannerError, setBannerError] = useState(false);
   const [skipSiteVisit, setSkipSiteVisit] = useState(false);
 
+  const isCoastal = ["malindi", "mambrui", "gongoni", "diani", "coast", "kwale", "kilifi"].some(
+    (c) =>
+      (form.phaseName || "").toLowerCase().includes(c) ||
+      (form.plotLocation || "").toLowerCase().includes(c) ||
+      (form.phaseSlug || "").toLowerCase().includes(c)
+  );
+
+  const transportOptions = isCoastal
+    ? [
+        { id: "self" as const, icon: "🚗", title: "Self Transport", sub: "Drive yourself" },
+        { id: "air" as const, icon: "✈️", title: "Air / Flight", sub: "Flight to Coast" },
+        { id: "sgr" as const, icon: "🚆", title: "SGR Train", sub: "Train to Coast" },
+        { id: "bus" as const, icon: "🚌", title: "Bus / Coach", sub: "Mash/Coach to Coast" },
+      ]
+    : [
+        { id: "self" as const, icon: "🚗", title: "Self Transport", sub: "Drive yourself" },
+        { id: "road" as const, icon: "🚐", title: "Company Vehicle", sub: "Corporate van/car" },
+      ];
+
   useEffect(() => {
     if (!form.fullName) navigate({ to: "/inquire" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,12 +213,8 @@ function BookVisitPage() {
 
                   {/* Transport Mode */}
                   <label style={labelStyle}>Means of Transport *</label>
-                  <div className="grid grid-cols-3 gap-2.5 mb-5">
-                    {[
-                      { id: "self" as const, icon: "🚗", title: "Self Transport", sub: "Drive yourself" },
-                      { id: "road" as const, icon: "🚐", title: "Corporate Van", sub: "Office road van" },
-                      { id: "air" as const, icon: "✈️", title: "Air Transport", sub: "Coast sites only" },
-                    ].map((opt) => {
+                  <div className={isCoastal ? "grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5" : "grid grid-cols-2 gap-2.5 mb-5"}>
+                    {transportOptions.map((opt) => {
                       const selected = form.transportMode === opt.id;
                       return (
                         <button

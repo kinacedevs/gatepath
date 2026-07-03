@@ -63,7 +63,7 @@ export interface InquiryFormData {
 
   // ── Step 4 — Reservation hold option ──
   reservePlot: boolean;
-  transportMode: "air" | "road" | "self" | "";
+  transportMode: "air" | "road" | "self" | "sgr" | "bus" | "";
 }
 
 const defaultForm: InquiryFormData = {
