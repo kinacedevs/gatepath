@@ -19,6 +19,7 @@ export interface Plot {
 }
 
 export interface Phase {
+  id: string;
   slug: string;
   name: string;
   phaseNumber?: number;
@@ -63,6 +64,7 @@ export function adaptPhase(
   });
 
   return {
+    id: dbPhase.id,
     slug: dbPhase.slug,
     name: dbPhase.name,
     phaseNumber: dbPhase.phase_number ?? undefined,
@@ -89,38 +91,62 @@ export function adaptPhase(
   };
 }
 
-// ─── Hooks ───────────────────────────────────────────────────────────────────
+// ─── Client Cache ─────────────────────────────────────────────────────────────
 
-/** Fetch all active phases for property listings. */
+let cachePhases: Phase[] | null = null;
+let cachePhasesPromise: Promise<Phase[]> | null = null;
+const cacheSinglePhases: Record<string, Phase> = {};
+const cacheSinglePromises: Record<string, Promise<Phase>> = {};
+
+// Clean up cache when running on server to prevent cross-request leaks
+const isServer = typeof window === "undefined";
+
+/** Hook for all active phases. */
 export function usePhases() {
-  const [phases, setPhases] = useState<Phase[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [phases, setPhases] = useState<Phase[]>(cachePhases ?? []);
+  const [loading, setLoading] = useState(cachePhases === null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
+    // If cache is ready, skip fetch
+    if (cachePhases && !isServer) {
+      setPhases(cachePhases);
+      setLoading(false);
+      return;
+    }
+
     const fetch = async () => {
-      setLoading(true);
-      const [phaseRes, plotSizeRes] = await Promise.all([
-        supabase.from("phases").select("*").order("name"),
-        supabase.from("plot_sizes").select("*"),
-      ]);
-
-      if (cancelled) return;
-
-      if (phaseRes.error) {
-        setError(phaseRes.error.message);
-        setLoading(false);
-        return;
+      // Deduplicate simultaneous requests
+      if (!cachePhasesPromise || isServer) {
+        cachePhasesPromise = Promise.all([
+          supabase.from("phases").select("*").order("name"),
+          supabase.from("plot_sizes").select("*"),
+        ]).then(([phaseRes, plotSizeRes]) => {
+          if (phaseRes.error) {
+            throw new Error(phaseRes.error.message);
+          }
+          const dbPhases = phaseRes.data ?? [];
+          const dbSizes = plotSizeRes.data ?? [];
+          const adapted = dbPhases.map((p) => adaptPhase(p, dbSizes));
+          if (!isServer) {
+            cachePhases = adapted;
+          }
+          return adapted;
+        });
       }
 
-      const dbPhases = phaseRes.data ?? [];
-      const dbSizes = plotSizeRes.data ?? [];
-
-      const adapted = dbPhases.map((p) => adaptPhase(p, dbSizes));
-      setPhases(adapted);
-      setLoading(false);
+      try {
+        const adapted = await cachePhasesPromise;
+        if (cancelled) return;
+        setPhases(adapted);
+        setLoading(false);
+      } catch (err: any) {
+        if (cancelled) return;
+        setError(err.message);
+        setLoading(false);
+      }
     };
 
     fetch();
@@ -132,49 +158,60 @@ export function usePhases() {
 
 /** Hook for a single phase (with real-time plot subscription). */
 export function usePhase(slug: string) {
-  const [phase, setPhase] = useState<Phase | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [phase, setPhase] = useState<Phase | null>(cacheSinglePhases[slug] ?? null);
+  const [loading, setLoading] = useState(cacheSinglePhases[slug] === undefined);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
 
+    // SWR / Background Refresh
     const fetch = async () => {
-      setLoading(true);
+      if (!cacheSinglePromises[slug] || isServer) {
+        cacheSinglePromises[slug] = (async () => {
+          const { data: dbPhase, error: phaseErr } = await supabase
+            .from("phases")
+            .select("*")
+            .eq("slug", slug)
+            .single();
 
-      const { data: dbPhase, error: phaseErr } = await supabase
-        .from("phases")
-        .select("*")
-        .eq("slug", slug)
-        .single();
+          if (phaseErr || !dbPhase) {
+            throw new Error(phaseErr?.message ?? "Phase not found");
+          }
 
-      if (cancelled) return;
+          const [plotSizeRes, plotsRes] = await Promise.all([
+            supabase.from("plot_sizes").select("*").eq("phase_id", dbPhase.id),
+            supabase
+              .from("plots")
+              .select("*")
+              .eq("phase_id", dbPhase.id)
+              .order("plot_number"),
+          ]);
 
-      if (phaseErr || !dbPhase) {
-        setError(phaseErr?.message ?? "Phase not found");
-        setLoading(false);
-        return;
+          const adapted = adaptPhase(
+            dbPhase,
+            plotSizeRes.data ?? [],
+            plotsRes.data ?? []
+          );
+          
+          if (!isServer) {
+            cacheSinglePhases[slug] = adapted;
+          }
+          return adapted;
+        })();
       }
 
-      const [plotSizeRes, plotsRes] = await Promise.all([
-        supabase.from("plot_sizes").select("*").eq("phase_id", dbPhase.id),
-        supabase
-          .from("plots")
-          .select("*")
-          .eq("phase_id", dbPhase.id)
-          .order("plot_number"),
-      ]);
-
-      if (cancelled) return;
-
-      const adapted = adaptPhase(
-        dbPhase,
-        plotSizeRes.data ?? [],
-        plotsRes.data ?? []
-      );
-      setPhase(adapted);
-      setLoading(false);
+      try {
+        const adapted = await cacheSinglePromises[slug];
+        if (cancelled) return;
+        setPhase(adapted);
+        setLoading(false);
+      } catch (err: any) {
+        if (cancelled) return;
+        setError(err.message);
+        setLoading(false);
+      }
     };
 
     fetch();
@@ -191,10 +228,11 @@ export function usePhase(slug: string) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "plots" },
         async () => {
-          // Re-fetch plot details to preserve joined sizes
+          // Re-fetch plot details FOR THIS PHASE ONLY to preserve joined sizes
           const { data: updatedPlots } = await supabase
             .from("plots")
             .select("*")
+            .eq("phase_id", phase.id)
             .order("plot_number");
 
           if (updatedPlots) {
@@ -212,7 +250,12 @@ export function usePhase(slug: string) {
                   price: existing ? existing.price : 0,
                 };
               });
-              return { ...prev, plots: mapped };
+              
+              const updated = { ...prev, plots: mapped };
+              if (!isServer) {
+                cacheSinglePhases[phase.slug] = updated;
+              }
+              return updated;
             });
           }
         }
@@ -220,7 +263,7 @@ export function usePhase(slug: string) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [phase?.slug]);
+  }, [phase?.slug, phase?.id]);
 
   return { phase, loading, error };
 }
