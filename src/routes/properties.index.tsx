@@ -90,7 +90,7 @@ function PropertiesPage() {
               {[
                 [String(activeCount), "Active Phases"],
                 [String(totalAvailable) + "+", "Plots Available"],
-                ["11", "Total Phases"],
+                [String(phases.length), "Total Phases"],
               ].map(([n, l]) => (
                 <div key={l}>
                   <div className="font-numbers font-bold text-[28px] text-accent">{n}</div>
