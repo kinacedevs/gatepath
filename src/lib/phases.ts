@@ -40,6 +40,23 @@ export interface Phase {
 
 // ─── Adapters ────────────────────────────────────────────────────────────────
 
+const LOCATION_IMAGES: Record<string, string> = {
+  malindi: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=800&q=80",
+  sagana: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
+  diani: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+  nanyuki: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80",
+  thika: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80",
+  matuu: "https://images.unsplash.com/photo-1501862700950-18382cd41497?auto=format&fit=crop&w=800&q=80",
+  kithimani: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80",
+  kiambu: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
+  gongoni: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=800&q=80",
+  marafa: "https://images.unsplash.com/photo-1501862700950-18382cd41497?auto=format&fit=crop&w=800&q=80",
+  makutano: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
+  juja: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80",
+  pumwani: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
+  nairobi: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
+};
+
 export function adaptPhase(
   dbPhase: DbPhase,
   dbSizes: DbPlotSize[],
@@ -82,7 +99,8 @@ export function adaptPhase(
     sold: dbPhase.sold_count,
     image:
       dbPhase.image_url ??
-      "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
+      (LOCATION_IMAGES[dbPhase.location.toLowerCase()] ??
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80"),
     description: dbPhase.description ?? "",
     features: dbPhase.features ?? [],
     startingPrice,

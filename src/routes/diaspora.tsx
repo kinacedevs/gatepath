@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import diasporaHero from "@/assets/diaspora.jpg";
 import { PhaseCard } from "@/components/properties/PhaseCard";
+import { usePhases } from "@/lib/phases";
 
 export const Route = createFileRoute("/diaspora")({
   component: DiasporaPage,
@@ -73,9 +74,8 @@ function sanitize(val: string): string {
 }
 
 function DiasporaPage() {
-  // Database Properties
-  const [phases, setPhases] = useState<any[]>([]);
-  const [phasesLoading, setPhasesLoading] = useState(true);
+  // Database Properties via Adapted Hook
+  const { phases, loading: phasesLoading } = usePhases();
 
   // Search & Filter States
   const [loc, setLoc] = useState("All Locations");
@@ -123,26 +123,7 @@ function DiasporaPage() {
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Load phases on mount
-  useEffect(() => {
-    const fetchPhases = async () => {
-      try {
-        setPhasesLoading(true);
-        const { data, error } = await supabase
-          .from("phases")
-          .select("*, plots(*)")
-          .order("name");
-        if (!error && data) {
-          setPhases(data);
-        }
-      } catch (err) {
-        console.error("Diaspora fetch phases error:", err);
-      } finally {
-        setPhasesLoading(false);
-      }
-    };
-    fetchPhases();
-  }, []);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
