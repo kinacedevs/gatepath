@@ -353,13 +353,26 @@ function ThankYouPage() {
 
         {/* Bottom CTAs */}
         <div className="flex flex-wrap justify-center gap-3 pb-20 px-6">
-          <Link to="/properties" style={{ background: "#0B7FC7", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "12px 22px", borderRadius: 8, textDecoration: "none" }}>
+          <Link to="/properties" style={{ background: "#0B7FC7", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "12px 22px", borderRadius: 8, textDecoration: "none" }} className="hover:bg-[#09669E] transition-all">
             Browse More Properties
           </Link>
-          <a href="https://wa.me/254799488488" target="_blank" rel="noopener noreferrer" style={{ background: "#25D366", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "12px 22px", borderRadius: 8, textDecoration: "none" }}>
-            Chat With Us on WhatsApp
+          {(!bookingRecord?.visit_date) && (
+            <Link
+              to="/book-visit"
+              search={{ inquiry_id: inquiryRecord?.id || paymentRecord?.inquiry_id || form.inquiryId || "" }}
+              style={{ background: "#E8A020", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "12px 22px", borderRadius: 8, textDecoration: "none" }}
+              className="hover:bg-[#C8861A] transition-all"
+            >
+              📅 Schedule Site Visit for Plot #{plotNum}
+            </Link>
+          )}
+          <a href={`https://wa.me/254799488488?text=Hello%20Gatepath%20Realtors%2C%20I%20have%20just%20reserved%20Plot%20%23${plotNum}%20at%20${phaseName}%20and%20would%20like%20to%20follow%20up.`} target="_blank" rel="noopener noreferrer" style={{ background: "#25D366", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "12px 22px", borderRadius: 8, textDecoration: "none" }} className="hover:bg-[#1EBE57] transition-all">
+            Chat on WhatsApp
           </a>
-          <Link to="/" style={{ background: "transparent", color: "#0B7FC7", border: "1.5px solid #0B7FC7", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "10px 22px", borderRadius: 8, textDecoration: "none" }}>
+          <a href={`mailto:info@gatepathrealtors.com?subject=Plot%20Reservation%20%23${plotNum}%20-%20${phaseName}&body=Hello%20Gatepath%20Realtors%2C%0D%0AI%20have%20completed%20the%20reservation%20deposit%20for%20Plot%20%23${plotNum}%20at%20${phaseName}.%20Please%20find%20my%20details%20attached.`} style={{ background: "#4B5563", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "12px 22px", borderRadius: 8, textDecoration: "none" }} className="hover:bg-[#374151] transition-all">
+            Email Us
+          </a>
+          <Link to="/" style={{ background: "transparent", color: "#0B7FC7", border: "1.5px solid #0B7FC7", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "10px 22px", borderRadius: 8, textDecoration: "none" }} className="hover:bg-primary/5 transition-all">
             Return to Homepage
           </Link>
         </div>

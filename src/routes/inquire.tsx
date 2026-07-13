@@ -251,7 +251,11 @@ function InquiryPage() {
       setForm({ inquiryId: insertedInq.id });
     }
 
-    navigate({ to: "/book-visit" });
+    if (form.intent === "free_visit") {
+      navigate({ to: "/book-visit" });
+    } else {
+      navigate({ to: "/payment" });
+    }
   };
 
   return (

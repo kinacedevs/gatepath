@@ -10,7 +10,14 @@ import { useInquiry } from "@/context/InquiryContext";
 import { supabase } from "@/lib/supabase";
 import { sendSiteVisitNotificationFn } from "@/lib/notifications";
 
+type BookVisitSearch = {
+  inquiry_id?: string;
+};
+
 export const Route = createFileRoute("/book-visit")({
+  validateSearch: (s: Record<string, unknown>): BookVisitSearch => ({
+    inquiry_id: typeof s.inquiry_id === "string" ? s.inquiry_id : undefined,
+  }),
   component: BookVisitPage,
   head: () => ({
     meta: [
@@ -47,10 +54,39 @@ function BookVisitPage() {
         { id: "road" as const, icon: "🚐", title: "Company Vehicle", sub: "Corporate van/car" },
       ];
 
+  const { inquiry_id } = Route.useSearch();
+
   useEffect(() => {
-    if (!form.fullName) navigate({ to: "/inquire" });
+    async function loadInquiry() {
+      if (inquiry_id) {
+        const { data: inq } = await supabase
+          .from("inquiries")
+          .select("*")
+          .eq("id", inquiry_id)
+          .maybeSingle();
+
+        if (inq) {
+          setForm({
+            inquiryId: inq.id,
+            fullName: inq.client_full_name,
+            email: inq.client_email,
+            phone: inq.client_phone,
+            phaseName: inq.phase_name || "",
+            plotNumber: inq.plot_number_ref ? String(inq.plot_number_ref) : "",
+            plotPrice: inq.plot_price || 0,
+            plotSize: inq.plot_size || "",
+            plotLocation: inq.plot_location || "",
+            reservePlot: inq.payment_preference === "reserve",
+            intent: (inq.payment_preference || "free_visit") as "free_visit" | "reserve" | "deposit",
+          });
+        }
+      } else if (!form.fullName) {
+        navigate({ to: "/inquire" });
+      }
+    }
+    loadInquiry();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [inquiry_id]);
 
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
   const maxDate = new Date(Date.now() + 60 * 86400000).toISOString().split("T")[0];
