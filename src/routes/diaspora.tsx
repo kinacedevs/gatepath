@@ -17,9 +17,11 @@ import {
   Mail,
   Loader2,
   CheckCircle,
+  Search,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import diasporaHero from "@/assets/diaspora.jpg";
+import { PhaseCard } from "@/components/properties/PhaseCard";
 
 export const Route = createFileRoute("/diaspora")({
   component: DiasporaPage,
@@ -71,13 +73,39 @@ function sanitize(val: string): string {
 }
 
 function DiasporaPage() {
-  // Database Properties & Custom Calculator States
+  // Database Properties
   const [phases, setPhases] = useState<any[]>([]);
   const [phasesLoading, setPhasesLoading] = useState(true);
-  const [selectedPhase, setSelectedPhase] = useState<any | null>(null);
 
-  const [calcDepositUsd, setCalcDepositUsd] = useState<number>(0);
-  const [calcPeriod, setCalcPeriod] = useState<number>(12);
+  // Search & Filter States
+  const [loc, setLoc] = useState("All Locations");
+  const [status, setStatus] = useState("All Status");
+  const [price, setPrice] = useState("Any Price");
+  const [q, setQ] = useState("");
+
+  const filteredPhases = useMemo(() => {
+    return phases.filter((p) => {
+      if (loc !== "All Locations" && !p.location.toLowerCase().includes(loc.toLowerCase())) return false;
+      if (status !== "All Status" && p.status !== status) return false;
+      if (price !== "Any Price") {
+        const spUsd = p.startingPrice / 130;
+        if (price === "Under $3,000" && spUsd >= 3000) return false;
+        if (price === "$3,000–$5,500" && (spUsd < 3000 || spUsd > 5500)) return false;
+        if (price === "$5,500–$8,000" && (spUsd < 5500 || spUsd > 8000)) return false;
+        if (price === "Above $8,000" && spUsd <= 8000) return false;
+      }
+      if (q.trim()) {
+        const needle = q.toLowerCase();
+        if (
+          !p.name.toLowerCase().includes(needle) &&
+          !p.location.toLowerCase().includes(needle) &&
+          !p.region.toLowerCase().includes(needle)
+        )
+          return false;
+      }
+      return true;
+    });
+  }, [phases, loc, status, price, q]);
 
   // Form states
   const [fullName, setFullName] = useState("");
@@ -106,9 +134,6 @@ function DiasporaPage() {
           .order("name");
         if (!error && data) {
           setPhases(data);
-          if (data.length > 0) {
-            setSelectedPhase(data[0]);
-          }
         }
       } catch (err) {
         console.error("Diaspora fetch phases error:", err);
@@ -118,27 +143,6 @@ function DiasporaPage() {
     };
     fetchPhases();
   }, []);
-
-  // Pre-fill USD calculator when phase selection changes
-  useEffect(() => {
-    if (selectedPhase) {
-      const startingPriceUsd = Math.round(selectedPhase.startingPrice / 130);
-      setCalcDepositUsd(Math.round(startingPriceUsd * 0.3)); // Default 30%
-    }
-  }, [selectedPhase]);
-
-  // Dynamic calculator values
-  const { phasePriceUsd, calcBalanceUsd, calcMonthlyInstallmentUsd } = useMemo(() => {
-    if (!selectedPhase) return { phasePriceUsd: 0, calcBalanceUsd: 0, calcMonthlyInstallmentUsd: 0 };
-    const priceUsd = Math.round(selectedPhase.startingPrice / 130);
-    const balanceUsd = Math.max(0, priceUsd - calcDepositUsd);
-    const installmentUsd = calcPeriod > 0 ? Math.ceil(balanceUsd / calcPeriod) : 0;
-    return {
-      phasePriceUsd: priceUsd,
-      calcBalanceUsd: balanceUsd,
-      calcMonthlyInstallmentUsd: installmentUsd
-    };
-  }, [selectedPhase, calcDepositUsd, calcPeriod]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,6 +307,43 @@ function DiasporaPage() {
             </p>
           </div>
 
+          {/* FILTER BAR */}
+          <div className="bg-white border border-[#E5E0D8] rounded-xl p-4 shadow-sm mb-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-wrap gap-3">
+              <select 
+                className="font-sans text-[14px] text-foreground bg-white border border-[#D0CCC5] rounded-md py-2.5 pl-3.5 pr-9 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-colors cursor-pointer" 
+                value={loc} 
+                onChange={(e) => setLoc(e.target.value)}
+              >
+                {["All Locations", "Malindi", "Gongoni", "Marafa", "Diani", "Matuu", "Sagana", "Juja", "Nairobi"].map((l) => <option key={l}>{l}</option>)}
+              </select>
+              <select 
+                className="font-sans text-[14px] text-foreground bg-white border border-[#D0CCC5] rounded-md py-2.5 pl-3.5 pr-9 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-colors cursor-pointer" 
+                value={status} 
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                {["All Status", "ACTIVE", "COMING SOON", "SOLD OUT"].map((l) => <option key={l}>{l}</option>)}
+              </select>
+              <select 
+                className="font-sans text-[14px] text-foreground bg-white border border-[#D0CCC5] rounded-md py-2.5 pl-3.5 pr-9 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-colors cursor-pointer" 
+                value={price} 
+                onChange={(e) => setPrice(e.target.value)}
+              >
+                {["Any Price", "Under $3,000", "$3,000–$5,500", "$5,500–$8,000", "Above $8,000"].map((l) => <option key={l}>{l}</option>)}
+              </select>
+            </div>
+            <div className="relative">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search phases..."
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="font-sans text-[14px] border border-[#D0CCC5] rounded-md py-2.5 pl-10 pr-3.5 w-full lg:w-[260px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10 transition-colors"
+              />
+            </div>
+          </div>
+
           {phasesLoading ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-[#E5E0D8] shadow-sm">
               <Loader2 className="animate-spin text-accent mb-3" size={40} />
@@ -312,176 +353,15 @@ function DiasporaPage() {
             <div className="text-center py-16 bg-white rounded-2xl border border-[#E5E0D8] shadow-sm">
               <p className="text-muted-foreground text-[14px]">No project phases found in database.</p>
             </div>
+          ) : filteredPhases.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl border border-[#E5E0D8] shadow-sm">
+              <p className="text-muted-foreground text-[14px]">No properties match your filter preferences.</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
-              {/* Left sidebar: Phase List */}
-              <div className="space-y-3">
-                <div style={{ fontFamily: "Montserrat, sans-serif", fontSize: 11, fontWeight: 600, color: "#E8A020", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8 }}>
-                  AVAILABLE PROJECTS
-                </div>
-                {phases.map((p) => {
-                  const isSelected = selectedPhase?.id === p.id;
-                  const priceUsd = Math.round(p.startingPrice / 130);
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setSelectedPhase(p)}
-                      className={`w-full text-left p-4 rounded-xl border transition-all ${
-                        isSelected 
-                          ? "bg-[#0B7FC7] border-[#0B7FC7] text-white shadow-md" 
-                          : "bg-white border-[#E5E0D8] text-primary hover:bg-[#FDFCFB]"
-                      }`}
-                    >
-                      <h4 className="font-serif font-bold text-[16px]">{p.name}</h4>
-                      <p className={`text-[12px] mt-1 ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
-                        {p.location}, {p.region}
-                      </p>
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className={`text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-[#EFF6FF] text-[#0B7FC7]"}`}>
-                          {p.available} Available
-                        </span>
-                        <span className="font-numbers font-bold text-[14px]">
-                          from ${priceUsd.toLocaleString()}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Right side: Selected Phase Details & USD Calculator */}
-              {selectedPhase && (
-                <div className="bg-white rounded-2xl border border-[#E5E0D8] shadow-sm p-8 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8">
-                  <div>
-                    <span className="bg-accent text-white font-numbers font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full">
-                      PHASE {selectedPhase.phaseNumber || "N/A"} — {selectedPhase.status}
-                    </span>
-                    <h3 className="font-serif font-bold text-[32px] text-primary mt-4">{selectedPhase.name}</h3>
-                    <p className="text-[14px] text-muted-foreground mt-2 leading-relaxed">
-                      {selectedPhase.description || `${selectedPhase.name} is a prime real estate project located in ${selectedPhase.location}, offering excellent infrastructure, surveyed plots, and high growth potential.`}
-                    </p>
-
-                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      {[
-                        ["Total Plots", selectedPhase.totalPlots],
-                        ["Available", selectedPhase.available, "text-[#22C55E]"],
-                        ["Booked", selectedPhase.booked, "text-[#F59E0B]"],
-                        ["Sold", selectedPhase.sold, "text-[#EF4444]"],
-                      ].map(([l, v, c]) => (
-                        <div key={l} className="bg-[#F8F4EE] border border-[#E5E0D8] rounded-xl p-3 text-center">
-                          <div className={`font-numbers font-bold text-[18px] ${c || "text-primary"}`}>{v}</div>
-                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{l}</div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-6 border border-[#E5E0D8] rounded-xl overflow-hidden aspect-video bg-gray-50">
-                      <img src={selectedPhase.image} alt={selectedPhase.name} className="w-full h-full object-cover" />
-                    </div>
-                  </div>
-
-                  {/* Calculator Column */}
-                  <div className="bg-[#F8F4EE] border border-[#E5E0D8] rounded-xl p-6 flex flex-col justify-between">
-                    <div>
-                      <h4 className="font-serif font-bold text-[18px] text-primary mb-1">USD Payment Estimator</h4>
-                      <p className="text-[12px] text-muted-foreground mb-6">Plan your installment options in USD directly.</p>
-
-                      <div className="space-y-5">
-                        {/* Total Price */}
-                        <div>
-                          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Estimated Price</label>
-                          <div className="font-numbers font-bold text-[24px] text-[#0B7FC7]">
-                            ${phasePriceUsd.toLocaleString()}
-                          </div>
-                        </div>
-
-                        {/* Deposit Amount */}
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">USD Deposit</label>
-                            <span className="text-[11px] font-semibold text-[#E8A020]">
-                              {Math.round((calcDepositUsd / phasePriceUsd) * 100)}% deposit
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min={Math.round(phasePriceUsd * 0.2)}
-                            max={phasePriceUsd}
-                            step={100}
-                            value={calcDepositUsd}
-                            onChange={(e) => setCalcDepositUsd(Number(e.target.value))}
-                            className="w-full accent-[#0B7FC7] mb-1"
-                          />
-                          <input
-                            type="number"
-                            value={calcDepositUsd}
-                            min={Math.round(phasePriceUsd * 0.2)}
-                            max={phasePriceUsd}
-                            onChange={(e) => setCalcDepositUsd(Math.max(Math.round(phasePriceUsd * 0.2), Math.min(phasePriceUsd, Number(e.target.value))))}
-                            className="w-full px-3 py-1.5 border border-[#D5D0C8] rounded-lg font-numbers text-[14px] font-semibold"
-                          />
-                          <span className="text-[10px] text-muted-foreground italic mt-1 block">
-                            Min reservation hold: $77 USD (equivalent to Ksh 10,000 hold fee)
-                          </span>
-                        </div>
-
-                        {/* Period Selection */}
-                        {calcBalanceUsd > 0 && (
-                          <div>
-                            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-2">Installment Term</label>
-                            <div className="grid grid-cols-3 gap-1.5">
-                              {[3, 6, 12, 18, 24].map((m) => {
-                                const isSelected = calcPeriod === m;
-                                return (
-                                  <button
-                                    key={m}
-                                    type="button"
-                                    onClick={() => setCalcPeriod(m)}
-                                    className={`py-1.5 px-2 text-[12px] font-semibold border rounded-lg transition-all text-center ${
-                                      isSelected
-                                        ? "bg-[#0B7FC7] border-[#0B7FC7] text-white font-bold"
-                                        : "bg-white border-[#D5D0C8] text-foreground hover:bg-[#F8F4EE]"
-                                    }`}
-                                  >
-                                    {m} mo
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Repayment Box */}
-                        <div className="p-4 bg-[#EFF6FF] border border-[#0B7FC7]/20 rounded-xl mt-6">
-                          <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Estimated Monthly Payment</div>
-                          <div className="font-numbers font-bold text-[28px] text-primary flex items-baseline gap-1 mt-1">
-                            <span className="text-[16px] font-semibold">USD</span>
-                            {calcBalanceUsd === 0 ? "0.00" : calcMonthlyInstallmentUsd.toLocaleString()}
-                          </div>
-                          {calcBalanceUsd > 0 && (
-                            <div className="text-[10px] text-muted-foreground mt-1.5">
-                              *Balance of ${calcBalanceUsd.toLocaleString()} USD spread over {calcPeriod} months.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setBudget(`Ksh ${(selectedPhase.startingPrice / 1000).toFixed(0)}K`);
-                        setNotes(`[USD Booking Selection]\nProject Phase: ${selectedPhase.name}\nEstimated USD Price: $${phasePriceUsd.toLocaleString()}\nPreferred Deposit: $${calcDepositUsd.toLocaleString()}\nInstallment Term: ${calcPeriod} Months\nExpected Monthly Payment: $${calcMonthlyInstallmentUsd.toLocaleString()} USD`);
-                        
-                        // Scroll to booking form
-                        document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
-                      }}
-                      className="w-full mt-6 bg-[#E8A020] text-white font-semibold text-[13px] py-3.5 rounded-lg hover:bg-[#C8861A] transition-all text-center shadow-md"
-                    >
-                      Pre-fill My Tour Form ✓
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+              {filteredPhases.map((p) => (
+                <PhaseCard key={p.slug} phase={p} currency="USD" />
+              ))}
             </div>
           )}
         </div>

@@ -8,7 +8,7 @@ const statusStyles: Record<Phase["status"], string> = {
   "SOLD OUT": "bg-[#FEE2E2] text-[#991B1B]",
 };
 
-export function PhaseCard({ phase }: { phase: Phase }) {
+export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?: "KES" | "USD" }) {
   // Build a mini availability strip of 8 squares
   const ratio = (n: number) => phase.totalPlots > 0 ? Math.round((n / phase.totalPlots) * 8) : 0;
   const a = Math.max(0, Math.min(8, ratio(phase.available)));
@@ -24,6 +24,7 @@ export function PhaseCard({ phase }: { phase: Phase }) {
     <Link
       to="/properties/$slug"
       params={{ slug: phase.slug }}
+      search={currency === "USD" ? { from: "diaspora" } : undefined}
       className="group block bg-white rounded-[12px] overflow-hidden shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] hover:-translate-y-1.5 transition-all duration-400 cursor-pointer"
     >
       <div className="relative h-[220px] overflow-hidden">
@@ -94,8 +95,12 @@ export function PhaseCard({ phase }: { phase: Phase }) {
           </div>
           <div className="text-right">
             <div className="font-numbers font-bold text-primary">
-              <span className="text-[12px] mr-0.5">Ksh</span>
-              <span className="text-[16px]">{phase.startingPrice.toLocaleString()}</span>
+              <span className="text-[12px] mr-0.5">{currency === "USD" ? "$" : "Ksh"}</span>
+              <span className="text-[16px]">
+                {currency === "USD"
+                  ? Math.round(phase.startingPrice / 130).toLocaleString()
+                  : phase.startingPrice.toLocaleString()}
+              </span>
             </div>
             <div className="text-[11px] text-muted-foreground">Starting</div>
           </div>

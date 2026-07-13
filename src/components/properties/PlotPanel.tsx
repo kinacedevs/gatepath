@@ -14,11 +14,13 @@ export function PlotPanel({
   plot,
   onSelectPlot,
   onClear,
+  currency = "KES",
 }: {
   phase: Phase;
   plot: Plot | null;
   onSelectPlot: (p: Plot) => void;
   onClear: () => void;
+  currency?: "KES" | "USD";
 }) {
   if (!plot) {
     return (
@@ -109,10 +111,12 @@ export function PlotPanel({
   }
 
   // available
+  const priceUsd = Math.round(plot.price / 130);
   const baseParams = `phase=${phase.slug}&phaseName=${encodeURIComponent(phase.name)}&phaseNumber=${phase.phaseNumber || ""}&plotId=${plot.id}&plotNumber=${plot.id}&size=${encodeURIComponent(plot.size + " ft")}&price=${plot.price}&location=${encodeURIComponent(phase.location + ", " + phase.region)}`;
-  const reserveHref = `/inquire?${baseParams}&intent=reserve`;
-  const visitHref = `/inquire?${baseParams}&intent=free_visit`;
-  const inquireHref = `/inquire?${baseParams}&intent=deposit`;
+  const diasporaSuffix = currency === "USD" ? "&from=diaspora" : "";
+  const reserveHref = `/inquire?${baseParams}&intent=reserve${diasporaSuffix}`;
+  const visitHref = `/inquire?${baseParams}&intent=free_visit${diasporaSuffix}`;
+  const inquireHref = `/inquire?${baseParams}&intent=deposit${diasporaSuffix}`;
 
   return (
     <div className="bg-white rounded-[12px] overflow-hidden shadow-[var(--shadow-card)] border border-[#E5E0D8] animate-in fade-in duration-300">
@@ -152,7 +156,7 @@ export function PlotPanel({
             Listed Price
           </div>
           <div className="font-numbers font-bold text-[36px] text-primary leading-tight">
-            Ksh {plot.price.toLocaleString()}
+            {currency === "USD" ? `$ ${priceUsd.toLocaleString()}` : `Ksh ${plot.price.toLocaleString()}`}
           </div>
           <div className="text-[13px] text-accent italic mt-1">
             Flexible payment plan available
@@ -170,7 +174,7 @@ export function PlotPanel({
           href={reserveHref}
           className="mt-6 block w-full text-center bg-accent text-white font-bold text-[15px] py-4 rounded-lg hover:bg-[#C8861A] hover:scale-[1.02] transition-all"
         >
-          🌟 Reserve Plot (Ksh 10,000 Hold)
+          {currency === "USD" ? "🌟 Reserve Plot ($77 USD Hold)" : "🌟 Reserve Plot (Ksh 10,000 Hold)"}
         </a>
         <a
           href={visitHref}

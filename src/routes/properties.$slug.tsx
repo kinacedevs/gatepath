@@ -10,7 +10,14 @@ import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhase, type Plot, type Phase } from "@/lib/phases";
 import { supabase } from "@/lib/supabase";
 
+type DetailSearch = {
+  from?: string;
+};
+
 export const Route = createFileRoute("/properties/$slug")({
+  validateSearch: (s: Record<string, unknown>): DetailSearch => ({
+    from: typeof s.from === "string" ? s.from : undefined,
+  }),
   loader: async ({ params }) => {
     // 1. Fetch phase from Supabase
     const { data: dbPhase, error: phaseErr } = await supabase
@@ -168,8 +175,10 @@ function getEmbedUrl(url: string) {
 
 function PhaseDetailPage() {
   const { slug } = Route.useParams();
+  const { from } = Route.useSearch();
   const { initialPhase, similar } = Route.useLoaderData();
   const { phase: livePhase, loading, error } = usePhase(slug);
+  const isDiaspora = from === "diaspora";
 
   const [selected, setSelected] = useState<Plot | null>(null);
   const [tab, setTab] = useState<"location" | "infra" | "legal" | "payment">("location");
@@ -224,7 +233,15 @@ function PhaseDetailPage() {
           <div className="mx-auto max-w-7xl px-6 lg:px-12">
             <div className="text-[13px] text-white/50">
               <Link to="/" className="hover:text-accent">Home</Link> ›{" "}
-              <Link to="/properties" className="hover:text-accent">Properties</Link> ›{" "}
+              {isDiaspora ? (
+                <>
+                  <Link to="/diaspora" className="hover:text-accent">Diaspora</Link> ›{" "}
+                </>
+              ) : (
+                <>
+                  <Link to="/properties" className="hover:text-accent">Properties</Link> ›{" "}
+                </>
+              )}
               <span>{phase.name}</span>
             </div>
             {phase.phaseNumber && (
@@ -252,7 +269,13 @@ function PhaseDetailPage() {
               { v: phase.available, l: "Available", c: "text-[#22C55E]" },
               { v: phase.booked, l: "Booked", c: "text-[#F59E0B]" },
               { v: phase.sold, l: "Sold", c: "text-[#EF4444]" },
-              { v: `Ksh ${phase.startingPrice.toLocaleString()}`, l: "Starting Price", c: "text-accent" },
+              {
+                v: isDiaspora
+                  ? `$ ${Math.round(phase.startingPrice / 130).toLocaleString()}`
+                  : `Ksh ${phase.startingPrice.toLocaleString()}`,
+                l: "Starting Price",
+                c: "text-accent",
+              },
             ].map((s, i) => (
               <div key={s.l} className={i > 0 ? "pl-8" : ""}>
                 <div className={`font-numbers font-bold text-[22px] ${s.c}`}>{s.v}</div>
@@ -328,6 +351,7 @@ function PhaseDetailPage() {
             plot={selected}
             onSelectPlot={onSelect}
             onClear={() => setSelected(null)}
+            currency={isDiaspora ? "USD" : "KES"}
           />
         </div>
       </section>
