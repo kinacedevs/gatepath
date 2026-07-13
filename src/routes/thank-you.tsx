@@ -36,6 +36,21 @@ export const Route = createFileRoute("/thank-you")({
 function ThankYouPage() {
   const { ref, plot, phase, name, amount } = Route.useSearch();
   const { form } = useInquiry();
+
+  // Helper to clean quotes and whitespace from query strings (prevents 'NaN' and lookup failures)
+  const cleanParam = (val?: string) => {
+    if (!val) return "";
+    return val.replace(/^["']|["']$/g, "").trim();
+  };
+
+  const cleanRef = cleanParam(ref);
+  const cleanPlot = cleanParam(plot);
+  const cleanPhase = cleanParam(phase);
+  const cleanName = cleanParam(name);
+  const cleanAmount = cleanParam(amount);
+
+  const amountNum = Number(cleanAmount) || 0;
+
   const [animate, setAnimate] = useState(false);
   const [paymentRecord, setPaymentRecord] = useState<any>(null);
   const [agreementRecord, setAgreementRecord] = useState<any>(null);
@@ -46,26 +61,26 @@ function ThankYouPage() {
 
   useEffect(() => {
     async function fetchTransactionDetails() {
-      if (!ref) return;
+      if (!cleanRef) return;
 
       // 1. Check if payment already exists
       let { data: payment } = await supabase
         .from("payments")
         .select("*")
-        .eq("paystack_reference", ref)
+        .eq("paystack_reference", cleanRef)
         .maybeSingle();
 
       // 2. If it does not exist, reconcile client-side (helps local testing without webhooks)
       if (!payment) {
-        const plotNum = plot ? parseInt(plot) : null;
+        const plotNum = cleanPlot ? parseInt(cleanPlot) : null;
         let inquiry = null;
 
-        if (plotNum) {
+        if (plotNum && !isNaN(plotNum)) {
           const { data: matched } = await supabase
             .from("inquiries")
             .select("*")
             .eq("plot_number_ref", plotNum)
-            .eq("phase_name", phase || "")
+            .eq("phase_name", cleanPhase)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -78,7 +93,7 @@ function ThankYouPage() {
             .from("payments")
             .insert({
               inquiry_id: inquiry.id,
-              paystack_reference: ref,
+              paystack_reference: cleanRef,
               amount: amountNum,
               deposit_amount: amountNum,
               loan_period_months: form.loanPeriod || 6,
@@ -118,7 +133,7 @@ function ThankYouPage() {
               .from("plots")
               .update({ status: "booked" })
               .eq("plot_number", plotNum)
-              .eq("phase_name", phase || "");
+              .eq("phase_name", cleanPhase);
 
             // Send email & SMS notifications
             try {
@@ -129,7 +144,7 @@ function ThankYouPage() {
                 plotNumber: String(inquiry.plot_number_ref),
                 phaseName: inquiry.phase_name || "",
                 amount: amountNum,
-                reference: ref,
+                reference: cleanRef,
                 isHold: inquiry.payment_preference === "reserve",
                 visitDate: form.visitDate || undefined,
                 transportMode: form.transportMode || undefined,
@@ -177,14 +192,12 @@ function ThankYouPage() {
       }
     }
     fetchTransactionDetails();
-  }, [ref, plot, phase, amountNum, form]);
-
-  const amountNum = Number(amount) || 0;
+  }, [cleanRef, cleanPlot, cleanPhase, amountNum, form]);
 
   const isReserve = inquiryRecord?.payment_preference === "reserve" || form.reservePlot;
-  const clientName = inquiryRecord?.client_full_name || name || form.fullName || "Valued Client";
-  const plotNum = inquiryRecord?.plot_number_ref || plot || form.plotNumber;
-  const phaseName = inquiryRecord?.phase_name || phase || form.phaseName;
+  const clientName = inquiryRecord?.client_full_name || cleanName || form.fullName || "Valued Client";
+  const plotNum = inquiryRecord?.plot_number_ref || cleanPlot || form.plotNumber;
+  const phaseName = inquiryRecord?.phase_name || cleanPhase || form.phaseName;
   const displayAmount = paymentRecord?.amount || amountNum;
 
   const visitDateText = bookingRecord?.visit_date
