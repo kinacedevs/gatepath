@@ -64,6 +64,10 @@ export interface InquiryFormData {
   // ── Step 4 — Reservation hold option ──
   reservePlot: boolean;
   transportMode: "air" | "road" | "self" | "sgr" | "bus" | "";
+  intent: "free_visit" | "reserve" | "deposit";
+  pickupLocation: string;
+  visitMode: "physical" | "virtual";
+  inquiryId: string;
 }
 
 const defaultForm: InquiryFormData = {
@@ -108,6 +112,10 @@ const defaultForm: InquiryFormData = {
   paymentMethod: "mpesa",
   reservePlot: false,
   transportMode: "",
+  intent: "free_visit",
+  pickupLocation: "",
+  visitMode: "physical",
+  inquiryId: "",
 };
 
 const SESSION_KEY = "gatepath_inquiry_v2";

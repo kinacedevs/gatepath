@@ -436,3 +436,89 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
 
     return { success: true, emailResult, smsResult };
   });
+
+/**
+ * Server Function: Dispatches free site visit booking notifications
+ */
+export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
+  .validator((d: {
+    buyerName: string;
+    buyerEmail: string;
+    buyerPhone: string;
+    plotNumber: string;
+    phaseName: string;
+    visitDate: string;
+    visitTime: string;
+    transportMode: string;
+    pickupLocation: string;
+  }) => d)
+  .handler(async ({ data }) => {
+    console.log("[Notification ServerFn] Processing free site visit booking notification...");
+
+    // Generate HTML for site visit confirmation (clean table design)
+    const emailHtml = `
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Site Visit Scheduled</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F8F4EE; font-family: Arial, sans-serif;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="padding: 40px 0 30px 0;">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; border: 1px solid #E5E0D8; background-color: #FFFFFF; border-radius: 12px; overflow: hidden;">
+          <tr>
+            <td align="center" bgcolor="#0A3D62" style="padding: 40px 0 30px 0; color: #FFFFFF; font-size: 24px; font-weight: bold; font-family: Arial, sans-serif;">
+              GATEPATH REALTORS
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px 30px 40px 30px;">
+              <p style="font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #333333;">
+                Hello <strong>${data.buyerName}</strong>,
+              </p>
+              <p style="font-family: Arial, sans-serif; font-size: 14px; line-height: 22px; color: #666666; margin-bottom: 20px;">
+                Your free site visit has been scheduled successfully. Our team will contact you shortly to confirm the meeting details.
+              </p>
+              <table border="0" cellpadding="12" cellspacing="0" width="100%" style="background-color: #F8F4EE; border: 1px solid #E5E0D8; border-radius: 8px;">
+                <tr>
+                  <td style="font-family: Arial, sans-serif; font-size: 14px; color: #333333;">
+                    <strong>Project:</strong> ${data.phaseName}<br/>
+                    <strong>Plot Reference:</strong> Plot #${data.plotNumber}<br/>
+                    <strong>Visit Date:</strong> ${data.visitDate}<br/>
+                    <strong>Preferred Time:</strong> ${data.visitTime === "morning" ? "Morning (8:00 AM - 12:00 PM)" : "Afternoon (1:00 PM - 5:00 PM)"}<br/>
+                    <strong>Means of Transport:</strong> ${data.transportMode.toUpperCase()}<br/>
+                    <strong>Pickup Location:</strong> ${data.pickupLocation || "Self Transport"}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td bgcolor="#0A3D62" style="padding: 30px; text-align: center; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 12px;">
+              🏢 1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi, Kenya<br/>
+              📞 +254 799 488 488 | ✉️ info@gatepathrealtors.com
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+
+    const subject = `Site Visit Scheduled: Plot #${data.plotNumber} — ${data.phaseName}`;
+    const emailResult = await sendResendEmail(data.buyerEmail, subject, emailHtml);
+
+    // SMS Message
+    const transportStr = data.transportMode === "self" ? "Self Drive" : data.transportMode.toUpperCase();
+    const pickupStr = data.transportMode === "self" ? "" : `, Pickup: ${data.pickupLocation}`;
+    const smsMessage = `Hello ${data.buyerName}, your free site visit for Plot #${data.plotNumber} at ${data.phaseName} has been scheduled for ${data.visitDate} (${data.visitTime === "morning" ? "Morning" : "Afternoon"}). Transport: ${transportStr}${pickupStr}. Gatepath Realtors!`;
+
+    const smsResult = await sendAfricaTalkingSms(data.buyerPhone, smsMessage);
+
+    return { emailResult, smsResult };
+  });

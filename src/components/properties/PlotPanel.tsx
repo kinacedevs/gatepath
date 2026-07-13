@@ -109,7 +109,10 @@ export function PlotPanel({
   }
 
   // available
-  const inquireHref = `/inquire?phase=${phase.slug}&phaseName=${encodeURIComponent(phase.name)}&phaseNumber=${phase.phaseNumber}&plotId=${plot.id}&plotNumber=${plot.id}&size=${encodeURIComponent(plot.size + " ft")}&price=${plot.price}&location=${encodeURIComponent(phase.location + ", " + phase.region)}`;
+  const baseParams = `phase=${phase.slug}&phaseName=${encodeURIComponent(phase.name)}&phaseNumber=${phase.phaseNumber || ""}&plotId=${plot.id}&plotNumber=${plot.id}&size=${encodeURIComponent(plot.size + " ft")}&price=${plot.price}&location=${encodeURIComponent(phase.location + ", " + phase.region)}`;
+  const reserveHref = `/inquire?${baseParams}&intent=reserve`;
+  const visitHref = `/inquire?${baseParams}&intent=free_visit`;
+  const inquireHref = `/inquire?${baseParams}&intent=deposit`;
 
   return (
     <div className="bg-white rounded-[12px] overflow-hidden shadow-[var(--shadow-card)] border border-[#E5E0D8] animate-in fade-in duration-300">
@@ -164,16 +167,22 @@ export function PlotPanel({
         </div>
 
         <a
-          href={inquireHref}
+          href={reserveHref}
           className="mt-6 block w-full text-center bg-accent text-white font-bold text-[15px] py-4 rounded-lg hover:bg-[#C8861A] hover:scale-[1.02] transition-all"
         >
-          Start My Inquiry for Plot #{plot.id} →
+          🌟 Reserve Plot (Ksh 10,000 Hold)
+        </a>
+        <a
+          href={visitHref}
+          className="mt-3 block w-full text-center bg-[#E8F4FC] text-primary border border-primary/20 font-semibold text-[14px] py-3.5 rounded-lg hover:bg-[#D4ECF9] transition-all"
+        >
+          📅 Book Free Site Visit
         </a>
         <a
           href={inquireHref}
           className="mt-3 block w-full text-center border-[1.5px] border-primary text-primary font-medium text-[14px] py-3 rounded-lg hover:bg-primary hover:text-white transition-all"
         >
-          Book Free Site Visit Instead
+          💬 Start Purchase Inquiry
         </a>
 
         <div className="mt-4 flex items-center justify-center gap-3 text-[12px] text-muted-foreground">

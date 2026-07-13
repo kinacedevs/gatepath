@@ -22,6 +22,7 @@ type Search = {
   size?: string;
   price?: string;
   location?: string;
+  intent?: "free_visit" | "reserve" | "deposit";
 };
 
 export const Route = createFileRoute("/inquire")({
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/inquire")({
     size: s.size !== undefined ? String(s.size) : undefined,
     price: s.price !== undefined ? String(s.price) : undefined,
     location: s.location !== undefined ? String(s.location) : undefined,
+    intent: (s.intent === "free_visit" || s.intent === "reserve" || s.intent === "deposit") ? s.intent : undefined,
   }),
   component: InquiryPage,
   head: () => ({
@@ -82,8 +84,10 @@ function validate(form: ReturnType<typeof useInquiry>["form"]) {
   const passport = /^[A-Z]{1,2}\d{6,7}$/.test(id);
   if (!kenyanId && !passport) errs.idNumber = "Enter a valid Kenyan ID (7–8 digits) or Passport (e.g. A1234567)";
 
-  // Terms of payment
-  if (!form.termsOfPayment) errs.termsOfPayment = "Please select Cash or Instalment";
+  // Terms of payment (only required for deposits/reservations)
+  if (form.intent !== "free_visit" && !form.termsOfPayment) {
+    errs.termsOfPayment = "Please select Cash or Instalment";
+  }
 
   // How did you hear about us
   if (!form.heardFrom) errs.heardFrom = "Please tell us how you found us";
@@ -104,6 +108,7 @@ function InquiryPage() {
   // Seed form from URL params on first load
   useEffect(() => {
     if (search.phase || search.plotNumber) {
+      const intentVal = search.intent || "free_visit";
       setForm({
         phaseSlug: search.phase || "",
         phaseName: search.phaseName || "",
@@ -114,6 +119,8 @@ function InquiryPage() {
         plotPrice: Number(search.price) || 0,
         plotLocation: search.location || "",
         price: Number(search.price) || 0,
+        intent: intentVal,
+        reservePlot: intentVal === "reserve",
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,42 +199,45 @@ function InquiryPage() {
     setForm({ deposit, balance, monthlyPayment: monthly, price: finalPrice });
 
     // Write to Supabase
-    const { error: insertErr } = await supabase.from("inquiries").insert({
-      phase_id: form.plotId ? undefined : undefined, // resolved server-side
-      phase_name: sanitize(form.phaseName),
-      phase_slug: form.phaseSlug,
-      plot_number_ref: form.plotNumber ? parseInt(form.plotNumber) : null,
-      plot_size: form.plotSize,
-      plot_price: form.plotPrice,
-      plot_location: sanitize(form.plotLocation),
-      project_name: sanitize(form.phaseName),
-      booking_date: new Date().toISOString().split("T")[0],
-      terms_of_payment: form.termsOfPayment as "cash" | "installment",
-      price: finalPrice,
-      discount: form.discount || 0,
-      deposit,
-      balance,
-      payment_period_months: form.paymentPeriodMonths,
-      monthly_payment: monthly,
-      client_full_name: sanitize(form.fullName),
-      client_dob: form.dateOfBirth || null,
-      client_phone: form.phone.replace(/\s/g, ""),
-      client_postal_address: sanitize(form.postalAddress) || null,
-      client_email: form.email.toLowerCase().trim(),
-      client_kra_pin: sanitize(form.kraPin) || null,
-      client_id_passport: sanitize(form.idNumber).toUpperCase(),
-      client_occupation: sanitize(form.occupation) || null,
-      kin_full_name: sanitize(form.kinFullName) || null,
-      kin_phone: form.kinPhone || null,
-      kin_dob: form.kinDob || null,
-      kin_relationship: form.kinRelationship || null,
-      kin_id_passport: sanitize(form.kinIdPassport) || null,
-      heard_from: form.heardFrom,
-      payment_preference: form.paymentPreference,
-      location_preference: sanitize(form.locationPreference),
-      questions: sanitize(form.questions),
-      status: "pending",
-    });
+    const { data: insertedInq, error: insertErr } = await supabase
+      .from("inquiries")
+      .insert({
+        phase_name: sanitize(form.phaseName),
+        phase_slug: form.phaseSlug,
+        plot_number_ref: form.plotNumber ? parseInt(form.plotNumber) : null,
+        plot_size: form.plotSize,
+        plot_price: form.plotPrice,
+        plot_location: sanitize(form.plotLocation),
+        project_name: sanitize(form.phaseName),
+        booking_date: new Date().toISOString().split("T")[0],
+        terms_of_payment: form.intent === "free_visit" ? null : (form.termsOfPayment || "cash") as "cash" | "installment",
+        price: form.intent === "free_visit" ? form.plotPrice : finalPrice,
+        discount: form.intent === "free_visit" ? 0 : (form.discount || 0),
+        deposit: form.intent === "free_visit" ? 0 : deposit,
+        balance: form.intent === "free_visit" ? form.plotPrice : balance,
+        payment_period_months: form.intent === "free_visit" ? null : form.paymentPeriodMonths,
+        monthly_payment: form.intent === "free_visit" ? 0 : monthly,
+        client_full_name: sanitize(form.fullName),
+        client_dob: form.intent === "free_visit" ? null : (form.dateOfBirth || null),
+        client_phone: form.phone.replace(/\s/g, ""),
+        client_postal_address: form.intent === "free_visit" ? null : (sanitize(form.postalAddress) || null),
+        client_email: form.email.toLowerCase().trim(),
+        client_kra_pin: form.intent === "free_visit" ? null : (sanitize(form.kraPin) || null),
+        client_id_passport: sanitize(form.idNumber).toUpperCase(),
+        client_occupation: form.intent === "free_visit" ? null : (sanitize(form.occupation) || null),
+        kin_full_name: form.intent === "free_visit" ? null : (sanitize(form.kinFullName) || null),
+        kin_phone: form.intent === "free_visit" ? null : (form.kinPhone || null),
+        kin_dob: form.intent === "free_visit" ? null : (form.kinDob || null),
+        kin_relationship: form.intent === "free_visit" ? null : (form.kinRelationship || null),
+        kin_id_passport: form.intent === "free_visit" ? null : (sanitize(form.kinIdPassport) || null),
+        heard_from: form.heardFrom,
+        payment_preference: form.intent, // Set intent ('free_visit', 'reserve', 'deposit') as payment preference
+        location_preference: sanitize(form.locationPreference),
+        questions: sanitize(form.questions),
+        status: "pending",
+      })
+      .select()
+      .single();
 
     setLoading(false);
 
@@ -235,6 +245,10 @@ function InquiryPage() {
       console.error("[Gatepath] Inquiry insert error:", insertErr.message);
       setDbError("We couldn't save your inquiry. Please try again or WhatsApp us directly.");
       return;
+    }
+
+    if (insertedInq) {
+      setForm({ inquiryId: insertedInq.id });
     }
 
     navigate({ to: "/book-visit" });
@@ -303,6 +317,31 @@ function InquiryPage() {
                 </div>
               )}
 
+              {/* Intent Toggle Banner */}
+              <div className="mb-8 p-5 bg-[#EFF6FF] border border-[#0B7FC7]/20 rounded-xl flex items-start gap-3.5">
+                <input
+                  type="checkbox"
+                  id="reservePlotToggle"
+                  checked={form.intent !== "free_visit"}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setForm({
+                      intent: checked ? "reserve" : "free_visit",
+                      reservePlot: checked
+                    });
+                  }}
+                  style={{ width: 20, height: 20, cursor: "pointer", marginTop: 2, accentColor: "#0B7FC7" }}
+                />
+                <div>
+                  <label htmlFor="reservePlotToggle" style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 14, color: "#0B7FC7", cursor: "pointer" }}>
+                    Reserve plot instead (Ksh 10,000 hold fee)
+                  </label>
+                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", margin: "4px 0 0 0", lineHeight: 1.5 }}>
+                    Secures this plot for 14 days and prepares the official purchase agreement. This requires additional details (Next of Kin, KRA PIN).
+                  </p>
+                </div>
+              </div>
+
               {/* ─────────────────────────────────────────────── */}
               {/* SECTION 1: PLOT DETAILS (pre-filled, read-only) */}
               {/* ─────────────────────────────────────────────── */}
@@ -340,92 +379,81 @@ function InquiryPage() {
                 Wrong plot? ← Go back and reselect
               </button>
 
-              <div style={{ height: 1, background: "#E5E0D8", margin: "4px 0 24px" }} />
-
               {/* ─────────────────────────────────────────────── */}
               {/* SECTION 2: SPECIAL INSTRUCTIONS / PAYMENT TERMS */}
               {/* ─────────────────────────────────────────────── */}
-              {sectionHead("SPECIAL INSTRUCTIONS")}
+              {form.intent !== "free_visit" && (
+                <>
+                  <div style={{ height: 1, background: "#E5E0D8", margin: "4px 0 24px" }} />
+                  {sectionHead("SPECIAL INSTRUCTIONS")}
 
-              {/* Terms of Payment */}
-              <div className="mb-5">
-                <label style={label}>Terms of Payment *</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { id: "cash" as const, icon: "💵", label: "Cash", sub: `Ksh ${form.plotPrice.toLocaleString()} — full payment` },
-                    { id: "installment" as const, icon: "📅", label: "Instalments (Lipa Pole Pole)", sub: "Spread over 6 months" },
-                  ].map((opt) => {
-                    const sel = form.termsOfPayment === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          setForm({ termsOfPayment: opt.id });
-                          setTouched((t) => ({ ...t, termsOfPayment: true }));
-                        }}
-                        style={{
-                          textAlign: "left",
-                          border: `1.5px solid ${sel ? "#0B7FC7" : "#D5D0C8"}`,
-                          borderLeft: sel ? "4px solid #E8A020" : "1.5px solid #D5D0C8",
-                          borderRadius: 8,
-                          padding: "14px 14px",
-                          background: sel ? "#EFF6FF" : "#FFFFFF",
-                          cursor: "pointer",
-                        }}
+                  {/* Terms of Payment */}
+                  <div className="mb-5">
+                    <label style={label}>Terms of Payment *</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { id: "cash" as const, icon: "💵", label: "Cash", sub: `Ksh ${form.plotPrice.toLocaleString()} — full payment` },
+                        { id: "installment" as const, icon: "📅", label: "Instalments (Lipa Pole Pole)", sub: "Spread over 6 months" },
+                      ].map((opt) => {
+                        const sel = form.termsOfPayment === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              setForm({ termsOfPayment: opt.id });
+                              setTouched((t) => ({ ...t, termsOfPayment: true }));
+                            }}
+                            style={{
+                              textAlign: "left",
+                              border: `1.5px solid ${sel ? "#0B7FC7" : "#D5D0C8"}`,
+                              borderLeft: sel ? "4px solid #E8A020" : "1.5px solid #D5D0C8",
+                              borderRadius: 8,
+                              padding: "14px 14px",
+                              background: sel ? "#EFF6FF" : "#FFFFFF",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <div style={{ fontSize: 20, marginBottom: 4 }}>{opt.icon}</div>
+                            <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 13, color: "#0B7FC7" }}>{opt.label}</div>
+                            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {showErr("termsOfPayment") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 6 }}>{errors.termsOfPayment}</div>}
+                  </div>
+
+                  {/* Payment period */}
+                  {form.termsOfPayment === "installment" && (
+                    <div className="mb-5">
+                      <label style={label}>Payment Period (months) *</label>
+                      <select
+                        value={form.paymentPeriodMonths}
+                        onChange={(e) => setForm({ paymentPeriodMonths: Number(e.target.value) })}
+                        style={inp("paymentPeriodMonths")}
                       >
-                        <div style={{ fontSize: 20, marginBottom: 4 }}>{opt.icon}</div>
-                        <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 13, color: "#0B7FC7" }}>{opt.label}</div>
-                        <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-                {showErr("termsOfPayment") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 6 }}>{errors.termsOfPayment}</div>}
-              </div>
+                        {[3, 6, 12, 18, 24].map((m) => (
+                          <option key={m} value={m}>{m} months</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-              {/* Payment period */}
-              {form.termsOfPayment === "installment" && (
-                <div className="mb-5">
-                  <label style={label}>Payment Period (months) *</label>
-                  <select
-                    value={form.paymentPeriodMonths}
-                    onChange={(e) => setForm({ paymentPeriodMonths: Number(e.target.value) })}
-                    style={inp("paymentPeriodMonths")}
-                  >
-                    {[3, 6, 12, 18, 24].map((m) => (
-                      <option key={m} value={m}>{m} months</option>
-                    ))}
-                  </select>
-                </div>
+                  {/* Discount (optional, CEO fills) */}
+                  <div className="mb-5">
+                    <label style={label}>Discount Applied (if any — Ksh)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.discount || ""}
+                      placeholder="0"
+                      onChange={(e) => setForm({ discount: Number(e.target.value) })}
+                      style={inp("discount")}
+                    />
+                  </div>
+                </>
               )}
-
-              {/* Discount (optional, CEO fills) */}
-              <div className="mb-5">
-                <label style={label}>Discount Applied (if any — Ksh)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.discount || ""}
-                  placeholder="0"
-                  onChange={(e) => setForm({ discount: Number(e.target.value) })}
-                  style={inp("discount")}
-                />
-              </div>
-
-              {/* Reserve plot check */}
-              <div className="mb-5 flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="reservePlot"
-                  checked={form.reservePlot}
-                  onChange={(e) => setForm({ reservePlot: e.target.checked })}
-                  style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#0B7FC7" }}
-                />
-                <label htmlFor="reservePlot" style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600, color: "#0B7FC7", cursor: "pointer" }}>
-                  Reserve plot
-                </label>
-              </div>
 
               <div style={{ height: 1, background: "#E5E0D8", margin: "4px 0 24px" }} />
 
@@ -449,20 +477,33 @@ function InquiryPage() {
                 {showErr("fullName") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.fullName}</div>}
               </div>
 
-              {/* Date of Birth + Phone — 2 columns */}
+              {/* Date of Birth + Phone — conditional DOB */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                <div>
-                  <label style={label}>Date of Birth *</label>
-                  <input
-                    name="dateOfBirth"
-                    type="date"
-                    value={form.dateOfBirth}
-                    max={new Date(Date.now() - 18 * 365.25 * 86400000).toISOString().split("T")[0]}
-                    onChange={(e) => setForm({ dateOfBirth: e.target.value })}
-                    onBlur={blur("dateOfBirth")}
-                    style={inp("dateOfBirth")}
-                  />
-                </div>
+                {form.intent !== "free_visit" ? (
+                  <div>
+                    <label style={label}>Date of Birth *</label>
+                    <input
+                      name="dateOfBirth"
+                      type="date"
+                      value={form.dateOfBirth}
+                      max={new Date(Date.now() - 18 * 365.25 * 86400000).toISOString().split("T")[0]}
+                      onChange={(e) => setForm({ dateOfBirth: e.target.value })}
+                      onBlur={blur("dateOfBirth")}
+                      style={inp("dateOfBirth")}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label style={label}>Date of Birth (Optional)</label>
+                    <input
+                      name="dateOfBirth"
+                      type="date"
+                      value={form.dateOfBirth}
+                      onChange={(e) => setForm({ dateOfBirth: e.target.value })}
+                      style={inp("dateOfBirth")}
+                    />
+                  </div>
+                )}
                 <div>
                   <label style={label}>Phone No. *</label>
                   <input
@@ -478,19 +519,21 @@ function InquiryPage() {
                 </div>
               </div>
 
-              {/* Postal Address */}
-              <div className="mb-5">
-                <label style={label}>Postal Address</label>
-                <input
-                  name="postalAddress"
-                  type="text"
-                  value={form.postalAddress}
-                  placeholder="e.g. P.O. Box 1234-00100, Nairobi"
-                  onChange={(e) => setForm({ postalAddress: e.target.value })}
-                  onBlur={blur("postalAddress")}
-                  style={inp("postalAddress")}
-                />
-              </div>
+              {/* Postal Address (conditional) */}
+              {form.intent !== "free_visit" && (
+                <div className="mb-5">
+                  <label style={label}>Postal Address</label>
+                  <input
+                    name="postalAddress"
+                    type="text"
+                    value={form.postalAddress}
+                    placeholder="e.g. P.O. Box 1234-00100, Nairobi"
+                    onChange={(e) => setForm({ postalAddress: e.target.value })}
+                    onBlur={blur("postalAddress")}
+                    style={inp("postalAddress")}
+                  />
+                </div>
+              )}
 
               {/* Email */}
               <div className="mb-5">
@@ -510,20 +553,34 @@ function InquiryPage() {
                 {showErr("email") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.email}</div>}
               </div>
 
-              {/* KRA PIN + ID — 2 columns */}
+              {/* KRA PIN + ID — conditional KRA PIN */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                <div>
-                  <label style={label}>KRA PIN</label>
-                  <input
-                    name="kraPin"
-                    type="text"
-                    value={form.kraPin}
-                    placeholder="e.g. A123456789B"
-                    onChange={(e) => setForm({ kraPin: e.target.value.toUpperCase() })}
-                    onBlur={blur("kraPin")}
-                    style={inp("kraPin")}
-                  />
-                </div>
+                {form.intent !== "free_visit" ? (
+                  <div>
+                    <label style={label}>KRA PIN</label>
+                    <input
+                      name="kraPin"
+                      type="text"
+                      value={form.kraPin}
+                      placeholder="e.g. A123456789B"
+                      onChange={(e) => setForm({ kraPin: e.target.value.toUpperCase() })}
+                      onBlur={blur("kraPin")}
+                      style={inp("kraPin")}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label style={label}>Current Location (City/Town) *</label>
+                    <input
+                      name="postalAddress"
+                      type="text"
+                      value={form.postalAddress}
+                      placeholder="e.g. Nairobi, Malindi"
+                      onChange={(e) => setForm({ postalAddress: e.target.value })}
+                      style={inp("postalAddress")}
+                    />
+                  </div>
+                )}
                 <div>
                   <label style={label}>ID / Passport No. *</label>
                   <input
@@ -539,87 +596,92 @@ function InquiryPage() {
                 </div>
               </div>
 
-              {/* Occupation */}
-              <div className="mb-5">
-                <label style={label}>Occupation</label>
-                <input
-                  name="occupation"
-                  type="text"
-                  value={form.occupation}
-                  placeholder="e.g. Teacher, Business Owner, Engineer"
-                  onChange={(e) => setForm({ occupation: e.target.value })}
-                  style={inp("occupation")}
-                />
-              </div>
-
-              <div style={{ height: 1, background: "#E5E0D8", margin: "4px 0 24px" }} />
-
-              {/* ─────────────────────────────────────────────── */}
-              {/* SECTION 4: NEXT OF KIN                          */}
-              {/* ─────────────────────────────────────────────── */}
-              {sectionHead("NEXT OF KIN DETAILS")}
-
-              {/* Kin Name + Kin Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                <div>
-                  <label style={label}>Full Name</label>
+              {/* Occupation (conditional) */}
+              {form.intent !== "free_visit" && (
+                <div className="mb-5">
+                  <label style={label}>Occupation</label>
                   <input
-                    name="kinFullName"
+                    name="occupation"
                     type="text"
-                    value={form.kinFullName}
-                    placeholder="Next of kin full name"
-                    onChange={(e) => setForm({ kinFullName: e.target.value })}
-                    style={inp("kinFullName")}
+                    value={form.occupation}
+                    placeholder="e.g. Teacher, Business Owner, Engineer"
+                    onChange={(e) => setForm({ occupation: e.target.value })}
+                    style={inp("occupation")}
                   />
                 </div>
-                <div>
-                  <label style={label}>Phone No.</label>
-                  <input
-                    name="kinPhone"
-                    type="tel"
-                    value={form.kinPhone}
-                    placeholder="07XX XXX XXX"
-                    onChange={(e) => setForm({ kinPhone: e.target.value })}
-                    style={inp("kinPhone")}
-                  />
-                </div>
-              </div>
+              )}
 
-              {/* Kin DOB + Relationship */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                <div>
-                  <label style={label}>Date of Birth</label>
-                  <input
-                    type="date"
-                    value={form.kinDob}
-                    onChange={(e) => setForm({ kinDob: e.target.value })}
-                    style={inp("kinDob")}
-                  />
-                </div>
-                <div>
-                  <label style={label}>Relationship</label>
-                  <select
-                    value={form.kinRelationship}
-                    onChange={(e) => setForm({ kinRelationship: e.target.value })}
-                    style={inp("kinRelationship")}
-                  >
-                    <option value="">Select relationship...</option>
-                    {RELATIONSHIPS.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-              </div>
+              {/* ─────────────────────────────────────────────── */}
+              {/* SECTION 4: NEXT OF KIN (conditional)           */}
+              {/* ─────────────────────────────────────────────── */}
+              {form.intent !== "free_visit" && (
+                <>
+                  <div style={{ height: 1, background: "#E5E0D8", margin: "4px 0 24px" }} />
+                  {sectionHead("NEXT OF KIN DETAILS")}
 
-              {/* Kin ID/Passport */}
-              <div className="mb-5">
-                <label style={label}>ID / Passport No.</label>
-                <input
-                  type="text"
-                  value={form.kinIdPassport}
-                  placeholder="Next of kin ID or Passport number"
-                  onChange={(e) => setForm({ kinIdPassport: e.target.value })}
-                  style={inp("kinIdPassport")}
-                />
-              </div>
+                  {/* Kin Name + Kin Phone */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <label style={label}>Full Name</label>
+                      <input
+                        name="kinFullName"
+                        type="text"
+                        value={form.kinFullName}
+                        placeholder="Next of kin full name"
+                        onChange={(e) => setForm({ kinFullName: e.target.value })}
+                        style={inp("kinFullName")}
+                      />
+                    </div>
+                    <div>
+                      <label style={label}>Phone No.</label>
+                      <input
+                        name="kinPhone"
+                        type="tel"
+                        value={form.kinPhone}
+                        placeholder="07XX XXX XXX"
+                        onChange={(e) => setForm({ kinPhone: e.target.value })}
+                        style={inp("kinPhone")}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Kin DOB + Relationship */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <label style={label}>Date of Birth</label>
+                      <input
+                        type="date"
+                        value={form.kinDob}
+                        onChange={(e) => setForm({ kinDob: e.target.value })}
+                        style={inp("kinDob")}
+                      />
+                    </div>
+                    <div>
+                      <label style={label}>Relationship</label>
+                      <select
+                        value={form.kinRelationship}
+                        onChange={(e) => setForm({ kinRelationship: e.target.value })}
+                        style={inp("kinRelationship")}
+                      >
+                        <option value="">Select relationship...</option>
+                        {RELATIONSHIPS.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Kin ID/Passport */}
+                  <div className="mb-5">
+                    <label style={label}>ID / Passport No.</label>
+                    <input
+                      type="text"
+                      value={form.kinIdPassport}
+                      placeholder="Next of kin ID or Passport number"
+                      onChange={(e) => setForm({ kinIdPassport: e.target.value })}
+                      style={inp("kinIdPassport")}
+                    />
+                  </div>
+                </>
+              )}
 
               <div style={{ height: 1, background: "#E5E0D8", margin: "4px 0 24px" }} />
 

@@ -31,8 +31,8 @@ function PaymentPage() {
   const { form, setForm } = useInquiry();
   const navigate = useNavigate();
   const totalPrice = form.plotPrice;
-  const minDeposit = form.reservePlot ? 15000 : Math.round(totalPrice * 0.1);
-  const defaultDeposit = form.reservePlot ? 15000 : Math.round(totalPrice * 0.3);
+  const minDeposit = form.reservePlot ? 10000 : Math.round(totalPrice * 0.1);
+  const defaultDeposit = form.reservePlot ? 10000 : Math.round(totalPrice * 0.3);
 
   const [deposit, setDeposit] = useState(form.depositAmount || defaultDeposit || 0);
   const [period, setPeriod] = useState(form.loanPeriod || 12);
@@ -140,7 +140,7 @@ function PaymentPage() {
               </div>
               <p style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "#5A5A5A", marginTop: 6 }}>
                 {form.reservePlot
-                  ? "Select the amount you want to pay to hold this plot. The minimum required fee is Ksh 15,000. This secures your plot for 14 days."
+                  ? "Select the amount you want to pay to hold this plot. The minimum required fee is Ksh 10,000. This secures your plot for 14 days."
                   : "Plan your payments before committing. Adjust the sliders to see monthly costs."}
               </p>
 
@@ -177,7 +177,7 @@ function PaymentPage() {
                 <div className="flex justify-between mt-1" style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "#5A5A5A" }}>
                   <span>
                     {form.reservePlot
-                      ? `Min: Ksh 15,000`
+                      ? `Min: Ksh 10,000`
                       : `Min: 10% (Ksh ${minDeposit.toLocaleString()})`}
                   </span>
                   <span>Full payment (Ksh {totalPrice.toLocaleString()})</span>

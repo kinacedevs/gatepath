@@ -99,6 +99,10 @@ function AdminPage() {
   // Edit Plot State
   const [editingPlot, setEditingPlot] = useState<Plot | null>(null);
   const [newPlotStatus, setNewPlotStatus] = useState<"available" | "booked" | "sold">("available");
+  // Edit Phase States
+  const [editingPhaseYoutube, setEditingPhaseYoutube] = useState("");
+  const [phaseSaveLoading, setPhaseSaveLoading] = useState(false);
+  const [phaseSaveMsg, setPhaseSaveMsg] = useState<string | null>(null);
 
   // 1. CHECK SESSION AND ROLE ON MOUNT
   useEffect(() => {
@@ -495,6 +499,37 @@ function AdminPage() {
       return matchesSearch && matchesStatus;
     });
   }, [inquiries, searchQuery, statusFilter]);
+
+  const activePhase = useMemo(() => {
+    return phases.find((p) => p.id === selectedPhaseId);
+  }, [phases, selectedPhaseId]);
+
+  useEffect(() => {
+    if (activePhase) {
+      setEditingPhaseYoutube(activePhase.youtube_video_url || "");
+      setPhaseSaveMsg(null);
+    }
+  }, [activePhase]);
+
+  const handleSavePhaseYoutube = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPhaseId) return;
+    setPhaseSaveLoading(true);
+    setPhaseSaveMsg(null);
+
+    const { error } = await supabase
+      .from("phases")
+      .update({ youtube_video_url: editingPhaseYoutube.trim() || null })
+      .eq("id", selectedPhaseId);
+
+    if (error) {
+      setPhaseSaveMsg("Error saving video URL: " + error.message);
+    } else {
+      setPhaseSaveMsg("YouTube video URL saved successfully!");
+      loadAllData();
+    }
+    setPhaseSaveLoading(false);
+  };
 
   const activePhasePlots = useMemo(() => {
     return plots.filter((p) => p.phase_id === selectedPhaseId);
@@ -1031,6 +1066,41 @@ function AdminPage() {
                     <div className="text-[10px] uppercase font-bold tracking-wider mt-1">{plot.status}</div>
                   </button>
                 ))}
+              </div>
+
+              {/* Configure Project Details (YouTube Video) */}
+              <div className="mt-10 pt-8 border-t border-[#E5E0D8]">
+                <h4 className="font-serif font-bold text-[18px] text-primary mb-2">Configure Project Media & Info</h4>
+                <p className="text-[13px] text-muted-foreground mb-4">Add or update the YouTube Video Walkthrough URL for the selected project phase.</p>
+
+                {phaseSaveMsg && (
+                  <div className={`mb-4 p-3 text-[13px] rounded-lg font-medium border ${
+                    phaseSaveMsg.includes("Error") 
+                      ? "bg-red-50 border-red-200 text-red-700" 
+                      : "bg-[#EFF6FF] border-[#0B7FC7]/20 text-[#0B7FC7]"
+                  }`}>
+                    {phaseSaveMsg}
+                  </div>
+                )}
+
+                <form onSubmit={handleSavePhaseYoutube} className="max-w-2xl flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <input
+                      type="url"
+                      value={editingPhaseYoutube}
+                      onChange={(e) => setEditingPhaseYoutube(e.target.value)}
+                      placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                      className="w-full px-3.5 py-2.5 border border-[#D5D0C8] rounded-lg text-[14px] focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={phaseSaveLoading}
+                    className="bg-[#0B7FC7] text-white font-semibold text-[13px] px-5 py-2.5 rounded-lg hover:bg-[#09669E] transition-all disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {phaseSaveLoading ? "Saving..." : "Save Video URL"}
+                  </button>
+                </form>
               </div>
             </div>
           )}

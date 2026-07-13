@@ -147,6 +147,25 @@ export const Route = createFileRoute("/properties/$slug")({
   },
 });
 
+function getEmbedUrl(url: string) {
+  if (!url) return null;
+  let videoId = "";
+  if (url.includes("youtube.com/watch")) {
+    const parts = url.split("v=");
+    if (parts[1]) {
+      videoId = parts[1].split("&")[0];
+    }
+  } else if (url.includes("youtu.be/")) {
+    const parts = url.split("youtu.be/");
+    if (parts[1]) {
+      videoId = parts[1].split("?")[0];
+    }
+  } else if (url.includes("youtube.com/embed/")) {
+    return url;
+  }
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+}
+
 function PhaseDetailPage() {
   const { slug } = Route.useParams();
   const { initialPhase, similar } = Route.useLoaderData();
@@ -408,6 +427,72 @@ function PhaseDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* YOUTUBE VIDEO SECTION */}
+      <section className="mx-auto max-w-7xl px-6 lg:px-12 pb-16">
+        <div className="bg-white rounded-[12px] border border-[#E5E0D8] shadow-[var(--shadow-card)] p-8">
+          <h3 className="font-serif font-semibold text-[28px] text-primary mb-2">
+            Property Video Tour
+          </h3>
+          <p className="text-[14px] text-muted-foreground mb-6">
+            Take a virtual tour of the environment, road connectivity, and physical landmarks surrounding {phase.name}.
+          </p>
+
+          {phase.youtube_video_url ? (
+            <div className="relative w-full aspect-video rounded-[8px] overflow-hidden border border-[#E5E0D8] shadow-md bg-black">
+              {(() => {
+                const embedUrl = getEmbedUrl(phase.youtube_video_url);
+                if (embedUrl) {
+                  return (
+                    <iframe
+                      src={embedUrl}
+                      title={`${phase.name} Video Tour`}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute top-0 left-0 w-full h-full"
+                    />
+                  );
+                } else {
+                  return (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-white bg-slate-900">
+                      <p className="text-[16px] font-semibold">Watch on YouTube</p>
+                      <p className="text-[13px] opacity-75 mt-2 max-w-md">Our team has uploaded a video tour for this property. Click below to view it directly on YouTube.</p>
+                      <a
+                        href={phase.youtube_video_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-4 bg-[#FF0000] text-white font-semibold text-[13px] px-6 py-2.5 rounded-full hover:bg-[#CC0000] transition-colors"
+                      >
+                        Open YouTube Video ↗
+                      </a>
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+          ) : (
+            <div 
+              style={{
+                backgroundImage: `linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url(${phase.image})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+              className="w-full aspect-video rounded-[8px] flex flex-col items-center justify-center text-center p-6 text-white border border-[#E5E0D8]"
+            >
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-white fill-current" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+              <p className="text-[18px] font-serif font-semibold">Video Tour Coming Soon</p>
+              <p className="text-[13px] opacity-80 mt-2 max-w-md">
+                Our site media team is currently capturing drone footage and walkthrough tours of {phase.name}. Check back soon or request a live video tour!
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

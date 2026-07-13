@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -19,6 +19,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import diasporaHero from "@/assets/diaspora.jpg";
 
 export const Route = createFileRoute("/diaspora")({
   component: DiasporaPage,
@@ -70,9 +71,13 @@ function sanitize(val: string): string {
 }
 
 function DiasporaPage() {
-  // Exchange calculator states
-  const [kesAmount, setKesAmount] = useState<number>(320000);
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>("USD");
+  // Database Properties & Custom Calculator States
+  const [phases, setPhases] = useState<any[]>([]);
+  const [phasesLoading, setPhasesLoading] = useState(true);
+  const [selectedPhase, setSelectedPhase] = useState<any | null>(null);
+
+  const [calcDepositUsd, setCalcDepositUsd] = useState<number>(0);
+  const [calcPeriod, setCalcPeriod] = useState<number>(12);
 
   // Form states
   const [fullName, setFullName] = useState("");
@@ -90,11 +95,50 @@ function DiasporaPage() {
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Conversion logic
-  const convertedAmount = useMemo(() => {
-    const rate = CURRENCY_RATES[selectedCurrency];
-    return Number((kesAmount / rate).toFixed(2));
-  }, [kesAmount, selectedCurrency]);
+  // Load phases on mount
+  useEffect(() => {
+    const fetchPhases = async () => {
+      try {
+        setPhasesLoading(true);
+        const { data, error } = await supabase
+          .from("phases")
+          .select("*, plots(*)")
+          .order("name");
+        if (!error && data) {
+          setPhases(data);
+          if (data.length > 0) {
+            setSelectedPhase(data[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Diaspora fetch phases error:", err);
+      } finally {
+        setPhasesLoading(false);
+      }
+    };
+    fetchPhases();
+  }, []);
+
+  // Pre-fill USD calculator when phase selection changes
+  useEffect(() => {
+    if (selectedPhase) {
+      const startingPriceUsd = Math.round(selectedPhase.startingPrice / 130);
+      setCalcDepositUsd(Math.round(startingPriceUsd * 0.3)); // Default 30%
+    }
+  }, [selectedPhase]);
+
+  // Dynamic calculator values
+  const { phasePriceUsd, calcBalanceUsd, calcMonthlyInstallmentUsd } = useMemo(() => {
+    if (!selectedPhase) return { phasePriceUsd: 0, calcBalanceUsd: 0, calcMonthlyInstallmentUsd: 0 };
+    const priceUsd = Math.round(selectedPhase.startingPrice / 130);
+    const balanceUsd = Math.max(0, priceUsd - calcDepositUsd);
+    const installmentUsd = calcPeriod > 0 ? Math.ceil(balanceUsd / calcPeriod) : 0;
+    return {
+      phasePriceUsd: priceUsd,
+      calcBalanceUsd: balanceUsd,
+      calcMonthlyInstallmentUsd: installmentUsd
+    };
+  }, [selectedPhase, calcDepositUsd, calcPeriod]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,9 +209,15 @@ function DiasporaPage() {
       <Navbar />
 
       {/* HERO SECTION */}
-      <section className="relative pt-36 pb-20 bg-[#06243A] overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#0A3D62] via-[#06243A] to-[#041521]"></div>
-        <div className="relative mx-auto max-w-7xl px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-12 items-center">
+      <section 
+        className="relative pt-44 pb-32 bg-[#06243A] overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(6,36,58,0.92) 0%, rgba(6,36,58,0.7) 100%), url(${diasporaHero})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        }}
+      >
+        <div className="relative mx-auto max-w-7xl px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-12 items-center">
           <div className="text-white max-w-3xl">
             <span className="inline-flex items-center gap-2 bg-[#E8A020]/20 text-[#E8A020] border border-[#E8A020]/30 font-semibold tracking-wider uppercase text-[12px] px-3.5 py-1.5 rounded-full mb-6">
               <Globe size={14} /> Certified Diaspora Channel
@@ -176,7 +226,7 @@ function DiasporaPage() {
               Invest in Kenyan Land, <br className="hidden md:inline" />
               <span className="text-[#E8A020]">With Complete Trust.</span>
             </h1>
-            <p className="mt-6 text-[18px] md:text-[20px] text-white/75 font-light leading-relaxed max-w-2xl">
+            <p className="mt-6 text-[18px] md:text-[20px] text-white/85 font-light leading-relaxed max-w-2xl">
               We eliminate the middlemen, the family run-arounds, and the legal uncertainties. Secure title deeds delivered straight to your doorstep worldwide.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
@@ -187,61 +237,38 @@ function DiasporaPage() {
                 Explore Secure Process
               </a>
               <a
-                href="#booking"
-                className="bg-white/10 border border-white/20 text-white font-semibold text-[15px] px-8 py-3.5 rounded-md hover:bg-white/20 transition-all"
+                href="#catalog"
+                className="bg-[#0B7FC7] text-white font-semibold text-[15px] px-8 py-3.5 rounded-md hover:bg-[#09669E] transition-all"
               >
-                Schedule Virtual Tour
+                Browse USD Catalog
               </a>
             </div>
           </div>
 
-          {/* QUICK CALCULATOR */}
-          <div className="bg-white rounded-2xl p-8 shadow-2xl border border-white/10 relative overflow-hidden">
-            <h3 className="font-serif font-bold text-[24px] text-primary">Live Currency Estimator</h3>
-            <p className="text-[13px] text-muted-foreground mt-1">Convert KES pricing instantly to your local currency.</p>
+          {/* ESCROW HIGHLIGHT BOX */}
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-2xl text-white">
+            <h3 className="font-serif font-bold text-[24px] text-[#E8A020]">Secure Diaspora Service</h3>
+            <p className="text-[13px] text-white/70 mt-1">Our framework guarantees full protection of your investments from abroad.</p>
 
-            <div className="mt-6 space-y-4">
+            <ul className="mt-6 space-y-4 text-[14px]">
+              {[
+                ["✓", "Certified Registry Land Search before signing"],
+                ["✓", "Payments secured in escrow-backed accounts"],
+                ["✓", "Live HD Video Tours of physical plot beacons"],
+                ["✓", "Original title deed courier delivery via DHL"],
+              ].map(([icon, text], i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="text-[#E8A020] font-bold text-[16px]">{icon}</span>
+                  <span className="text-white/90 leading-normal">{text}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-8 pt-6 border-t border-white/10 flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center font-serif text-[18px] font-bold text-[#E8A020]">130</div>
               <div>
-                <label className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">KES Amount</label>
-                <div className="relative mt-1">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-primary">KES</span>
-                  <input
-                    type="number"
-                    value={kesAmount}
-                    onChange={(e) => setKesAmount(Number(e.target.value))}
-                    className="w-full pl-14 pr-4 py-3 border border-[#D5D0C8] rounded-lg focus:border-primary focus:outline-none font-numbers font-bold text-[18px]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Convert To</label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  {(Object.keys(CURRENCY_RATES) as Currency[]).map((cur) => (
-                    <button
-                      key={cur}
-                      onClick={() => setSelectedCurrency(cur)}
-                      className={`py-2 px-3 text-[13px] font-semibold border rounded-lg transition-all ${
-                        selectedCurrency === cur
-                          ? "bg-[#0B7FC7] border-[#0B7FC7] text-white"
-                          : "bg-white border-[#D5D0C8] text-foreground hover:bg-[#F8F4EE]"
-                      }`}
-                    >
-                      {cur}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-[#F8F4EE] rounded-lg border border-[#E5E0D8]">
-                <div className="text-[12px] text-muted-foreground uppercase tracking-wider">Estimated Amount</div>
-                <div className="font-numbers font-bold text-[32px] text-primary flex items-baseline gap-1 mt-1">
-                  <span className="text-[20px] font-semibold">{selectedCurrency}</span>
-                  {convertedAmount.toLocaleString()}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-2 italic">
-                  *Based on a fixed rate of 1 {selectedCurrency} = {CURRENCY_RATES[selectedCurrency]} KES. actual bank transaction rates will apply.
-                </div>
+                <div className="text-[11px] uppercase tracking-wider text-white/60">Fixed exchange rate</div>
+                <div className="text-[14px] font-bold">1 USD = 130 KES</div>
               </div>
             </div>
           </div>
@@ -261,6 +288,202 @@ function DiasporaPage() {
           <span className="bg-white/20 text-[12px] font-semibold uppercase tracking-wider px-3.5 py-1.5 rounded-full border border-white/20">
             Escrow Backed
           </span>
+        </div>
+      </section>
+
+      {/* DIASPORA PROPERTY CATALOG (USD ONLY) */}
+      <section id="catalog" className="py-24 bg-[#F5F2EE] border-b border-[#E5E0D8]">
+        <div className="mx-auto max-w-7xl px-6 lg:px-12">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="font-serif font-semibold text-[38px] md:text-[52px] text-primary leading-tight">
+              Exclusive USD Property Catalog
+            </h2>
+            <p className="mt-4 text-[16px] text-muted-foreground leading-relaxed">
+              Explore our prime project phases with real-time availability and dynamic payment estimators converted to USD at a fixed rate of <strong className="text-primary">1 USD = 130 KES</strong>.
+            </p>
+          </div>
+
+          {phasesLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-[#E5E0D8] shadow-sm">
+              <Loader2 className="animate-spin text-accent mb-3" size={40} />
+              <p className="font-sans text-[14px] text-muted-foreground">Syncing property registry database...</p>
+            </div>
+          ) : phases.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl border border-[#E5E0D8] shadow-sm">
+              <p className="text-muted-foreground text-[14px]">No project phases found in database.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
+              {/* Left sidebar: Phase List */}
+              <div className="space-y-3">
+                <div style={{ fontFamily: "Montserrat, sans-serif", fontSize: 11, fontWeight: 600, color: "#E8A020", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8 }}>
+                  AVAILABLE PROJECTS
+                </div>
+                {phases.map((p) => {
+                  const isSelected = selectedPhase?.id === p.id;
+                  const priceUsd = Math.round(p.startingPrice / 130);
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedPhase(p)}
+                      className={`w-full text-left p-4 rounded-xl border transition-all ${
+                        isSelected 
+                          ? "bg-[#0B7FC7] border-[#0B7FC7] text-white shadow-md" 
+                          : "bg-white border-[#E5E0D8] text-primary hover:bg-[#FDFCFB]"
+                      }`}
+                    >
+                      <h4 className="font-serif font-bold text-[16px]">{p.name}</h4>
+                      <p className={`text-[12px] mt-1 ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                        {p.location}, {p.region}
+                      </p>
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className={`text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-[#EFF6FF] text-[#0B7FC7]"}`}>
+                          {p.available} Available
+                        </span>
+                        <span className="font-numbers font-bold text-[14px]">
+                          from ${priceUsd.toLocaleString()}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Right side: Selected Phase Details & USD Calculator */}
+              {selectedPhase && (
+                <div className="bg-white rounded-2xl border border-[#E5E0D8] shadow-sm p-8 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8">
+                  <div>
+                    <span className="bg-accent text-white font-numbers font-semibold text-[10px] uppercase tracking-wider px-3 py-1 rounded-full">
+                      PHASE {selectedPhase.phaseNumber || "N/A"} — {selectedPhase.status}
+                    </span>
+                    <h3 className="font-serif font-bold text-[32px] text-primary mt-4">{selectedPhase.name}</h3>
+                    <p className="text-[14px] text-muted-foreground mt-2 leading-relaxed">
+                      {selectedPhase.description || `${selectedPhase.name} is a prime real estate project located in ${selectedPhase.location}, offering excellent infrastructure, surveyed plots, and high growth potential.`}
+                    </p>
+
+                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {[
+                        ["Total Plots", selectedPhase.totalPlots],
+                        ["Available", selectedPhase.available, "text-[#22C55E]"],
+                        ["Booked", selectedPhase.booked, "text-[#F59E0B]"],
+                        ["Sold", selectedPhase.sold, "text-[#EF4444]"],
+                      ].map(([l, v, c]) => (
+                        <div key={l} className="bg-[#F8F4EE] border border-[#E5E0D8] rounded-xl p-3 text-center">
+                          <div className={`font-numbers font-bold text-[18px] ${c || "text-primary"}`}>{v}</div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{l}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 border border-[#E5E0D8] rounded-xl overflow-hidden aspect-video bg-gray-50">
+                      <img src={selectedPhase.image} alt={selectedPhase.name} className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+
+                  {/* Calculator Column */}
+                  <div className="bg-[#F8F4EE] border border-[#E5E0D8] rounded-xl p-6 flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-serif font-bold text-[18px] text-primary mb-1">USD Payment Estimator</h4>
+                      <p className="text-[12px] text-muted-foreground mb-6">Plan your installment options in USD directly.</p>
+
+                      <div className="space-y-5">
+                        {/* Total Price */}
+                        <div>
+                          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Estimated Price</label>
+                          <div className="font-numbers font-bold text-[24px] text-[#0B7FC7]">
+                            ${phasePriceUsd.toLocaleString()}
+                          </div>
+                        </div>
+
+                        {/* Deposit Amount */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">USD Deposit</label>
+                            <span className="text-[11px] font-semibold text-[#E8A020]">
+                              {Math.round((calcDepositUsd / phasePriceUsd) * 100)}% deposit
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={Math.round(phasePriceUsd * 0.2)}
+                            max={phasePriceUsd}
+                            step={100}
+                            value={calcDepositUsd}
+                            onChange={(e) => setCalcDepositUsd(Number(e.target.value))}
+                            className="w-full accent-[#0B7FC7] mb-1"
+                          />
+                          <input
+                            type="number"
+                            value={calcDepositUsd}
+                            min={Math.round(phasePriceUsd * 0.2)}
+                            max={phasePriceUsd}
+                            onChange={(e) => setCalcDepositUsd(Math.max(Math.round(phasePriceUsd * 0.2), Math.min(phasePriceUsd, Number(e.target.value))))}
+                            className="w-full px-3 py-1.5 border border-[#D5D0C8] rounded-lg font-numbers text-[14px] font-semibold"
+                          />
+                          <span className="text-[10px] text-muted-foreground italic mt-1 block">
+                            Min reservation hold: $77 USD (equivalent to Ksh 10,000 hold fee)
+                          </span>
+                        </div>
+
+                        {/* Period Selection */}
+                        {calcBalanceUsd > 0 && (
+                          <div>
+                            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-2">Installment Term</label>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {[3, 6, 12, 18, 24].map((m) => {
+                                const isSelected = calcPeriod === m;
+                                return (
+                                  <button
+                                    key={m}
+                                    type="button"
+                                    onClick={() => setCalcPeriod(m)}
+                                    className={`py-1.5 px-2 text-[12px] font-semibold border rounded-lg transition-all text-center ${
+                                      isSelected
+                                        ? "bg-[#0B7FC7] border-[#0B7FC7] text-white font-bold"
+                                        : "bg-white border-[#D5D0C8] text-foreground hover:bg-[#F8F4EE]"
+                                    }`}
+                                  >
+                                    {m} mo
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Repayment Box */}
+                        <div className="p-4 bg-[#EFF6FF] border border-[#0B7FC7]/20 rounded-xl mt-6">
+                          <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Estimated Monthly Payment</div>
+                          <div className="font-numbers font-bold text-[28px] text-primary flex items-baseline gap-1 mt-1">
+                            <span className="text-[16px] font-semibold">USD</span>
+                            {calcBalanceUsd === 0 ? "0.00" : calcMonthlyInstallmentUsd.toLocaleString()}
+                          </div>
+                          {calcBalanceUsd > 0 && (
+                            <div className="text-[10px] text-muted-foreground mt-1.5">
+                              *Balance of ${calcBalanceUsd.toLocaleString()} USD spread over {calcPeriod} months.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setBudget(`Ksh ${(selectedPhase.startingPrice / 1000).toFixed(0)}K`);
+                        setNotes(`[USD Booking Selection]\nProject Phase: ${selectedPhase.name}\nEstimated USD Price: $${phasePriceUsd.toLocaleString()}\nPreferred Deposit: $${calcDepositUsd.toLocaleString()}\nInstallment Term: ${calcPeriod} Months\nExpected Monthly Payment: $${calcMonthlyInstallmentUsd.toLocaleString()} USD`);
+                        
+                        // Scroll to booking form
+                        document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="w-full mt-6 bg-[#E8A020] text-white font-semibold text-[13px] py-3.5 rounded-lg hover:bg-[#C8861A] transition-all text-center shadow-md"
+                    >
+                      Pre-fill My Tour Form ✓
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

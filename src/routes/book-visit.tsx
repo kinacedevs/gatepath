@@ -7,6 +7,8 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { InquiryStepper } from "@/components/InquiryStepper";
 import { PlotSummaryCard } from "@/components/inquiry/PlotSummaryCard";
 import { useInquiry } from "@/context/InquiryContext";
+import { supabase } from "@/lib/supabase";
+import { sendSiteVisitNotificationFn } from "@/lib/notifications";
 
 export const Route = createFileRoute("/book-visit")({
   component: BookVisitPage,
@@ -58,8 +60,17 @@ function BookVisitPage() {
     if (!form.visitDate) errors.visitDate = "Please select a visit date";
     else if (new Date(form.visitDate).getDay() === 0) errors.visitDate = "We are closed on Sundays. Please select Monday–Saturday.";
     if (!form.visitTime) errors.visitTime = "Please select a time";
-    if (!form.transportMode) errors.transportMode = "Please select a transport mode";
+    
+    if (form.visitMode === "physical") {
+      if (!form.transportMode) errors.transportMode = "Please select a transport mode";
+      if (form.transportMode !== "self" && !form.pickupLocation) {
+        errors.pickupLocation = "Please select your preferred pickup point";
+      }
+    }
   }
+
+  const [loading, setLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   const showErr = (k: string) => (touched[k] || submitted) && errors[k];
 
@@ -68,7 +79,7 @@ function BookVisitPage() {
     setForm({ attendees: String(n) });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
     if (Object.keys(errors).length > 0) {
@@ -76,7 +87,73 @@ function BookVisitPage() {
       return;
     }
     setBannerError(false);
-    navigate({ to: "/payment" });
+
+    if (form.intent !== "free_visit") {
+      navigate({ to: "/payment" });
+      return;
+    }
+
+    // Free Physical Site Visit path: Submit booking instantly without payment
+    setLoading(true);
+    setDbError(null);
+
+    try {
+      if (!form.inquiryId) {
+        throw new Error("No inquiry reference found. Please go back to Step 1.");
+      }
+
+      // 1. Save booking to DB
+      const { error: bookingErr } = await supabase
+        .from("bookings")
+        .insert({
+          inquiry_id: form.inquiryId,
+          visit_date: skipSiteVisit ? null : (form.visitDate || null),
+          visit_time: skipSiteVisit ? null : (form.visitTime || null),
+          attendees: skipSiteVisit ? 1 : (parseInt(form.attendees) || 1),
+          visit_notes: form.visitNotes || null,
+          visit_type: form.visitMode || "physical",
+          transport_mode: skipSiteVisit ? null : (form.transportMode || null),
+          pickup_location: (skipSiteVisit || form.transportMode === "self") ? null : (form.pickupLocation || null),
+          status: "pending",
+        });
+
+      if (bookingErr) {
+        throw new Error(bookingErr.message);
+      }
+
+      // 2. Dispatch notifications
+      try {
+        await sendSiteVisitNotificationFn({
+          buyerName: form.fullName,
+          buyerEmail: form.email,
+          buyerPhone: form.phone,
+          plotNumber: form.plotNumber,
+          phaseName: form.phaseName,
+          visitDate: form.visitDate,
+          visitTime: form.visitTime,
+          transportMode: skipSiteVisit ? "self" : form.transportMode,
+          pickupLocation: (skipSiteVisit || form.transportMode === "self") ? "Self Transport" : form.pickupLocation,
+        });
+      } catch (notifErr) {
+        console.warn("[Gatepath] Failed to send free visit notifications:", notifErr);
+      }
+
+      // 3. Navigate to success page
+      navigate({
+        to: "/thank-you",
+        search: {
+          ref: "free_visit",
+          plot: form.plotNumber,
+          phase: form.phaseSlug,
+          amount: "0",
+        },
+      });
+    } catch (err: any) {
+      console.error("[Gatepath] Site visit booking insert error:", err);
+      setDbError(err.message || "Failed to schedule site visit. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const labelStyle: React.CSSProperties = { display: "block", fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 500, color: "#1C1C1C", marginBottom: 6 };
@@ -110,9 +187,9 @@ function BookVisitPage() {
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "40px 24px" }}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
             <form onSubmit={handleSubmit} style={{ background: "#FFFFFF", borderRadius: 12, padding: "36px 28px", boxShadow: "0 4px 24px rgba(11,127,199,0.08)", border: "1px solid #E5E0D8" }}>
-              {bannerError && (
+              {(bannerError || dbError) && (
                 <div className="mb-5" style={{ background: "#FEE2E2", border: "1px solid #EF4444", borderRadius: 6, padding: "12px 16px", fontFamily: "Inter, sans-serif", fontWeight: 500, fontSize: 14, color: "#991B1B" }}>
-                  Please fix the highlighted fields before continuing.
+                  {dbError || "Please fix the highlighted fields before continuing."}
                 </div>
               )}
 
@@ -148,7 +225,7 @@ function BookVisitPage() {
                     onChange={(e) => {
                       setSkipSiteVisit(e.target.checked);
                       if (e.target.checked) {
-                        setForm({ visitDate: "", visitTime: "", transportMode: "", attendees: "1" });
+                        setForm({ visitDate: "", visitTime: "", transportMode: "", attendees: "1", pickupLocation: "" });
                       }
                     }}
                     style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#0B7FC7" }}
@@ -166,6 +243,60 @@ function BookVisitPage() {
                 </div>
               ) : (
                 <>
+                  {/* Site Visit Mode */}
+                  <label style={labelStyle}>Site Visit Mode *</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                    {[
+                      { id: "physical" as const, icon: "🚗", title: "Physical Visit", sub: "Guided tour on the ground" },
+                      { id: "virtual" as const, icon: "💻", title: "Virtual Tour", sub: "Live video tour & call" },
+                    ].map((opt) => {
+                      const isSelected = form.visitMode === opt.id;
+                      const isLocked = opt.id === "virtual" && form.intent === "free_visit";
+                      
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => setForm({ visitMode: opt.id })}
+                          style={{
+                            textAlign: "left",
+                            border: `1.5px solid ${isSelected ? "#0B7FC7" : "#D5D0C8"}`,
+                            borderLeft: isSelected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
+                            borderRadius: 8, padding: "14px 16px",
+                            background: isSelected ? "#F0F4F8" : "#FFFFFF", 
+                            cursor: isLocked ? "not-allowed" : "pointer",
+                            opacity: isLocked ? 0.5 : 1,
+                            position: "relative"
+                          }}
+                        >
+                          <div style={{ fontSize: 22, marginBottom: 6 }}>{opt.icon}</div>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: "#0B7FC7" }}>{opt.title}</div>
+                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                          {isLocked && (
+                            <span style={{ position: "absolute", top: 8, right: 8, background: "#EF4444", color: "#FFF", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>
+                              🔒 Lock
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {form.visitMode === "virtual" && (
+                    <div className="mb-6 p-4 bg-[#EFF6FF] border border-[#0B7FC7]/20 rounded-xl">
+                      <p style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#0B7FC7", margin: 0, lineHeight: 1.5 }}>
+                        <strong>Virtual Tour Mode:</strong> We will connect with you via WhatsApp Video call or Zoom at your scheduled time to walk you through the property live.
+                      </p>
+                    </div>
+                  )}
+
+                  {form.intent === "free_visit" && form.visitMode === "physical" && (
+                    <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-[12px] text-amber-800 leading-relaxed">
+                      💡 <strong>Note:</strong> You can unlock <strong>Virtual Tour</strong> mode by upgrading to a reservation hold (checkbox on Step 1).
+                    </div>
+                  )}
+
                   {/* Date */}
                   <div className="mb-5">
                     <label style={labelStyle}>Preferred Visit Date *</label>
@@ -211,35 +342,68 @@ function BookVisitPage() {
                     })}
                   </div>
 
-                  {/* Transport Mode */}
-                  <label style={labelStyle}>Means of Transport *</label>
-                  <div className={isCoastal ? "grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5" : "grid grid-cols-2 gap-2.5 mb-5"}>
-                    {transportOptions.map((opt) => {
-                      const selected = form.transportMode === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setForm({ transportMode: opt.id })}
-                          style={{
-                            textAlign: "left",
-                            border: `1.5px solid ${selected ? "#0B7FC7" : "#D5D0C8"}`,
-                            borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
-                            borderRadius: 8, padding: "12px 10px",
-                            background: selected ? "#F0F4F8" : "#FFFFFF", cursor: "pointer",
-                          }}
-                        >
-                          <div style={{ fontSize: 18, marginBottom: 4 }}>{opt.icon}</div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 12, color: "#0B7FC7" }}>{opt.title}</div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {showErr("transportMode") && (
-                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: -2, marginBottom: 12 }}>
-                      {errors.transportMode}
-                    </div>
+                  {/* Transport Mode (Physical only) */}
+                  {form.visitMode === "physical" && (
+                    <>
+                      <label style={labelStyle}>Means of Transport *</label>
+                      <div className={isCoastal ? "grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5" : "grid grid-cols-2 gap-2.5 mb-5"}>
+                        {transportOptions.map((opt) => {
+                          const selected = form.transportMode === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setForm({ transportMode: opt.id, pickupLocation: opt.id === "self" ? "" : form.pickupLocation })}
+                              style={{
+                                textAlign: "left",
+                                border: `1.5px solid ${selected ? "#0B7FC7" : "#D5D0C8"}`,
+                                borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
+                                borderRadius: 8, padding: "12px 10px",
+                                background: selected ? "#F0F4F8" : "#FFFFFF", cursor: "pointer",
+                              }}
+                            >
+                              <div style={{ fontSize: 18, marginBottom: 4 }}>{opt.icon}</div>
+                              <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 12, color: "#0B7FC7" }}>{opt.title}</div>
+                              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {showErr("transportMode") && (
+                        <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: -2, marginBottom: 12 }}>
+                          {errors.transportMode}
+                        </div>
+                      )}
+
+                      {/* Preferred Pickup Location */}
+                      {form.transportMode !== "self" && form.transportMode !== "" && (
+                        <div className="mb-5">
+                          <label style={labelStyle}>Preferred Pickup Location *</label>
+                          <select
+                            value={form.pickupLocation}
+                            onChange={(e) => setForm({ pickupLocation: e.target.value })}
+                            onBlur={() => setTouched((t) => ({ ...t, pickupLocation: true }))}
+                            style={inputStyle("pickupLocation")}
+                          >
+                            <option value="">Select pickup location...</option>
+                            {isCoastal ? (
+                              <option value="Malindi Complex">Malindi Complex (Coastal Hub)</option>
+                            ) : (
+                              <>
+                                <option value="Kihunguro Office">Kihunguro Office (Advisable / Corporate HQ)</option>
+                                <option value="Kimbo">Kimbo</option>
+                                <option value="Kenyatta road">Kenyatta Road</option>
+                                <option value="Juja">Juja</option>
+                                <option value="Thika">Thika</option>
+                                <option value="Matuu">Matuu</option>
+                                <option value="Sagana">Sagana</option>
+                              </>
+                            )}
+                          </select>
+                          {showErr("pickupLocation") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.pickupLocation}</div>}
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Attendees */}
@@ -279,9 +443,22 @@ function BookVisitPage() {
 
               <button
                 type="submit"
-                style={{ marginTop: 28, width: "100%", background: "#E8A020", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 16, padding: "18px 0", borderRadius: 8, border: "none", cursor: "pointer" }}
+                disabled={loading}
+                style={{
+                  marginTop: 28,
+                  width: "100%",
+                  background: loading ? "#C8C3BB" : "#E8A020",
+                  color: "#FFFFFF",
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  padding: "18px 0",
+                  borderRadius: 8,
+                  border: "none",
+                  cursor: loading ? "not-allowed" : "pointer"
+                }}
               >
-                Continue to Payment →
+                {loading ? "Confirming..." : form.intent === "free_visit" ? "📅 Confirm & Schedule Site Visit" : "Continue to Payment →"}
               </button>
               <button
                 type="button"
