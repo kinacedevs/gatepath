@@ -81,12 +81,12 @@ export function Navbar() {
           )}
         </nav>
 
-        <a
-          href="/#contact"
+        <Link
+          to="/properties"
           className="hidden lg:inline-flex items-center justify-center bg-accent text-white px-6 py-3 text-sm font-semibold rounded-md hover:bg-[#C8861A] hover:scale-[1.02] transition-all duration-300"
         >
           Book Site Visit
-        </a>
+        </Link>
 
         <button
           className={`lg:hidden p-2 shrink-0 ${solid ? "text-white" : "text-primary"}`}
@@ -111,13 +111,13 @@ export function Navbar() {
                 </a>
               )
             )}
-            <a
-              href="/#contact"
+            <Link
+              to="/properties"
               onClick={() => setOpen(false)}
               className="inline-flex items-center justify-center bg-accent text-white px-5 py-3 text-sm font-semibold rounded-md"
             >
               Book Site Visit
-            </a>
+            </Link>
           </div>
         </div>
       )}
