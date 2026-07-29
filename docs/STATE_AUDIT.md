@@ -96,29 +96,34 @@ Supabase Auth is initialised in [lib/supabase.ts](../src/lib/supabase.ts) (`pers
 
 ---
 
-## 7. Design system
+## 7. Design system — fixed on this branch (commit `3d2ba7b`)
 
-Tokens are declared as CSS custom properties in [styles.css](../src/styles.css) — brand colours, the four font families, and shadow presets.
+This section originally documented the design system as broken. It has since been repaired; the findings are kept below for the historical record, followed by current status.
 
-**They are not the operative source of truth.** Two things defeat them:
+**Original problem — tokens were not the operative source of truth:**
 
-1. **Hex literals throughout components.** `#0B7FC7`, `#074B7D` and `#E8A020` appear as hardcoded values across the section components and route files rather than as `var(--primary)` / token classes.
-2. **`admin.tsx` is inline-`style` driven.** Nearly every element carries `style={{ fontFamily: "Inter, sans-serif", color: "#6B7280", … }}`, with local `NAVY` / `GOLD` constants.
+1. **Hex literals throughout components.** `#0B7FC7`, `#074B7D` and `#E8A020` appeared as hardcoded values across section components and route files instead of `var(--primary)` / token classes.
+2. **`admin.tsx` is inline-`style` driven.** Nearly every element carries `style={{ fontFamily: "Inter, sans-serif", color: "#6B7280", … }}`. This part is **still true** — inline styling was tokenized in place (hex → `var(--token)`), not converted to Tailwind classes; the full restructure is deferred to Phase 5 (CRITIQUE P3).
 
-Consequence: **changing a CSS variable does not change the site.** This is the single biggest structural blocker to any redesign.
+A `Stitch CRM Design DNA` `@theme inline` block was appended to `styles.css`, importing a Material-3 palette (`--color-primary-container: #0d1c32`, `--color-tertiary-container: #2b1701`, etc.) unrelated to — and darker than — the Gatepath brand. This was the source of the CRM's dark-navy drift.
 
-A `Stitch CRM Design DNA` `@theme inline` block was appended to `styles.css`, importing a Material-3 palette (`--color-primary-container: #0d1c32`, `--color-tertiary-container: #2b1701`, etc.) that is unrelated to — and darker than — the Gatepath brand.
+### Palette divergence between the two eras (resolved)
 
-### Palette divergence between the two eras
-
-| Token | Sonnet-era (`main`) | Gemini-era (working tree) |
-|---|---|---|
-| `--accent` | `#E8A020` warm gold | `#D4AF37` metallic gold |
-| `--accent-dark` | `#C8861A` | `#AA8C2C` |
-| `--background` | `#F8F4EE` warm ivory | `#FAF7F2` |
-| `--nav` | `#074B7D` deep navy | `#0B7FC7` cerulean |
+| Token | Sonnet-era (`main`) | Gemini-era (working tree) | Resolved to |
+|---|---|---|---|
+| `--accent` | `#E8A020` warm gold | `#D4AF37` metallic gold | `#E8A020` |
+| `--accent-dark` | `#C8861A` | `#AA8C2C` | `#C8861A` |
+| `--background` | `#F8F4EE` warm ivory | `#FAF7F2` | `#F8F4EE` |
+| `--nav` | `#074B7D` deep navy | `#0B7FC7` cerulean | `#0B7FC7` (already correct) |
 
 Typography is consistent across both: Cormorant Garamond (headings), Playfair Display (display), Inter (body), Montserrat (numerals).
+
+### Current status
+
+- `--primary-deep`, `--primary-dark`, `--nav`, `--footer-deep`, `--accent-dark` are now exposed to Tailwind via `@theme inline` — they existed in `:root` but were never wired in, which is the actual root cause of components falling back to hardcoded hex in the first place.
+- The Stitch Material-3 block is removed. The ~15 token names `admin.tsx` references as Tailwind utility classes (`bg-primary-container`, `text-on-surface-variant`, `border-outline-variant`, `bg-surface-container-low/-high`, etc. — confirmed by exhaustive grep, ~140 call sites) are kept, with values re-derived from Gatepath tokens instead of Material-3 hex, so no `admin.tsx` edits were needed to fix its CRM chrome colors.
+- 406 Tailwind bracket-hex classes and 201 inline-style hex strings across 34 files were converted to tokens. A fourth previously-undocumented rogue navy (`#0A192F`, `FeaturedLocations.tsx` only) was found and folded into `--primary-deep`, and a fifth (`#0A3D62`, hardcoded in the `notifications.ts` email templates) was corrected by hand — that file is excluded from `var()` tokenization since email clients don't support CSS custom properties.
+- Verified against the actual compiled `dist/client` CSS, not just source: zero off-brand hex or decimal-rgba values remain anywhere in the shipped output.
 
 ---
 
