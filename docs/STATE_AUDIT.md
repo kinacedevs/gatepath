@@ -84,15 +84,15 @@ thank-you.tsx  →  supabase.from("payments").insert(…)      ← browser, anon
 
 ---
 
-## 6. Authentication as currently built
+## 6. Authentication
 
 | Surface | Mechanism | State |
 |---|---|---|
-| `/admin` | none | `sessionUser` hardcoded to a mock CEO ([admin.tsx:97](../src/routes/admin.tsx#L97)); session check commented `(Bypassed)` ([:169](../src/routes/admin.tsx#L169)); `handleLogin` is an empty function ([:221-223](../src/routes/admin.tsx#L221-L223)); `handleLogout` alerts *"Login system is currently disabled for redesign."* |
-| `/portal` | client-side OTP | OTP generated in the browser via `Math.random()` ([portal.tsx:206](../src/routes/portal.tsx#L206)) and **rendered on screen** ([:428](../src/routes/portal.tsx#L428)); session is `sessionStorage["gatepath_portal_email"]` |
+| `/admin` | **Supabase Auth — fixed** | Real login form + `onAuthStateChange`, role resolved from `admin_users` by email match, gated by RLS (see [SECURITY_HARDENING.md](SECURITY_HARDENING.md)). Was: `sessionUser` hardcoded to a mock CEO, session check commented `(Bypassed)`, `handleLogin` an empty function. |
+| `/portal` | client-side OTP — **not yet fixed** | OTP generated in the browser via `Math.random()` ([portal.tsx:206](../src/routes/portal.tsx#L206)) and **rendered on screen** ([:428](../src/routes/portal.tsx#L428)); session is `sessionStorage["gatepath_portal_email"]`. Deliberately out of scope for the admin-auth pass — needs a proper server-verified rebuild (CRITIQUE P0-3), not an RLS patch on a client-side-only scheme. |
 | Public pages | n/a | — |
 
-Supabase Auth is initialised in [lib/supabase.ts](../src/lib/supabase.ts) (`persistSession`, `autoRefreshToken`) but **is not used to gate anything**.
+Supabase Auth (`persistSession`, `autoRefreshToken` in [lib/supabase.ts](../src/lib/supabase.ts)) is now actually used to gate `/admin`. `admin_users` had **zero rows** before this fix — see SECURITY_HARDENING.md's setup runbook for the one-time bootstrap.
 
 ---
 

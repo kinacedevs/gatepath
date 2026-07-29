@@ -8,16 +8,16 @@ The blunt summary: **the marketing site is decent and the CRM is ambitious, but 
 
 ## P0 — Ship-blocking
 
-### P0-1 · `/admin` is completely unauthenticated
-[admin.tsx:97](../src/routes/admin.tsx#L97), [:169](../src/routes/admin.tsx#L169), [:221-223](../src/routes/admin.tsx#L221-L223)
+### P0-1 · `/admin` is completely unauthenticated — fixed on this branch
+[admin.tsx:97](../src/routes/admin.tsx#L97), [:169](../src/routes/admin.tsx#L169), [:221-223](../src/routes/admin.tsx#L221-L223) *(pre-fix line numbers)*
 
-The CEO/staff console hardcodes a mock session, the role check is commented `(Bypassed)`, and `handleLogin` is an empty function. `loadAllData()` fires on mount and pulls `inquiries`, `payments`, `agreements`, `admin_users` and `affiliates` into the browser.
+The CEO/staff console hardcoded a mock session, the role check was commented `(Bypassed)`, and `handleLogin` was an empty function. `loadAllData()` fired on mount and pulled `inquiries`, `payments`, `agreements`, `admin_users` and `affiliates` into the browser — for anyone, unauthenticated.
 
-**Impact:** anyone who navigates to `/admin` reads every client's full name, email, phone, national ID, KRA PIN, postal address, next-of-kin and payment history — and can approve inquiries, alter inventory, and add staff.
+**The deeper problem was confirmed, not assumed:** a live read-only query against the production Supabase project using only the public anon key successfully read live data. RLS was effectively permissive, so the UI gate alone would have been cosmetic.
 
-**The deeper problem:** those queries succeed with the *anon* key. That means RLS on these tables is permissive or off, so **the UI gate is irrelevant** — the data is readable straight from the public Supabase REST endpoint using the key that ships in the JS bundle. Adding a login screen alone fixes nothing.
+**Fixed:** real Supabase Auth session in `admin.tsx` (login form, `onAuthStateChange`, role resolved from `admin_users`) plus RLS policies on all 11 tables restricting `inquiries`/`bookings`/`payments`/`agreements`/`admin_users` SELECT to recognised admins. Full detail, the exact SQL, and the one-time setup runbook (admin_users currently has **zero rows** — nobody has ever been added) are in [SECURITY_HARDENING.md](SECURITY_HARDENING.md).
 
-**Fix:** Supabase Auth + `beforeLoad` route guard, *and* RLS policies keyed to `admin_users.role` that deny the anon role outright. Verify by querying the REST API directly with the anon key and confirming zero rows.
+**Still open on purpose, not yet fixed:** `payments`/`agreements`/`bookings`/`inquiries` INSERT and `plots` UPDATE remain accessible to anon — closing them now, before P0-2's webhook verification exists, would break every purchase and reservation on the site. See SECURITY_HARDENING.md's "deferred on purpose" section.
 
 ---
 
@@ -151,7 +151,8 @@ This directly undercuts the "billion-dollar investment project" ambition and the
 - **`admin.tsx` is ~3,000 lines** holding every tab, all fetching and all styling. Unreviewable and merge-hostile. Split per tab with shared hooks.
 - **Type safety is disabled where it matters most.** ESLint `any` rules silenced (`4583ea8`) and `(supabase as any)` casts throughout — the generated `Database` types are bypassed precisely on the financial tables.
 - **Design tokens are decorative.** Hex literals in components plus inline styles in `admin.tsx` mean CSS variables do not propagate. Any redesign before this is fixed becomes manual screen-by-screen editing.
-- **Foreign design DNA.** The `Stitch CRM Design DNA` `@theme inline` block injects a Material-3 palette (`#0d1c32`, `#2b1701`) unrelated to the brand — the source of the dark navy drift.
+- **Foreign design DNA.** The `Stitch CRM Design DNA` `@theme inline` block injects a Material-3 palette (`#0d1c32`, `#2b1701`) unrelated to the brand — the source of the dark navy drift. Fixed in the Phase 2 token pass.
+- **A sixth rogue navy.** [admin.tsx:72](../src/routes/admin.tsx#L72) defines a local `NAVY = "#0C1A30"` constant, distinct from every other navy found across the codebase (`#074B7D` brand, `#0d1c32` Stitch, `#0A192F` FeaturedLocations, `#0A3D62` email templates). Left as-is deliberately — it's used throughout admin.tsx's still-inline-style-driven layout, and replacing it piecemeal ahead of the Phase 5 restructure would just be more inline-style churn to redo later. Fix as part of that restructure, not before.
 - **Two lockfiles** (`bun.lock` + `package-lock.json`) make installs non-deterministic. Pick one.
 - **No tests of any kind.** For payment and conveyancing logic this is the gap that turns every future refactor into a gamble.
 

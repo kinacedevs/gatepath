@@ -61,6 +61,8 @@ Redesign work is scoped to **presentation and component structure**. The followi
 
 Commit security changes separately from design changes so they can be reviewed in isolation.
 
+**Read [docs/SECURITY_HARDENING.md](docs/SECURITY_HARDENING.md) before touching auth, RLS, or payment code** — it tracks exactly what's fixed, what's deliberately left open and why (several `_TEMP` RLS policies exist on purpose; removing them without their paired fix breaks the site), and the setup runbook. SQL migrations live in `supabase/migrations/`, numbered, idempotent (`DROP POLICY IF EXISTS` before `CREATE POLICY`, `CREATE ... IF NOT EXISTS`) — every migration must stay safe to re-run against a live database.
+
 ---
 
 ## Architecture rules

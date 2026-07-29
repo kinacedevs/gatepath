@@ -93,11 +93,12 @@ function getInitials(name: string) {
 function AdminPage() {
   const navigate = useNavigate();
 
-  // Auth States (Disabled temporarily)
-  const [sessionUser, setSessionUser] = useState<any>({ id: "mock-user", email: "ceo@gatepathrealtors.com" });
-  const [adminRole, setAdminRole] = useState<"ceo" | "manager" | "agent" | null>("ceo");
-  const [adminName, setAdminName] = useState("Joe Muchiri (CEO)");
-  const [authLoading, setAuthLoading] = useState(false);
+  // Auth States — real Supabase Auth session, matched to admin_users by email.
+  // See docs/SECURITY_HARDENING.md for the RLS policies this depends on.
+  const [sessionUser, setSessionUser] = useState<{ id: string; email: string } | null>(null);
+  const [adminRole, setAdminRole] = useState<"ceo" | "manager" | "agent" | null>(null);
+  const [adminName, setAdminName] = useState("");
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Login Form States
   const [emailInput, setEmailInput] = useState("");
@@ -166,10 +167,66 @@ function AdminPage() {
   const [phaseSaveLoading, setPhaseSaveLoading] = useState(false);
   const [phaseSaveMsg, setPhaseSaveMsg] = useState<string | null>(null);
 
-  // 1. CHECK SESSION AND ROLE ON MOUNT (Bypassed)
+  // 1. CHECK SESSION AND ROLE ON MOUNT — real Supabase Auth, then match the
+  // authenticated email against admin_users for role + display name. Data is
+  // never fetched until this resolves to a confirmed admin.
+  const resolveAdminForSession = async (email: string, userId: string) => {
+    const { data, error } = await (supabase as any)
+      .from("admin_users")
+      .select("role, full_name")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (error || !data) {
+      // Authenticated with Supabase but not a recognised staff email —
+      // sign out immediately rather than leaving a half-authenticated state.
+      await supabase.auth.signOut();
+      setSessionUser(null);
+      setAdminRole(null);
+      setAdminName("");
+      setLoginError("This account is not registered as Gatepath staff. Contact the CEO for access.");
+      return;
+    }
+
+    setSessionUser({ id: userId, email });
+    setAdminRole(data.role);
+    setAdminName(data.full_name || email);
+  };
+
   useEffect(() => {
-    loadAllData();
+    let cancelled = false;
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      const session = data.session;
+      if (session?.user?.email) {
+        await resolveAdminForSession(session.user.email, session.user.id);
+      }
+      if (!cancelled) setAuthLoading(false);
+    })();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user?.email) {
+        await resolveAdminForSession(session.user.email, session.user.id);
+      } else {
+        setSessionUser(null);
+        setAdminRole(null);
+        setAdminName("");
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
   }, []);
+
+  useEffect(() => {
+    if (sessionUser && adminRole) {
+      loadAllData();
+    }
+  }, [sessionUser, adminRole]);
 
   // 2. FETCH ALL DATA FOR THE DASHBOARD
   const loadAllData = async () => {
@@ -220,10 +277,29 @@ function AdminPage() {
   // 3. LOGIN PROCESS (Bypassed)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
+    setLoginLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailInput.trim().toLowerCase(),
+      password: passwordInput,
+    });
+
+    setLoginLoading(false);
+
+    if (error) {
+      setLoginError("Invalid email or password.");
+      return;
+    }
+
+    setPasswordInput("");
+    // onAuthStateChange picks up the new session and resolves the admin_users
+    // role lookup; nothing further to do here.
   };
 
   const handleLogout = async () => {
-    alert("Login system is currently disabled for redesign.");
+    await supabase.auth.signOut();
+    setActiveTab("overview");
   };
 
   // 4. CEO CRITICAL OPERATIONS
@@ -561,8 +637,142 @@ function AdminPage() {
     );
   }
 
-  // ─── LOGIN SCREEN (Bypassed) ─────────────────────────────────────────────────────────────
-  // Disabled as per user request. Dashboard renders immediately.
+  // ─── LOGIN SCREEN ─────────────────────────────────────────────────────────────
+  if (!sessionUser || !adminRole) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--primary-deep)",
+          padding: 24,
+        }}
+      >
+        <form
+          onSubmit={handleLogin}
+          style={{
+            width: "100%",
+            maxWidth: 380,
+            background: "#FFFFFF",
+            borderRadius: 16,
+            padding: "40px 32px",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+            <Shield size={22} style={{ color: GOLD }} />
+            <span
+              style={{
+                fontFamily: "Montserrat, sans-serif",
+                fontWeight: 700,
+                fontSize: 13,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--primary-deep)",
+              }}
+            >
+              Gatepath Staff Portal
+            </span>
+          </div>
+
+          {loginError && (
+            <div
+              style={{
+                background: "#FEE2E2",
+                color: "#991B1B",
+                fontSize: 13,
+                padding: "10px 14px",
+                borderRadius: 8,
+                marginBottom: 18,
+              }}
+            >
+              {loginError}
+            </div>
+          )}
+
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#5A5A5A", marginBottom: 6 }}>
+            Email
+          </label>
+          <input
+            type="email"
+            required
+            autoComplete="username"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            placeholder="you@gatepathrealtors.com"
+            style={{
+              width: "100%",
+              padding: "11px 14px",
+              border: "1px solid #D5D0C8",
+              borderRadius: 8,
+              fontSize: 14,
+              marginBottom: 18,
+              outline: "none",
+            }}
+          />
+
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#5A5A5A", marginBottom: 6 }}>
+            Password
+          </label>
+          <input
+            type="password"
+            required
+            autoComplete="current-password"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            placeholder="••••••••"
+            style={{
+              width: "100%",
+              padding: "11px 14px",
+              border: "1px solid #D5D0C8",
+              borderRadius: 8,
+              fontSize: 14,
+              marginBottom: 24,
+              outline: "none",
+            }}
+          />
+
+          <button
+            type="submit"
+            disabled={loginLoading}
+            style={{
+              width: "100%",
+              padding: "13px",
+              background: GOLD,
+              color: "#FFFFFF",
+              fontWeight: 700,
+              fontSize: 14,
+              borderRadius: 8,
+              border: "none",
+              cursor: loginLoading ? "not-allowed" : "pointer",
+              opacity: loginLoading ? 0.7 : 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            {loginLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> Signing in…
+              </>
+            ) : (
+              <>
+                <Lock size={15} /> Sign In
+              </>
+            )}
+          </button>
+
+          <p style={{ fontSize: 11, color: "#9A9A9A", marginTop: 20, textAlign: "center", lineHeight: 1.6 }}>
+            Access is restricted to registered Gatepath staff accounts. Contact the CEO if you need
+            an account created.
+          </p>
+        </form>
+      </div>
+    );
+  }
 
   // ─── SIDEBAR NAV ITEMS ────────────────────────────────────────────────────────
   const navGroups = [
