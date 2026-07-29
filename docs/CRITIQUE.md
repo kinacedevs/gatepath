@@ -83,10 +83,10 @@ Stage changes are plain column updates with no role gate, no append-only history
 ### P1-3 · Money is handled as floating-point
 `amount: deposit * 100` and `Math.ceil(bal / period)` operate on JS numbers. Installment schedules will drift by cents and fail to reconcile against Paystack settlements. Store and compute in integer minor units.
 
-### P1-4 · Three contradictory exchange rates, and the buyer is charged in a currency they never saw
-`0.0077` ([diaspora.tsx:26](../src/routes/diaspora.tsx#L26)), `129.5` (`main`), `/130` (`PhaseCard`) — all hardcoded, none fetched. [payment.tsx:97](../src/routes/payment.tsx#L97) always charges KES.
+### P1-4 · Five contradictory exchange rates (not three) — fixed on this branch
+Widening the count on further sweep: `0.0077` (Gemini-era `diaspora.tsx`), `129.5` (`main`'s `CURRENCY_RATES`), `/130` (`PhaseCard`, `properties.$slug`), `/130` again (`PlotPanel.priceUsd`), and a fifth — `PlotPanel`'s reserve-hold button hardcoded `"$77 USD"` for a `Ksh 10,000` hold, implying yet another rate (≈129.87). All hardcoded, none fetched. [payment.tsx:97](../src/routes/payment.tsx#L97) still always charges KES.
 
-A diaspora buyer is shown "$2,462" and charged an unstated KES sum at Paystack's FX plus their card issuer's. That is a chargeback and complaint generator, and arguably a disclosure failure. Needs one server-fetched, cached, timestamped rate ("indicative — settled in KES at …") and the KES amount shown before checkout.
+**Fixed:** [src/lib/currency.ts](../src/lib/currency.ts) is now the single source of truth — `PhaseCard`, `PlotPanel`, `properties.$slug.tsx`, and `diaspora.tsx` all consume it. **Not fixed:** the rates are still hand-maintained estimates, not server-fetched, and nobody has recorded when they were last checked against real FX. A diaspora buyer is still shown a converted price and charged an unstated KES sum at Paystack's FX plus their card issuer's — that remains a chargeback/complaint risk. Needs a real server-fetched, cached, timestamped rate and the KES amount shown before checkout (payment.tsx still doesn't do this — tracked separately, not yet fixed).
 
 ### P1-5 · Documents are likely enumerable
 `document.agreement.$id` and `document.receipt.$id` are keyed by id. If those ids are sequential or guessable and RLS is permissive, agreements and receipts are enumerable. Needs signed, expiring URLs and owner-scoped policies.
@@ -111,12 +111,17 @@ Three signals that the deployment pipeline is ambiguous:
 ### P1-7 · Secrets and config
 [supabase.ts:13-16](../src/lib/supabase.ts#L13-L16) hardcodes the project URL and anon key as fallbacks, defeating environment configuration. The anon key is public by design, so this is not a leak — but the file's comment asserts *"RLS policies protect all sensitive data server-side,"* which is precisely the assumption P0-1 shows to be false. The comment is documenting an intention, not a control.
 
+### P1-9 · Two client-facing "features" were fully decorative — no data behind them
+Found while restoring the diaspora page:
+- [properties.$slug.tsx](../src/routes/properties.$slug.tsx) had a "Download Phase Brochure" `<button>` with **no `href`, no `onClick`, no connection to `phase.brochure_url` at all** — purely decorative. **Fixed:** now a real link, hidden entirely when the phase has no brochure/plot-map uploaded (confirmed via a live read-only query: currently true for every phase).
+- `site_banners` (the table backing `Hero.tsx`'s homepage carousel, `FeaturedLocations.tsx`'s per-location overrides, and the document pages' company-logo branding) has **no admin UI that writes to it at all**. Whoever manages homepage banners or the company logo today must do it by hand in the Supabase dashboard. A "Site Banners" admin tab is a concrete Phase 5 addition — see STATE_AUDIT §8.
+
 ---
 
 ## P2 — Conversion and experience
 
-### P2-1 · The diaspora tab lost its entire reason to exist
-The current version has **no property listings** (208 lines vs 679 on `main`). A diaspora visitor gets reassurance and a currency widget, then must leave for the main catalog — losing currency context on the way. This is the highest-value page for the highest-value segment, and it is currently a brochure.
+### P2-1 · The diaspora tab lost its entire reason to exist — fixed on this branch
+The Gemini-era version had **no property listings** (208 lines vs 679 on `main`). A diaspora visitor got reassurance and a currency widget, then had to leave for the main catalog — losing currency context on the way. **Fixed:** full catalog restored in-tab, driven by a global 7-currency selector that now propagates through to the property detail page too (previously hardcoded to a KES/USD binary regardless of the visitor's actual selection). See STATE_AUDIT §8 for the full list of what was merged and fixed.
 
 ### P2-2 · The landing page is shallow
 A visitor finishing the scroll has not seen the inventory breadth, the title-deed journey, the diaspora offering, or any urgency. In this market the decisive question is *"will I actually get my title?"* — and the 5-stage pipeline, the single strongest trust asset, is invisible until after purchase. It belongs on the landing page.

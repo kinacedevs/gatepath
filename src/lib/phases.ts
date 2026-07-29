@@ -38,6 +38,12 @@ export interface Phase {
   plots: Plot[];
   youtube_video_url?: string | null;
   hero_image_urls?: string[] | null;
+  /** PDF brochure URL — uploaded & managed from admin Media tab. */
+  brochure_url?: string | null;
+  /** Plot map PDF URL for client download. */
+  plot_map_url?: string | null;
+  /** Diaspora section banner override — falls back to the phase's main image. */
+  diaspora_image_url?: string | null;
 }
 
 // ─── Adapters ────────────────────────────────────────────────────────────────
@@ -119,6 +125,9 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
     plots: mappedPlots,
     youtube_video_url: dbPhase.youtube_video_url,
     hero_image_urls: dbPhase.hero_image_urls,
+    brochure_url: dbPhase.brochure_url,
+    plot_map_url: dbPhase.plot_map_url,
+    diaspora_image_url: dbPhase.diaspora_image_url,
   };
 }
 

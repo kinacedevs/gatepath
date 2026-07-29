@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin } from "lucide-react";
+import { MapPin, FileText, Map as MapIcon } from "lucide-react";
 import type { Phase } from "@/lib/phases";
+import { formatFromKes, type Currency } from "@/lib/currency";
 
 const statusStyles: Record<Phase["status"], string> = {
   ACTIVE: "bg-[#D1FAE5] text-[#065F46] border border-available",
@@ -8,7 +9,7 @@ const statusStyles: Record<Phase["status"], string> = {
   "SOLD OUT": "bg-[#FEE2E2] text-[#991B1B]",
 };
 
-export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?: "KES" | "USD" }) {
+export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?: Currency }) {
   // Build a mini availability strip of 8 squares
   const ratio = (n: number) => (phase.totalPlots > 0 ? Math.round((n / phase.totalPlots) * 8) : 0);
   const a = Math.max(0, Math.min(8, ratio(phase.available)));
@@ -24,7 +25,7 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
     <Link
       to="/properties/$slug"
       params={{ slug: phase.slug }}
-      search={currency === "USD" ? { from: "diaspora" } : undefined}
+      search={currency !== "KES" ? { from: "diaspora", currency } : undefined}
       className="group block bg-white rounded-2xl overflow-hidden border border-[#EBE8E0] shadow-[0_10px_30px_rgba(7,75,125,0.04)] hover:shadow-[0_20px_45px_rgba(7,75,125,0.08)] hover:-translate-y-1.5 transition-all duration-400 cursor-pointer"
     >
       <div className="relative h-[220px] overflow-hidden">
@@ -54,7 +55,8 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
               key={i}
               className="w-[14px] h-[14px] rounded-[3px]"
               style={{
-                background: t === "a" ? "var(--available)" : t === "b" ? "#F59E0B" : "var(--destructive)",
+                background:
+                  t === "a" ? "var(--available)" : t === "b" ? "#F59E0B" : "var(--destructive)",
               }}
             />
           ))}
@@ -83,26 +85,58 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
             <div className="font-numbers font-bold text-[18px] text-primary">
               {phase.totalPlots}
             </div>
-            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Total Plots</div>
+            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+              Total Plots
+            </div>
           </div>
           <div>
             <div className="font-numbers font-bold text-[18px] text-available">
               {phase.available}
             </div>
-            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Available</div>
+            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+              Available
+            </div>
           </div>
           <div className="text-right">
-            <div className="font-numbers font-bold text-primary">
-              <span className="text-[12px] mr-0.5">{currency === "USD" ? "$" : "Ksh"}</span>
-              <span className="text-[17px]">
-                {currency === "USD"
-                  ? Math.round(phase.startingPrice / 130).toLocaleString()
-                  : phase.startingPrice.toLocaleString()}
-              </span>
+            <div className="font-numbers font-bold text-[17px] text-primary">
+              {formatFromKes(phase.startingPrice, currency)}
             </div>
-            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Starting</div>
+            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+              Starting
+            </div>
           </div>
         </div>
+
+        {(phase.brochure_url || phase.plot_map_url) && (
+          <div className="mt-4 flex gap-2">
+            {phase.brochure_url && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open(phase.brochure_url!, "_blank", "noopener,noreferrer");
+                }}
+                className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary border border-[#EBE8E0] rounded-md px-2.5 py-1.5 hover:border-primary transition-colors"
+              >
+                <FileText size={13} /> Brochure
+              </button>
+            )}
+            {phase.plot_map_url && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open(phase.plot_map_url!, "_blank", "noopener,noreferrer");
+                }}
+                className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary border border-[#EBE8E0] rounded-md px-2.5 py-1.5 hover:border-primary transition-colors"
+              >
+                <MapIcon size={13} /> Plot Map
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="mt-5 w-full bg-primary text-white font-bold text-[14px] py-3 rounded-lg text-center group-hover:bg-gradient-to-r group-hover:from-accent group-hover:to-accent-dark group-hover:text-white transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
           Explore Phase Map →

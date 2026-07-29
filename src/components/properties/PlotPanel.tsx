@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react";
 import type { Phase, Plot } from "@/lib/phases";
+import { formatFromKes, type Currency } from "@/lib/currency";
 
 function PaymentPill({ icon, label }: { icon: string; label: string }) {
   return (
@@ -20,7 +21,7 @@ export function PlotPanel({
   plot: Plot | null;
   onSelectPlot: (p: Plot) => void;
   onClear: () => void;
-  currency?: "KES" | "USD";
+  currency?: Currency;
 }) {
   if (!plot) {
     return (
@@ -111,9 +112,8 @@ export function PlotPanel({
   }
 
   // available
-  const priceUsd = Math.round(plot.price / 130);
   const baseParams = `phase=${phase.slug}&phaseName=${encodeURIComponent(phase.name)}&phaseNumber=${phase.phaseNumber || ""}&plotId=${plot.id}&plotNumber=${plot.id}&size=${encodeURIComponent(plot.size + " ft")}&price=${plot.price}&location=${encodeURIComponent(phase.location + ", " + phase.region)}`;
-  const diasporaSuffix = currency === "USD" ? "&from=diaspora" : "";
+  const diasporaSuffix = currency !== "KES" ? `&from=diaspora&currency=${currency}` : "";
   const reserveHref = `/inquire?${baseParams}&intent=reserve${diasporaSuffix}`;
   const visitHref = `/inquire?${baseParams}&intent=free_visit${diasporaSuffix}`;
   const inquireHref = `/inquire?${baseParams}&intent=deposit${diasporaSuffix}`;
@@ -166,9 +166,7 @@ export function PlotPanel({
             Listed Price
           </div>
           <div className="font-numbers font-bold text-[36px] text-primary leading-tight">
-            {currency === "USD"
-              ? `$ ${priceUsd.toLocaleString()}`
-              : `Ksh ${plot.price.toLocaleString()}`}
+            {formatFromKes(plot.price, currency)}
           </div>
           <div className="text-[13px] text-accent italic mt-1">Flexible payment plan available</div>
 
@@ -184,9 +182,7 @@ export function PlotPanel({
           href={reserveHref}
           className="mt-6 block w-full text-center bg-accent text-white font-bold text-[15px] py-4 rounded-lg hover:bg-accent-dark hover:scale-[1.02] transition-all"
         >
-          {currency === "USD"
-            ? "🌟 Reserve Plot ($77 USD Hold)"
-            : "🌟 Reserve Plot (Ksh 10,000 Hold)"}
+          🌟 Reserve Plot ({formatFromKes(10000, currency)} Hold)
         </a>
         <a
           href={visitHref}

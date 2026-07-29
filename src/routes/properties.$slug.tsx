@@ -1,6 +1,14 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { MapPin, CheckCircle2, Clock, Download, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  MapPin,
+  CheckCircle2,
+  Clock,
+  Download,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -9,14 +17,20 @@ import { PlotPanel } from "@/components/properties/PlotPanel";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhase, type Plot, type Phase } from "@/lib/phases";
 import { supabase } from "@/lib/supabase";
+import { formatFromKes, CURRENCIES, type Currency } from "@/lib/currency";
 
 type DetailSearch = {
   from?: string;
+  currency?: Currency;
 };
 
 export const Route = createFileRoute("/properties/$slug")({
   validateSearch: (s: Record<string, unknown>): DetailSearch => ({
     from: typeof s.from === "string" ? s.from : undefined,
+    currency:
+      typeof s.currency === "string" && (CURRENCIES as string[]).includes(s.currency)
+        ? (s.currency as Currency)
+        : undefined,
   }),
   loader: async ({ params }) => {
     // 1. Fetch phase from Supabase
@@ -190,10 +204,14 @@ function getEmbedUrl(url: string) {
 
 function PhaseDetailPage() {
   const { slug } = Route.useParams();
-  const { from } = Route.useSearch();
+  const { from, currency: searchCurrency } = Route.useSearch();
   const { initialPhase, similar } = Route.useLoaderData();
   const { phase: livePhase, loading, error } = usePhase(slug);
   const isDiaspora = from === "diaspora";
+  // Historically diaspora-referred visitors always saw USD regardless of what
+  // currency they'd actually picked on /diaspora — now the real selection
+  // propagates through the search param, USD only as the pre-existing default.
+  const currency: Currency = isDiaspora ? (searchCurrency ?? "USD") : "KES";
 
   const [selected, setSelected] = useState<Plot | null>(null);
   const [tab, setTab] = useState<"location" | "infra" | "legal" | "payment">("location");
@@ -369,9 +387,7 @@ function PhaseDetailPage() {
               { v: phase.booked, l: "Booked", c: "text-[#F59E0B]" },
               { v: phase.sold, l: "Sold", c: "text-destructive" },
               {
-                v: isDiaspora
-                  ? `$ ${Math.round(phase.startingPrice / 130).toLocaleString()}`
-                  : `Ksh ${phase.startingPrice.toLocaleString()}`,
+                v: formatFromKes(phase.startingPrice, currency),
                 l: "Starting Price",
                 c: "text-accent",
               },
@@ -384,9 +400,30 @@ function PhaseDetailPage() {
               </div>
             ))}
           </div>
-          <button className="hidden md:inline-flex items-center gap-2 border border-[#D0CCC5] text-foreground text-[13px] font-medium px-4 py-2 rounded-md hover:border-primary transition-colors">
-            <Download size={14} /> Download Phase Brochure
-          </button>
+          {(phase.brochure_url || phase.plot_map_url) && (
+            <div className="hidden md:flex items-center gap-3">
+              {phase.brochure_url && (
+                <a
+                  href={phase.brochure_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 border border-[#D0CCC5] text-foreground text-[13px] font-medium px-4 py-2 rounded-md hover:border-primary transition-colors"
+                >
+                  <Download size={14} /> Download Phase Brochure
+                </a>
+              )}
+              {phase.plot_map_url && (
+                <a
+                  href={phase.plot_map_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 border border-[#D0CCC5] text-foreground text-[13px] font-medium px-4 py-2 rounded-md hover:border-primary transition-colors"
+                >
+                  <Download size={14} /> Download Plot Map
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -454,7 +491,7 @@ function PhaseDetailPage() {
             plot={selected}
             onSelectPlot={onSelect}
             onClear={() => setSelected(null)}
-            currency={isDiaspora ? "USD" : "KES"}
+            currency={currency}
           />
         </div>
       </section>

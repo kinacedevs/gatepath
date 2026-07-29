@@ -127,7 +127,9 @@ Typography is consistent across both: Cormorant Garamond (headings), Playfair Di
 
 ---
 
-## 8. Diaspora hub — regression
+## 8. Diaspora hub — restored (commit pending in this session)
+
+**Original regression**, kept for the record:
 
 | | `main` (Sonnet-era) | Working tree (Gemini-era) |
 |---|---|---|
@@ -139,19 +141,37 @@ Typography is consistent across both: Cormorant Garamond (headings), Playfair Di
 | Nairobi clock widget | No | Yes |
 | 4-fear trust framework | No | Yes |
 
-The newer version is visually cleaner but **removed the ability to browse property from the diaspora tab entirely** — the core purpose of the page.
+The newer version was visually cleaner but had **removed the ability to browse property from the diaspora tab entirely** — the core purpose of the page.
 
-### Three conflicting FX rates coexist
+### Five conflicting rates found (not three) — now unified
+
+Widening the original 3-rate finding, a full sweep turned up two more:
 
 | Location | Rate | Implied KES/USD |
 |---|---|---|
-| [diaspora.tsx:26](../src/routes/diaspora.tsx#L26) | `0.0077` | ≈129.87 |
+| `diaspora.tsx` (Gemini-era) | `0.0077` | ≈129.87 |
 | `main` diaspora `CURRENCY_RATES` | `129.5` | 129.5 |
 | `PhaseCard` / `properties.$slug` | `/ 130` | 130 |
+| `PlotPanel.tsx` `priceUsd` | `/ 130` | 130 |
+| `PlotPanel.tsx` reserve-hold button copy | `"$77 USD"` for `Ksh 10,000` | ≈129.87 |
 
-All are hardcoded in the frontend. None is fetched. Meanwhile [payment.tsx:97](../src/routes/payment.tsx#L97) always charges `currency: "KES"`, so a diaspora buyer sees a USD price and is charged an unstated KES amount.
+**Fixed:** [src/lib/currency.ts](../src/lib/currency.ts) is now the single source of truth (`CURRENCY_RATES`, `formatFromKes`, `fromKes`) for KES/USD/GBP/EUR/CAD/AUD/AED. `PhaseCard`, `PlotPanel`, `properties.$slug.tsx`, and `diaspora.tsx` all consume it. The rates themselves are still hand-maintained estimates (carried over from the pre-existing `main` values) — nobody has recorded when they were last checked against a real FX source; see the comment in `currency.ts`.
 
-The currency switcher exists only on `/diaspora`; `PhaseCard` and `PlotPanel` already accept a `currency` prop, so the plumbing for a global switcher is partly in place.
+### Diaspora page rebuilt — merge of both eras plus real fixes
+
+- Full property catalog restored (location/status/price/search filters + `PhaseCard` grid), now driven by a **global currency selector** (7 currencies, not 4) persisted in `localStorage`, instead of the old USD-only hardcode.
+- Hero image: was a generic Unsplash "Kenya Coastal Landscape" stock photo. Now uses the **real branded asset** `src/assets/diaspora.jpg` (already in the repo, just orphaned since the Gemini-era rewrite dropped it), with an optional CEO-uploaded override via `site_banners` id `"diaspora_hero"` — same pattern as `Hero.tsx`'s `"homepage_hero"`.
+- Selecting a currency and clicking into a property now **propagates the actual currency** to `properties/$slug` via the search param (previously hardcoded to a KES/USD binary regardless of what the diaspora visitor had selected).
+- **New:** `PhaseCard` and the property detail page now surface `Download` buttons for `phase.brochure_url` / `phase.plot_map_url` when set. These fields existed in the schema and admin's Media tab, but **nothing on the client rendered them** — `properties.$slug.tsx` had a "Download Phase Brochure" `<button>` with no `href` or handler at all, purely decorative.
+- Merged trust content: the newer version's 4-point quick-glance strip (Verified Titles, Zero Double Allocation, POA Guide, Global Card/Wire Rails) plus `main`'s detailed 6-step secure-purchase timeline and full virtual-tour booking form, rather than picking one and losing the other.
+
+### Live data check (read-only query against the production Supabase project)
+
+`image_url` and `hero_image_urls` are genuinely populated for most phases (12 of 13 have a real `image_url`; several have 3-4 `hero_image_urls`) — confirming the user's real photography is in the database and rendering correctly through the existing `adaptPhase()` fallback chain. `zuri-court-phase-6` has no `image_url` set and falls through to a location-based stock default. **`brochure_url`, `plot_map_url`, and `diaspora_image_url` are empty on every phase** — the upload fields exist in admin, nothing has been uploaded to them yet.
+
+### Known gap: no admin UI writes to `site_banners`
+
+`Hero.tsx` (`"homepage_hero"`), `FeaturedLocations.tsx`, and the document pages (`"custom_branding"` — company logo/name on generated agreements/receipts) all **read** from `site_banners`. Nothing in `admin.tsx` **writes** to it. Whoever manages this today must do it by hand in the Supabase dashboard. A "Site Banners" admin tab (homepage hero images, per-location banners, the diaspora hero override, and the company branding logo/name) is a concrete, self-contained addition for Phase 5.
 
 ---
 
