@@ -150,11 +150,18 @@ The currency switcher exists only on `/diaspora`; `PhaseCard` and `PlotPanel` al
 
 ---
 
-## 9. Edge caching
+## 9. Edge caching — and a broken Worker entry
 
-[server.ts](../src/server.ts) caches every `GET` in Cloudflare's **shared** cache for 60s, excluding only `/admin`, `/document` and `/api`.
+[server.ts](../src/server.ts) caches every `GET` in Cloudflare's **shared** cache for 60s, excluding only `/admin`, `/document` and `/api`. `/portal` and `/thank-you` would therefore be cached — both render personalised client data.
 
-`/portal` and `/thank-you` are therefore cached — both render personalised client data.
+**But `src/server.ts` is not in the build output.** Verified by grep against `dist/`: no string unique to that file (`[Gatepath Edge Cache]`, `brandedErrorResponse`, `isCacheable`) appears anywhere, while control strings from files that *are* built appear as expected. `npm run build` emits TanStack Start's own server entry instead.
+
+Consequences:
+- The edge caching added in `8ce52c4` has most likely never executed in production.
+- The PII cache leak is **latent rather than active** — armed, but not currently reachable.
+- The deployment pipeline is ambiguous: `wrangler.jsonc` sets `"main": "src/server.ts"` (Wrangler bundling) while Vite emits `dist/server/server.js`, and `@cloudflare/vite-plugin` is installed but not registered in `vite.config.ts`.
+
+`vite dev` also bypasses the Worker entry, so no `Cache-Control` header is observable locally. See CRITIQUE P1-8.
 
 ---
 

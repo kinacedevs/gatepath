@@ -66,18 +66,76 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   return brandedErrorResponse();
 }
 
+// Public marketing routes that render identical HTML for every anonymous
+// visitor. Anything not listed here is never written to the shared edge cache.
+const PUBLIC_EXACT_ROUTES = new Set([
+  "/",
+  "/about",
+  "/contact",
+  "/locations",
+  "/partner",
+  "/privacy",
+  "/blog",
+  "/properties",
+  "/diaspora",
+]);
+
+// Prefixes whose sub-paths are also public (e.g. /blog/my-post).
+const PUBLIC_ROUTE_PREFIXES = ["/blog/", "/properties/"];
+
+// Routes that render per-client data and must never be cached or stored.
+// Kept explicit so the intent is reviewable alongside the allowlist.
+const PRIVATE_ROUTE_PREFIXES = [
+  "/portal",
+  "/thank-you",
+  "/admin",
+  "/document",
+  "/api",
+  "/inquire",
+  "/payment",
+  "/book-visit",
+];
+
+function isPublicCacheableRoute(pathname: string): boolean {
+  // Normalise a trailing slash so "/about/" matches "/about".
+  const path =
+    pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+
+  if (isPrivateRoute(path)) return false;
+  if (PUBLIC_EXACT_ROUTES.has(path)) return true;
+  return PUBLIC_ROUTE_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+function isPrivateRoute(pathname: string): boolean {
+  return PRIVATE_ROUTE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+// Personalised responses must not be stored by the Cloudflare cache, any
+// intermediary proxy, or the browser's back/forward cache.
+function withNoStore(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+  headers.set("Vary", "Cookie");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: any, ctx: any) {
     try {
       const url = new URL(request.url);
       const isGet = request.method === "GET";
 
-      // Determine if the route is cacheable (anonymous read-only pages)
-      const isCacheable =
-        isGet &&
-        !url.pathname.startsWith("/admin") &&
-        !url.pathname.startsWith("/document") &&
-        !url.pathname.startsWith("/api");
+      // Determine if the route is cacheable (anonymous read-only pages).
+      // SECURITY: this is an allowlist on purpose. A denylist fails open —
+      // every new personalised route added later would silently inherit
+      // public edge caching and leak one client's HTML to the next visitor.
+      const isCacheable = isGet && isPublicCacheableRoute(url.pathname);
 
       // Access Cloudflare global cache (wrapped in try/catch for local dev safety)
       const cache = typeof caches !== "undefined" ? (caches as any).default : null;
@@ -121,6 +179,10 @@ export default {
         } catch (cacheErr) {
           console.warn("[Gatepath Edge Cache] Put error:", cacheErr);
         }
+      }
+
+      if (isPrivateRoute(url.pathname)) {
+        return withNoStore(normalized);
       }
 
       return normalized;

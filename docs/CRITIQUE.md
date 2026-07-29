@@ -48,12 +48,18 @@ The OTP is generated in the browser with `Math.random()` and **rendered on the p
 
 ---
 
-### P0-4 · Personalised pages are in a shared edge cache
+### P0-4 · Personalised pages are in a shared edge cache — *latent, see status*
 [server.ts](../src/server.ts)
 
-Caching excludes `/admin`, `/document` and `/api` — but **not `/portal` or `/thank-you`**, both of which render client PII. Cloudflare's `caches.default` is shared, so one client's portal HTML can be served to the next visitor for up to 60s.
+Caching excludes `/admin`, `/document` and `/api` — but **not `/portal` or `/thank-you`**, both of which render client PII. Cloudflare's `caches.default` is shared, so one client's portal HTML would be served to the next visitor for up to 60s.
 
-**Fix:** invert to an allowlist of genuinely public marketing routes; force `private, no-store` on everything personalised. Denylists fail open — every new authenticated route added later inherits the bug.
+**Status — verified, and it is not what it appears:** `src/server.ts` **is not in the build output**. No string unique to that file (`[Gatepath Edge Cache]`, `brandedErrorResponse`, `isCacheable`) appears anywhere in `dist/`, while control strings from files that *are* built appear as expected. The custom Worker fetch handler never executes in the current build.
+
+So the leak is **latent, not active** — but it is armed. It becomes a live PII leak the moment the Worker entry is correctly wired (see P1-8), which is exactly the kind of change someone makes for performance reasons without re-reading the cache predicate.
+
+**Fixed on this branch:** the denylist is replaced with an explicit allowlist of public marketing routes, and personalised routes now emit `private, no-store, max-age=0, must-revalidate` plus `Vary: Cookie`. Denylists fail open — every new authenticated route added later would have inherited the bug.
+
+**Caveat:** this fix cannot be verified at runtime until P1-8 is resolved. `vite dev` does not route through the Worker entry either, so no `Cache-Control` header is observable in dev today.
 
 ---
 
@@ -87,6 +93,20 @@ A diaspora buyer is shown "$2,462" and charged an unstated KES sum at Paystack's
 
 ### P1-6 · No rate limiting on public write paths
 Inquiry, booking, reservation and OTP endpoints are unthrottled — open to spam, lead-table poisoning, and OTP enumeration.
+
+### P1-8 · The Cloudflare Worker entry is not wired into the build
+[vite.config.ts](../vite.config.ts), [wrangler.jsonc](../wrangler.jsonc), [server.ts](../src/server.ts)
+
+`npm run build` emits `dist/server/server.js` — TanStack Start's own server entry. **`src/server.ts` is not in it.** Verified by grep: no string unique to that file appears in `dist/`, while control strings from built files do.
+
+Three signals that the deployment pipeline is ambiguous:
+- `vite.config.ts` registers the entry via `tanstackStart({ server: { entry: "./src/server.ts" } })`, yet its code is absent from the output.
+- `wrangler.jsonc` sets `"main": "src/server.ts"` — a *different* pipeline, in which Wrangler bundles the TypeScript source directly. That file imports `@tanstack/react-start/server-entry`, which only resolves against the Vite build.
+- `@cloudflare/vite-plugin` is a dependency but **is not registered in `vite.config.ts` plugins**.
+
+**Impact:** everything in `src/server.ts` is currently dead code — the edge caching from commit `8ce52c4`, the h3 error normalisation, and the branded 500 page. The performance work in that commit has most likely never run in production. Nobody can say with confidence what actually executes on deploy.
+
+**Fix:** decide on one pipeline (Vite build + `@cloudflare/vite-plugin`, or Wrangler bundling), wire it explicitly, and add a smoke check that asserts a known marker from the Worker entry is present in the deployed response. Until then, treat any claim about runtime behaviour at the edge — including caching and the P0-4 fix — as unverified.
 
 ### P1-7 · Secrets and config
 [supabase.ts:13-16](../src/lib/supabase.ts#L13-L16) hardcodes the project URL and anon key as fallbacks, defeating environment configuration. The anon key is public by design, so this is not a leak — but the file's comment asserts *"RLS policies protect all sensitive data server-side,"* which is precisely the assumption P0-1 shows to be false. The comment is documenting an intention, not a control.
