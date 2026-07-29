@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -11,7 +12,6 @@ import {
 import appCss from "../styles.css?url";
 import { InquiryProvider } from "@/context/InquiryContext";
 import logoIcon from "@/assets/logo-icon.png";
-
 
 function NotFoundComponent() {
   return (
@@ -76,18 +76,38 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Gatepath Realtors — Your Interest is Our Priority" },
-      { name: "description", content: "Gatepath Realtors — Kenya's trusted land marketplace. Verified plots in Malindi, Sagana, Diani, Thika, Nanyuki and beyond. Your Interest is Our Priority." },
+      {
+        name: "description",
+        content:
+          "Gatepath Realtors — Kenya's trusted land marketplace. Verified plots in Malindi, Sagana, Diani, Thika, Nanyuki and beyond. Your Interest is Our Priority.",
+      },
       { name: "author", content: "Gatepath Realtors" },
       { property: "og:title", content: "Gatepath Realtors — Your Interest is Our Priority" },
-      { property: "og:description", content: "Kenya's trusted land marketplace. Verified plots, transparent pricing, flexible payment plans." },
+      {
+        property: "og:description",
+        content:
+          "Kenya's trusted land marketplace. Verified plots, transparent pricing, flexible payment plans.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@GatepathRealtors" },
       { name: "twitter:title", content: "Gatepath Realtors — Your Interest is Our Priority" },
-      { name: "twitter:description", content: "Kenya's trusted land marketplace. Verified plots, transparent pricing, flexible payment plans." },
+      {
+        name: "twitter:description",
+        content:
+          "Kenya's trusted land marketplace. Verified plots, transparent pricing, flexible payment plans.",
+      },
 
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f65cc7c1-9682-48f1-b644-1287deb79a53/id-preview-358fba6a--50066243-621a-4e2e-a38a-a86a151bbde0.lovable.app-1779732432810.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f65cc7c1-9682-48f1-b644-1287deb79a53/id-preview-358fba6a--50066243-621a-4e2e-a38a-a86a151bbde0.lovable.app-1779732432810.png" },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f65cc7c1-9682-48f1-b644-1287deb79a53/id-preview-358fba6a--50066243-621a-4e2e-a38a-a86a151bbde0.lovable.app-1779732432810.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f65cc7c1-9682-48f1-b644-1287deb79a53/id-preview-358fba6a--50066243-621a-4e2e-a38a-a86a151bbde0.lovable.app-1779732432810.png",
+      },
     ],
     links: [
       { rel: "icon", type: "image/png", href: logoIcon },
@@ -100,7 +120,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "stylesheet", href: appCss },
     ],
-
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -124,6 +143,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const referral = params.get("ref");
+      if (referral) {
+        localStorage.setItem("gatepath_ref", referral);
+      }
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

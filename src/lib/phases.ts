@@ -36,32 +36,43 @@ export interface Phase {
   startingPrice: number;
   size: string;
   plots: Plot[];
+  youtube_video_url?: string | null;
+  hero_image_urls?: string[] | null;
 }
 
 // ─── Adapters ────────────────────────────────────────────────────────────────
 
 const LOCATION_IMAGES: Record<string, string> = {
-  malindi: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=800&q=80",
-  sagana: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
-  diani: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
-  nanyuki: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80",
-  thika: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80",
-  matuu: "https://images.unsplash.com/photo-1501862700950-18382cd41497?auto=format&fit=crop&w=800&q=80",
-  kithimani: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80",
-  kiambu: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
-  gongoni: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=800&q=80",
-  marafa: "https://images.unsplash.com/photo-1501862700950-18382cd41497?auto=format&fit=crop&w=800&q=80",
-  makutano: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
+  malindi:
+    "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=800&q=80",
+  sagana:
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
+  diani:
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+  nanyuki:
+    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80",
+  thika:
+    "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80",
+  matuu:
+    "https://images.unsplash.com/photo-1501862700950-18382cd41497?auto=format&fit=crop&w=800&q=80",
+  kithimani:
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80",
+  kiambu:
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
+  gongoni:
+    "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=800&q=80",
+  marafa:
+    "https://images.unsplash.com/photo-1501862700950-18382cd41497?auto=format&fit=crop&w=800&q=80",
+  makutano:
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
   juja: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80",
-  pumwani: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
-  nairobi: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
+  pumwani:
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
+  nairobi:
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80",
 };
 
-export function adaptPhase(
-  dbPhase: DbPhase,
-  dbSizes: DbPlotSize[],
-  dbPlots: DbPlot[] = []
-): Phase {
+export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbPlot[] = []): Phase {
   const sizesForPhase = dbSizes.filter((s) => s.phase_id === dbPhase.id);
   const defaultSize = sizesForPhase.find((s) => s.is_default) ?? sizesForPhase[0];
   const startingPrice = sizesForPhase.length
@@ -99,13 +110,15 @@ export function adaptPhase(
     sold: dbPhase.sold_count,
     image:
       dbPhase.image_url ??
-      (LOCATION_IMAGES[dbPhase.location.toLowerCase()] ??
-        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80"),
+      LOCATION_IMAGES[dbPhase.location.toLowerCase()] ??
+      "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
     description: dbPhase.description ?? "",
     features: dbPhase.features ?? [],
     startingPrice,
     size: defaultSize ? defaultSize.label : "50x100 ft",
     plots: mappedPlots,
+    youtube_video_url: dbPhase.youtube_video_url,
+    hero_image_urls: dbPhase.hero_image_urls,
   };
 }
 
@@ -168,7 +181,9 @@ export function usePhases() {
     };
 
     fetch();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { phases, loading, error };
@@ -188,31 +203,29 @@ export function usePhase(slug: string) {
     const fetch = async () => {
       if (!cacheSinglePromises[slug] || isServer) {
         cacheSinglePromises[slug] = (async () => {
-          const { data: dbPhase, error: phaseErr } = await supabase
+          const { data: dbPhaseRaw, error: phaseErr } = await supabase
             .from("phases")
             .select("*")
             .eq("slug", slug)
             .single();
 
-          if (phaseErr || !dbPhase) {
+          if (phaseErr || !dbPhaseRaw) {
             throw new Error(phaseErr?.message ?? "Phase not found");
           }
 
+          const dbPhase = dbPhaseRaw as import("./types").Phase;
+
           const [plotSizeRes, plotsRes] = await Promise.all([
-            supabase.from("plot_sizes").select("*").eq("phase_id", dbPhase.id),
-            supabase
-              .from("plots")
-              .select("*")
-              .eq("phase_id", dbPhase.id)
-              .order("plot_number"),
+            supabase.from("plot_sizes").select("*").eq("phase_id", dbPhase.id) as any,
+            supabase.from("plots").select("*").eq("phase_id", dbPhase.id).order("plot_number") as any,
           ]);
 
           const adapted = adaptPhase(
             dbPhase,
-            plotSizeRes.data ?? [],
-            plotsRes.data ?? []
+            (plotSizeRes.data ?? []) as import("./types").PlotSize[],
+            (plotsRes.data ?? []) as import("./types").Plot[],
           );
-          
+
           if (!isServer) {
             cacheSinglePhases[slug] = adapted;
           }
@@ -233,7 +246,9 @@ export function usePhase(slug: string) {
     };
 
     fetch();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   // Real-time listener for plot status changes
@@ -242,45 +257,44 @@ export function usePhase(slug: string) {
 
     const channel = supabase
       .channel(`realtime-plots-${phase.slug}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "plots" },
-        async () => {
-          // Re-fetch plot details FOR THIS PHASE ONLY to preserve joined sizes
-          const { data: updatedPlots } = await supabase
-            .from("plots")
-            .select("*")
-            .eq("phase_id", phase.id)
-            .order("plot_number");
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "plots" }, async () => {
+        // Re-fetch plot details FOR THIS PHASE ONLY to preserve joined sizes
+        const { data: updatedPlots } = await supabase
+          .from("plots")
+          .select("*")
+          .eq("phase_id", phase.id)
+          .order("plot_number");
 
-          if (updatedPlots) {
-            setPhase((prev) => {
-              if (!prev) return null;
-              // Map updated plots
-              const mapped = updatedPlots.map((p) => {
-                const existing = prev.plots.find((ep) => ep.id === p.plot_number);
-                return {
-                  id: p.plot_number,
-                  row: p.row_num,
-                  col: p.col_num,
-                  status: p.status,
-                  size: existing ? existing.size : "50x100",
-                  price: existing ? existing.price : 0,
-                };
-              });
-              
-              const updated = { ...prev, plots: mapped };
-              if (!isServer) {
-                cacheSinglePhases[phase.slug] = updated;
-              }
-              return updated;
+        if (updatedPlots) {
+          setPhase((prev) => {
+            if (!prev) return null;
+            // Map updated plots — cast needed due to supabase-js v2.110 inference in useEffect
+            const typedPlots = updatedPlots as import("./types").Plot[];
+            const mapped = typedPlots.map((p) => {
+              const existing = prev.plots.find((ep) => ep.id === p.plot_number);
+              return {
+                id: p.plot_number,
+                row: p.row_num,
+                col: p.col_num,
+                status: p.status,
+                size: existing ? existing.size : "50x100",
+                price: existing ? existing.price : 0,
+              };
             });
-          }
+
+            const updated = { ...prev, plots: mapped };
+            if (!isServer) {
+              cacheSinglePhases[phase.slug] = updated;
+            }
+            return updated;
+          });
         }
-      )
+      })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [phase?.slug, phase?.id]);
 
   return { phase, loading, error };

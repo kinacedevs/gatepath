@@ -27,8 +27,17 @@ export const Route = createFileRoute("/properties/")({
 });
 
 const LOCATIONS = [
-  "All Locations", "Malindi", "Gongoni", "Marafa", "Diani",
-  "Matuu", "Sagana", "Makutano", "Juja", "Pumwani", "Nairobi",
+  "All Locations",
+  "Malindi",
+  "Gongoni",
+  "Marafa",
+  "Diani",
+  "Matuu",
+  "Sagana",
+  "Makutano",
+  "Juja",
+  "Pumwani",
+  "Nairobi",
 ];
 
 function PropertiesPage() {
@@ -40,7 +49,8 @@ function PropertiesPage() {
 
   const filtered = useMemo(() => {
     return phases.filter((p) => {
-      if (loc !== "All Locations" && !p.location.toLowerCase().includes(loc.toLowerCase())) return false;
+      if (loc !== "All Locations" && !p.location.toLowerCase().includes(loc.toLowerCase()))
+        return false;
       if (status !== "All Status" && p.status !== status) return false;
       if (price !== "Any Price") {
         const sp = p.startingPrice;
@@ -77,14 +87,18 @@ function PropertiesPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-12">
           <div className="max-w-3xl">
             <div className="text-[13px] text-white/50">
-              <a href="/" className="hover:text-accent">Home</a> › <span>Properties</span>
+              <a href="/" className="hover:text-accent">
+                Home
+              </a>{" "}
+              › <span>Properties</span>
             </div>
             <div className="eyebrow mt-4">All Available Phases</div>
             <h1 className="mt-4 font-serif font-bold text-[40px] md:text-[64px] text-white leading-[1.1]">
               Browse Our Land Phases
             </h1>
             <p className="mt-5 font-light text-[18px] text-white/75 max-w-[640px] leading-[1.75]">
-              Every phase below is updated in real time. Green plots are available now. Select a phase to view its interactive map and find your perfect plot.
+              Every phase below is updated in real time. Green plots are available now. Select a
+              phase to view its interactive map and find your perfect plot.
             </p>
             <div className="mt-8 flex flex-wrap gap-12">
               {[
@@ -107,17 +121,32 @@ function PropertiesPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-12 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex flex-wrap gap-3">
             <select className={selectCls} value={loc} onChange={(e) => setLoc(e.target.value)}>
-              {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
+              {LOCATIONS.map((l) => (
+                <option key={l}>{l}</option>
+              ))}
             </select>
-            <select className={selectCls} value={status} onChange={(e) => setStatus(e.target.value)}>
-              {["All Status", "ACTIVE", "COMING SOON", "SOLD OUT"].map((l) => <option key={l}>{l}</option>)}
+            <select
+              className={selectCls}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              {["All Status", "ACTIVE", "COMING SOON", "SOLD OUT"].map((l) => (
+                <option key={l}>{l}</option>
+              ))}
             </select>
             <select className={selectCls} value={price} onChange={(e) => setPrice(e.target.value)}>
-              {["Any Price", "Under Ksh 400K", "Ksh 400K–700K", "Ksh 700K–1M", "Above Ksh 1M"].map((l) => <option key={l}>{l}</option>)}
+              {["Any Price", "Under Ksh 400K", "Ksh 400K–700K", "Ksh 700K–1M", "Above Ksh 1M"].map(
+                (l) => (
+                  <option key={l}>{l}</option>
+                ),
+              )}
             </select>
           </div>
           <div className="relative">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               placeholder="Search phases or locations..."
@@ -138,11 +167,15 @@ function PropertiesPage() {
           {loading ? (
             <div className="flex justify-center items-center py-32">
               <Loader2 size={36} className="animate-spin text-primary" />
-              <span className="ml-3 font-sans text-[16px] text-muted-foreground">Loading phases...</span>
+              <span className="ml-3 font-sans text-[16px] text-muted-foreground">
+                Loading phases...
+              </span>
             </div>
           ) : error ? (
             <div className="text-center py-24">
-              <p className="text-[16px] text-red-500 mb-4">Could not load phases. Check your Supabase connection.</p>
+              <p className="text-[16px] text-red-500 mb-4">
+                Could not load phases. Check your Supabase connection.
+              </p>
               <code className="text-[13px] text-muted-foreground">{error}</code>
             </div>
           ) : filtered.length === 0 ? (
@@ -151,7 +184,9 @@ function PropertiesPage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-              {filtered.map((p) => <PhaseCard key={p.slug} phase={p} />)}
+              {filtered.map((p) => (
+                <PhaseCard key={p.slug} phase={p} />
+              ))}
             </div>
           )}
         </div>
@@ -163,12 +198,14 @@ function PropertiesPage() {
           Can't find what you're looking for?
         </h2>
         <p className="mt-4 font-light text-[17px] text-white/75 max-w-[560px] mx-auto leading-[1.75]">
-          Tell us your preferred location, budget, and plot size. We'll find the right phase for you personally.
+          Tell us your preferred location, budget, and plot size. We'll find the right phase for you
+          personally.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <a
             href="https://wa.me/254799488488"
-            target="_blank" rel="noopener noreferrer"
+            target="_blank"
+            rel="noopener noreferrer"
             className="bg-[#25D366] text-white font-semibold text-[15px] px-8 py-3.5 rounded-md hover:scale-[1.02] transition-transform"
           >
             WhatsApp Us Directly

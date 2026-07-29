@@ -24,7 +24,10 @@ export const Route = createFileRoute("/")({
           "Verified land plots in Malindi, Sagana, Diani, Nanyuki, Thika and 7 more Kenyan locations. Transparent pricing, verified title deeds, flexible payment plans.",
       },
       { property: "og:title", content: "Gatepath Realtors — Premium Land for Sale in Kenya" },
-      { property: "og:description", content: "Own your piece of Kenya's future. Verified title deeds, transparent pricing." },
+      {
+        property: "og:description",
+        content: "Own your piece of Kenya's future. Verified title deeds, transparent pricing.",
+      },
       { property: "og:url", content: "/" },
     ],
     links: [{ rel: "canonical", href: "/" }],

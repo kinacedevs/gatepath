@@ -22,7 +22,10 @@ export const Route = createFileRoute("/book-visit")({
   head: () => ({
     meta: [
       { title: "Book Your Site Visit — Gatepath Realtors" },
-      { name: "description", content: "Schedule a free, no-commitment visit to see your selected plot." },
+      {
+        name: "description",
+        content: "Schedule a free, no-commitment visit to see your selected plot.",
+      },
     ],
   }),
 });
@@ -39,7 +42,7 @@ function BookVisitPage() {
     (c) =>
       (form.phaseName || "").toLowerCase().includes(c) ||
       (form.plotLocation || "").toLowerCase().includes(c) ||
-      (form.phaseSlug || "").toLowerCase().includes(c)
+      (form.phaseSlug || "").toLowerCase().includes(c),
   );
 
   const transportOptions = isCoastal
@@ -59,7 +62,7 @@ function BookVisitPage() {
   useEffect(() => {
     async function loadInquiry() {
       if (inquiry_id) {
-        const { data: inq } = await supabase
+        const { data: inq } = await (supabase as any)
           .from("inquiries")
           .select("*")
           .eq("id", inquiry_id)
@@ -77,7 +80,8 @@ function BookVisitPage() {
             plotSize: inq.plot_size || "",
             plotLocation: inq.plot_location || "",
             reservePlot: inq.payment_preference === "reserve",
-            intent: (inq.payment_preference || "free_visit") as "free_visit" | "reserve" | "deposit",
+            intent: (inq.payment_preference || "free_visit") as
+              "free_visit" | "reserve" | "deposit",
           });
         }
       } else if (!form.fullName) {
@@ -94,9 +98,10 @@ function BookVisitPage() {
   const errors: Record<string, string> = {};
   if (!skipSiteVisit) {
     if (!form.visitDate) errors.visitDate = "Please select a visit date";
-    else if (new Date(form.visitDate).getDay() === 0) errors.visitDate = "We are closed on Sundays. Please select Monday–Saturday.";
+    else if (new Date(form.visitDate).getDay() === 0)
+      errors.visitDate = "We are closed on Sundays. Please select Monday–Saturday.";
     if (!form.visitTime) errors.visitTime = "Please select a time";
-    
+
     if (form.visitMode === "physical") {
       if (!form.transportMode) errors.transportMode = "Please select a transport mode";
       if (form.transportMode !== "self" && !form.pickupLocation) {
@@ -124,7 +129,9 @@ function BookVisitPage() {
     }
     setBannerError(false);
 
-    if (form.intent !== "free_visit") {
+    // If coming from an existing reservation/deposit or inquiryId is already saved, bypass payment redirect and save booking directly!
+    const hasExistingInquiry = Boolean(inquiry_id || form.inquiryId);
+    if (form.intent !== "free_visit" && !hasExistingInquiry) {
       navigate({ to: "/payment" });
       return;
     }
@@ -139,19 +146,18 @@ function BookVisitPage() {
       }
 
       // 1. Save booking to DB
-      const { error: bookingErr } = await supabase
-        .from("bookings")
-        .insert({
-          inquiry_id: form.inquiryId,
-          visit_date: skipSiteVisit ? null : (form.visitDate || null),
-          visit_time: skipSiteVisit ? null : (form.visitTime || null),
-          attendees: skipSiteVisit ? 1 : (parseInt(form.attendees) || 1),
-          visit_notes: form.visitNotes || null,
-          visit_type: form.visitMode || "physical",
-          transport_mode: skipSiteVisit ? null : (form.transportMode || null),
-          pickup_location: (skipSiteVisit || form.transportMode === "self") ? null : (form.pickupLocation || null),
-          status: "pending",
-        });
+      const { error: bookingErr } = await (supabase as any).from("bookings").insert({
+        inquiry_id: form.inquiryId,
+        visit_date: skipSiteVisit ? null : form.visitDate || null,
+        visit_time: skipSiteVisit ? null : form.visitTime || null,
+        attendees: skipSiteVisit ? 1 : parseInt(form.attendees) || 1,
+        visit_notes: form.visitNotes || null,
+        visit_type: form.visitMode || "physical",
+        transport_mode: skipSiteVisit ? null : form.transportMode || null,
+        pickup_location:
+          skipSiteVisit || form.transportMode === "self" ? null : form.pickupLocation || null,
+        status: "pending",
+      });
 
       if (bookingErr) {
         throw new Error(bookingErr.message);
@@ -160,15 +166,18 @@ function BookVisitPage() {
       // 2. Dispatch notifications
       try {
         await sendSiteVisitNotificationFn({
-          buyerName: form.fullName,
-          buyerEmail: form.email,
-          buyerPhone: form.phone,
-          plotNumber: form.plotNumber,
-          phaseName: form.phaseName,
-          visitDate: form.visitDate,
-          visitTime: form.visitTime,
-          transportMode: skipSiteVisit ? "self" : form.transportMode,
-          pickupLocation: (skipSiteVisit || form.transportMode === "self") ? "Self Transport" : form.pickupLocation,
+          data: {
+            buyerName: form.fullName,
+            buyerEmail: form.email,
+            buyerPhone: form.phone,
+            plotNumber: form.plotNumber,
+            phaseName: form.phaseName,
+            visitDate: form.visitDate,
+            visitTime: form.visitTime,
+            transportMode: skipSiteVisit ? "self" : form.transportMode,
+            pickupLocation:
+              skipSiteVisit || form.transportMode === "self" ? "Self Transport" : form.pickupLocation,
+          }
         });
       } catch (notifErr) {
         console.warn("[Gatepath] Failed to send free visit notifications:", notifErr);
@@ -192,11 +201,24 @@ function BookVisitPage() {
     }
   };
 
-  const labelStyle: React.CSSProperties = { display: "block", fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 500, color: "#1C1C1C", marginBottom: 6 };
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontFamily: "Inter, sans-serif",
+    fontSize: 13,
+    fontWeight: 500,
+    color: "#1C1C1C",
+    marginBottom: 6,
+  };
   const inputStyle = (key: string): React.CSSProperties => ({
-    width: "100%", padding: "12px 14px",
+    width: "100%",
+    padding: "12px 14px",
     border: `1.5px solid ${showErr(key) ? "#EF4444" : touched[key] && !errors[key] ? "#22C55E" : "#E5E0D8"}`,
-    borderRadius: 8, fontFamily: "Inter, sans-serif", fontSize: 14, color: "#1C1C1C", background: "#FFFFFF", outline: "none",
+    borderRadius: 8,
+    fontFamily: "Inter, sans-serif",
+    fontSize: 14,
+    color: "#1C1C1C",
+    background: "#FFFFFF",
+    outline: "none",
   });
 
   return (
@@ -208,12 +230,40 @@ function BookVisitPage() {
         <div style={{ background: "#0B7FC7", padding: "32px 24px" }}>
           <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-center">
             <div>
-              <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 500, fontSize: 11, color: "#E8A020", letterSpacing: "0.25em" }}>STEP 2 OF 3</div>
-              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(28px, 5vw, 40px)", color: "#FFFFFF", marginTop: 8, lineHeight: 1.15 }}>
+              <div
+                style={{
+                  fontFamily: "Montserrat, sans-serif",
+                  fontWeight: 500,
+                  fontSize: 11,
+                  color: "#E8A020",
+                  letterSpacing: "0.25em",
+                }}
+              >
+                STEP 2 OF 3
+              </div>
+              <h1
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "clamp(28px, 5vw, 40px)",
+                  color: "#FFFFFF",
+                  marginTop: 8,
+                  lineHeight: 1.15,
+                }}
+              >
                 Book Your Free Site Visit
               </h1>
-              <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 300, fontSize: 16, color: "rgba(255,255,255,0.75)", marginTop: 10 }}>
-                See the land before you commit. Our agent will meet you on-site. Site visits are completely free.
+              <p
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 300,
+                  fontSize: 16,
+                  color: "rgba(255,255,255,0.75)",
+                  marginTop: 10,
+                }}
+              >
+                See the land before you commit. Our agent will meet you on-site. Site visits are
+                completely free.
               </p>
             </div>
             <PlotSummaryCard />
@@ -222,15 +272,47 @@ function BookVisitPage() {
 
         <div className="mx-auto" style={{ maxWidth: 1100, padding: "40px 24px" }}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-            <form onSubmit={handleSubmit} style={{ background: "#FFFFFF", borderRadius: 12, padding: "36px 28px", boxShadow: "0 4px 24px rgba(11,127,199,0.08)", border: "1px solid #E5E0D8" }}>
+            <form
+              onSubmit={handleSubmit}
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 12,
+                padding: "36px 28px",
+                boxShadow: "0 4px 24px rgba(11,127,199,0.08)",
+                border: "1px solid #E5E0D8",
+              }}
+            >
               {(bannerError || dbError) && (
-                <div className="mb-5" style={{ background: "#FEE2E2", border: "1px solid #EF4444", borderRadius: 6, padding: "12px 16px", fontFamily: "Inter, sans-serif", fontWeight: 500, fontSize: 14, color: "#991B1B" }}>
+                <div
+                  className="mb-5"
+                  style={{
+                    background: "#FEE2E2",
+                    border: "1px solid #EF4444",
+                    borderRadius: 6,
+                    padding: "12px 16px",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 500,
+                    fontSize: 14,
+                    color: "#991B1B",
+                  }}
+                >
                   {dbError || "Please fix the highlighted fields before continuing."}
                 </div>
               )}
 
               {/* Booking summary */}
-              <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 600, fontSize: 11, color: "#E8A020", letterSpacing: "0.2em", marginBottom: 16 }}>BOOKING FOR</div>
+              <div
+                style={{
+                  fontFamily: "Montserrat, sans-serif",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  color: "#E8A020",
+                  letterSpacing: "0.2em",
+                  marginBottom: 16,
+                }}
+              >
+                BOOKING FOR
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   ["Name", form.fullName],
@@ -238,16 +320,53 @@ function BookVisitPage() {
                   ["Plot", `${form.phaseName} — Plot #${form.plotNumber}`],
                   ["Location", form.plotLocation],
                 ].map(([l, v]) => (
-                  <div key={l} style={{ background: "#F8F4EE", border: "1px solid #E5E0D8", borderRadius: 6, padding: "12px 14px" }}>
-                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "#5A5A5A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>{l}</div>
-                    <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 15, color: "#0B7FC7" }}>{v}</div>
+                  <div
+                    key={l}
+                    style={{
+                      background: "#F8F4EE",
+                      border: "1px solid #E5E0D8",
+                      borderRadius: 6,
+                      padding: "12px 14px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 11,
+                        color: "#5A5A5A",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        marginBottom: 3,
+                      }}
+                    >
+                      {l}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontWeight: 600,
+                        fontSize: 15,
+                        color: "#0B7FC7",
+                      }}
+                    >
+                      {v}
+                    </div>
                   </div>
                 ))}
               </div>
 
               <div className="my-7" style={{ height: 1, background: "#E5E0D8" }} />
 
-              <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 600, fontSize: 11, color: "#E8A020", letterSpacing: "0.2em", marginBottom: 16 }}>
+              <div
+                style={{
+                  fontFamily: "Montserrat, sans-serif",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  color: "#E8A020",
+                  letterSpacing: "0.2em",
+                  marginBottom: 16,
+                }}
+              >
                 {form.reservePlot ? "RESERVATION & SITE VISIT" : "SCHEDULE YOUR VISIT"}
               </div>
 
@@ -261,12 +380,27 @@ function BookVisitPage() {
                     onChange={(e) => {
                       setSkipSiteVisit(e.target.checked);
                       if (e.target.checked) {
-                        setForm({ visitDate: "", visitTime: "", transportMode: "", attendees: "1", pickupLocation: "" });
+                        setForm({
+                          visitDate: "",
+                          visitTime: "",
+                          transportMode: "",
+                          attendees: "1",
+                          pickupLocation: "",
+                        });
                       }
                     }}
                     style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#0B7FC7" }}
                   />
-                  <label htmlFor="skipVisitCheck" style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600, color: "#0B7FC7", cursor: "pointer" }}>
+                  <label
+                    htmlFor="skipVisitCheck"
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "#0B7FC7",
+                      cursor: "pointer",
+                    }}
+                  >
                     I will schedule my site visit later / Drive myself directly
                   </label>
                 </div>
@@ -274,8 +408,12 @@ function BookVisitPage() {
 
               {skipSiteVisit ? (
                 <div className="mb-6 p-5 bg-[#F0F4F8] border-l-4 border-[#0B7FC7] rounded-r-lg font-sans text-[14px] text-[#5A5A5A] leading-relaxed">
-                  <p className="font-semibold text-[#0B7FC7] text-[15px] mb-2">Direct Reservation Mode</p>
-                  You have chosen to reserve this plot directly. No site visit will be scheduled at this stage. You can proceed directly to the payment page to secure your reservation hold.
+                  <p className="font-semibold text-[#0B7FC7] text-[15px] mb-2">
+                    Direct Reservation Mode
+                  </p>
+                  You have chosen to reserve this plot directly. No site visit will be scheduled at
+                  this stage. You can proceed directly to the payment page to secure your
+                  reservation hold.
                 </div>
               ) : (
                 <>
@@ -283,12 +421,22 @@ function BookVisitPage() {
                   <label style={labelStyle}>Site Visit Mode *</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                     {[
-                      { id: "physical" as const, icon: "🚗", title: "Physical Visit", sub: "Guided tour on the ground" },
-                      { id: "virtual" as const, icon: "💻", title: "Virtual Tour", sub: "Live video tour & call" },
+                      {
+                        id: "physical" as const,
+                        icon: "🚗",
+                        title: "Physical Visit",
+                        sub: "Guided tour on the ground",
+                      },
+                      {
+                        id: "virtual" as const,
+                        icon: "💻",
+                        title: "Virtual Tour",
+                        sub: "Live video tour & call",
+                      },
                     ].map((opt) => {
                       const isSelected = form.visitMode === opt.id;
                       const isLocked = opt.id === "virtual" && form.intent === "free_visit";
-                      
+
                       return (
                         <button
                           key={opt.id}
@@ -299,18 +447,49 @@ function BookVisitPage() {
                             textAlign: "left",
                             border: `1.5px solid ${isSelected ? "#0B7FC7" : "#D5D0C8"}`,
                             borderLeft: isSelected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
-                            borderRadius: 8, padding: "14px 16px",
-                            background: isSelected ? "#F0F4F8" : "#FFFFFF", 
+                            borderRadius: 8,
+                            padding: "14px 16px",
+                            background: isSelected ? "#F0F4F8" : "#FFFFFF",
                             cursor: isLocked ? "not-allowed" : "pointer",
                             opacity: isLocked ? 0.5 : 1,
-                            position: "relative"
+                            position: "relative",
                           }}
                         >
                           <div style={{ fontSize: 22, marginBottom: 6 }}>{opt.icon}</div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: "#0B7FC7" }}>{opt.title}</div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                          <div
+                            style={{
+                              fontFamily: "Inter, sans-serif",
+                              fontWeight: 600,
+                              fontSize: 14,
+                              color: "#0B7FC7",
+                            }}
+                          >
+                            {opt.title}
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: "Inter, sans-serif",
+                              fontSize: 12,
+                              color: "#5A5A5A",
+                              marginTop: 2,
+                            }}
+                          >
+                            {opt.sub}
+                          </div>
                           {isLocked && (
-                            <span style={{ position: "absolute", top: 8, right: 8, background: "#EF4444", color: "#FFF", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: 8,
+                                right: 8,
+                                background: "#EF4444",
+                                color: "#FFF",
+                                fontSize: 9,
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                              }}
+                            >
                               🔒 Lock
                             </span>
                           )}
@@ -321,15 +500,26 @@ function BookVisitPage() {
 
                   {form.visitMode === "virtual" && (
                     <div className="mb-6 p-4 bg-[#EFF6FF] border border-[#0B7FC7]/20 rounded-xl">
-                      <p style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#0B7FC7", margin: 0, lineHeight: 1.5 }}>
-                        <strong>Virtual Tour Mode:</strong> We will connect with you via WhatsApp Video call or Zoom at your scheduled time to walk you through the property live.
+                      <p
+                        style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontSize: 13,
+                          color: "#0B7FC7",
+                          margin: 0,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <strong>Virtual Tour Mode:</strong> We will connect with you via WhatsApp
+                        Video call or Zoom at your scheduled time to walk you through the property
+                        live.
                       </p>
                     </div>
                   )}
 
                   {form.intent === "free_visit" && form.visitMode === "physical" && (
                     <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-[12px] text-amber-800 leading-relaxed">
-                      💡 <strong>Note:</strong> You can unlock <strong>Virtual Tour</strong> mode by upgrading to a reservation hold (checkbox on Step 1).
+                      💡 <strong>Note:</strong> You can unlock <strong>Virtual Tour</strong> mode by
+                      upgrading to a reservation hold (checkbox on Step 1).
                     </div>
                   )}
 
@@ -346,15 +536,36 @@ function BookVisitPage() {
                       onBlur={() => setTouched((t) => ({ ...t, visitDate: true }))}
                       style={inputStyle("visitDate")}
                     />
-                    {showErr("visitDate") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.visitDate}</div>}
+                    {showErr("visitDate") && (
+                      <div
+                        style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontSize: 12,
+                          color: "#EF4444",
+                          marginTop: 4,
+                        }}
+                      >
+                        {errors.visitDate}
+                      </div>
+                    )}
                   </div>
 
                   {/* Time */}
                   <label style={labelStyle}>Preferred Time *</label>
                   <div className="grid grid-cols-2 gap-3 mb-5">
                     {[
-                      { id: "morning", icon: "🌅", title: "Morning Visit", sub: "8:00 AM – 12:00 PM" },
-                      { id: "afternoon", icon: "🌆", title: "Afternoon Visit", sub: "1:00 PM – 5:00 PM" },
+                      {
+                        id: "morning",
+                        icon: "🌅",
+                        title: "Morning Visit",
+                        sub: "8:00 AM – 12:00 PM",
+                      },
+                      {
+                        id: "afternoon",
+                        icon: "🌆",
+                        title: "Afternoon Visit",
+                        sub: "1:00 PM – 5:00 PM",
+                      },
                     ].map((opt) => {
                       const selected = form.visitTime === opt.id;
                       return (
@@ -366,13 +577,33 @@ function BookVisitPage() {
                             textAlign: "left",
                             border: `1.5px solid ${selected ? "#0B7FC7" : "#D5D0C8"}`,
                             borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
-                            borderRadius: 8, padding: "14px 16px",
-                            background: selected ? "#F0F4F8" : "#FFFFFF", cursor: "pointer",
+                            borderRadius: 8,
+                            padding: "14px 16px",
+                            background: selected ? "#F0F4F8" : "#FFFFFF",
+                            cursor: "pointer",
                           }}
                         >
                           <div style={{ fontSize: 22, marginBottom: 6 }}>{opt.icon}</div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: "#0B7FC7" }}>{opt.title}</div>
-                          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                          <div
+                            style={{
+                              fontFamily: "Inter, sans-serif",
+                              fontWeight: 600,
+                              fontSize: 14,
+                              color: "#0B7FC7",
+                            }}
+                          >
+                            {opt.title}
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: "Inter, sans-serif",
+                              fontSize: 12,
+                              color: "#5A5A5A",
+                              marginTop: 2,
+                            }}
+                          >
+                            {opt.sub}
+                          </div>
                         </button>
                       );
                     })}
@@ -382,31 +613,70 @@ function BookVisitPage() {
                   {form.visitMode === "physical" && (
                     <>
                       <label style={labelStyle}>Means of Transport *</label>
-                      <div className={isCoastal ? "grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5" : "grid grid-cols-2 gap-2.5 mb-5"}>
+                      <div
+                        className={
+                          isCoastal
+                            ? "grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5"
+                            : "grid grid-cols-2 gap-2.5 mb-5"
+                        }
+                      >
                         {transportOptions.map((opt) => {
                           const selected = form.transportMode === opt.id;
                           return (
                             <button
                               key={opt.id}
                               type="button"
-                              onClick={() => setForm({ transportMode: opt.id, pickupLocation: opt.id === "self" ? "" : form.pickupLocation })}
+                              onClick={() =>
+                                setForm({
+                                  transportMode: opt.id,
+                                  pickupLocation: opt.id === "self" ? "" : form.pickupLocation,
+                                })
+                              }
                               style={{
                                 textAlign: "left",
                                 border: `1.5px solid ${selected ? "#0B7FC7" : "#D5D0C8"}`,
                                 borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
-                                borderRadius: 8, padding: "12px 10px",
-                                background: selected ? "#F0F4F8" : "#FFFFFF", cursor: "pointer",
+                                borderRadius: 8,
+                                padding: "12px 10px",
+                                background: selected ? "#F0F4F8" : "#FFFFFF",
+                                cursor: "pointer",
                               }}
                             >
                               <div style={{ fontSize: 18, marginBottom: 4 }}>{opt.icon}</div>
-                              <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 12, color: "#0B7FC7" }}>{opt.title}</div>
-                              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                              <div
+                                style={{
+                                  fontFamily: "Inter, sans-serif",
+                                  fontWeight: 600,
+                                  fontSize: 12,
+                                  color: "#0B7FC7",
+                                }}
+                              >
+                                {opt.title}
+                              </div>
+                              <div
+                                style={{
+                                  fontFamily: "Inter, sans-serif",
+                                  fontSize: 10,
+                                  color: "#5A5A5A",
+                                  marginTop: 2,
+                                }}
+                              >
+                                {opt.sub}
+                              </div>
                             </button>
                           );
                         })}
                       </div>
                       {showErr("transportMode") && (
-                        <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: -2, marginBottom: 12 }}>
+                        <div
+                          style={{
+                            fontFamily: "Inter, sans-serif",
+                            fontSize: 12,
+                            color: "#EF4444",
+                            marginTop: -2,
+                            marginBottom: 12,
+                          }}
+                        >
                           {errors.transportMode}
                         </div>
                       )}
@@ -426,7 +696,9 @@ function BookVisitPage() {
                               <option value="Malindi Complex">Malindi Complex (Coastal Hub)</option>
                             ) : (
                               <>
-                                <option value="Kihunguro Office">Kihunguro Office (Advisable / Corporate HQ)</option>
+                                <option value="Kihunguro Office">
+                                  Kihunguro Office (Advisable / Corporate HQ)
+                                </option>
                                 <option value="Kimbo">Kimbo</option>
                                 <option value="Kenyatta road">Kenyatta Road</option>
                                 <option value="Juja">Juja</option>
@@ -436,7 +708,18 @@ function BookVisitPage() {
                               </>
                             )}
                           </select>
-                          {showErr("pickupLocation") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.pickupLocation}</div>}
+                          {showErr("pickupLocation") && (
+                            <div
+                              style={{
+                                fontFamily: "Inter, sans-serif",
+                                fontSize: 12,
+                                color: "#EF4444",
+                                marginTop: 4,
+                              }}
+                            >
+                              {errors.pickupLocation}
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
@@ -444,19 +727,61 @@ function BookVisitPage() {
 
                   {/* Attendees */}
                   <label style={labelStyle}>How many people will attend? *</label>
-                  <div className="mb-5" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #E5E0D8", borderRadius: 8, padding: "10px 16px", maxWidth: 240 }}>
-                    <button type="button" onClick={() => handleAttendees(-1)} style={{ background: "none", border: "none", cursor: "pointer", color: "#5A5A5A" }}>
+                  <div
+                    className="mb-5"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      border: "1px solid #E5E0D8",
+                      borderRadius: 8,
+                      padding: "10px 16px",
+                      maxWidth: 240,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleAttendees(-1)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#5A5A5A",
+                      }}
+                    >
                       <Minus size={20} />
                     </button>
-                    <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 20, color: "#0B7FC7", minWidth: 48, textAlign: "center" }}>{form.attendees}</div>
-                    <button type="button" onClick={() => handleAttendees(1)} style={{ background: "none", border: "none", cursor: "pointer", color: "#5A5A5A" }}>
+                    <div
+                      style={{
+                        fontFamily: "Montserrat, sans-serif",
+                        fontWeight: 700,
+                        fontSize: 20,
+                        color: "#0B7FC7",
+                        minWidth: 48,
+                        textAlign: "center",
+                      }}
+                    >
+                      {form.attendees}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAttendees(1)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#5A5A5A",
+                      }}
+                    >
                       <Plus size={20} />
                     </button>
                   </div>
 
                   {/* Notes */}
                   <div className="mb-5">
-                    <label style={labelStyle}>Any special requirements for the visit? (Optional)</label>
+                    <label style={labelStyle}>
+                      Any special requirements for the visit? (Optional)
+                    </label>
                     <textarea
                       rows={3}
                       value={form.visitNotes}
@@ -467,12 +792,27 @@ function BookVisitPage() {
                   </div>
 
                   {/* Info box */}
-                  <div style={{ background: "#F0F4F8", borderLeft: "3px solid #E8A020", borderRadius: "0 8px 8px 0", padding: "16px 20px", fontFamily: "Inter, sans-serif", fontSize: 13, color: "#5A5A5A", lineHeight: 1.8 }}>
-                    <div style={{ fontWeight: 600, color: "#0B7FC7", marginBottom: 8 }}>ℹ️ About Your Site Visit</div>
-                    • Site visits are 100% free — no commitment required<br />
-                    • Our agent will confirm via WhatsApp within 2 hours of booking<br />
-                    • Meeting point directions will be shared on confirmation<br />
-                    • Please bring your national ID for verification
+                  <div
+                    style={{
+                      background: "#F0F4F8",
+                      borderLeft: "3px solid #E8A020",
+                      borderRadius: "0 8px 8px 0",
+                      padding: "16px 20px",
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 13,
+                      color: "#5A5A5A",
+                      lineHeight: 1.8,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, color: "#0B7FC7", marginBottom: 8 }}>
+                      ℹ️ About Your Site Visit
+                    </div>
+                    • Site visits are 100% free — no commitment required
+                    <br />
+                    • Our agent will confirm via WhatsApp within 2 hours of booking
+                    <br />
+                    • Meeting point directions will be shared on confirmation
+                    <br />• Please bring your national ID for verification
                   </div>
                 </>
               )}
@@ -491,23 +831,54 @@ function BookVisitPage() {
                   padding: "18px 0",
                   borderRadius: 8,
                   border: "none",
-                  cursor: loading ? "not-allowed" : "pointer"
+                  cursor: loading ? "not-allowed" : "pointer",
                 }}
               >
-                {loading ? "Confirming..." : form.intent === "free_visit" ? "📅 Confirm & Schedule Site Visit" : "Continue to Payment →"}
+                {loading
+                  ? "Confirming..."
+                  : form.intent === "free_visit"
+                    ? "📅 Confirm & Schedule Site Visit"
+                    : "Continue to Payment →"}
               </button>
               <button
                 type="button"
                 onClick={() => window.history.back()}
-                style={{ marginTop: 10, width: "100%", background: "transparent", color: "#0B7FC7", fontFamily: "Inter, sans-serif", fontWeight: 500, fontSize: 14, padding: "13px 0", borderRadius: 8, border: "1.5px solid #0B7FC7", cursor: "pointer" }}
+                style={{
+                  marginTop: 10,
+                  width: "100%",
+                  background: "transparent",
+                  color: "#0B7FC7",
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 500,
+                  fontSize: 14,
+                  padding: "13px 0",
+                  borderRadius: 8,
+                  border: "1.5px solid #0B7FC7",
+                  cursor: "pointer",
+                }}
               >
                 ← Back to My Inquiry
               </button>
             </form>
 
             <aside className="lg:sticky lg:top-[200px] lg:self-start">
-              <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 28, border: "1px solid #E5E0D8" }}>
-                <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: 22, color: "#0B7FC7", marginBottom: 20 }}>
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  borderRadius: 12,
+                  padding: 28,
+                  border: "1px solid #E5E0D8",
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: 22,
+                    color: "#0B7FC7",
+                    marginBottom: 20,
+                  }}
+                >
                   Your Visit Checklist
                 </h3>
                 {[
@@ -518,17 +889,79 @@ function BookVisitPage() {
                   "Take photos during the visit — encouraged!",
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-3 mb-3">
-                    <CheckCircle size={18} style={{ color: "#22C55E", marginTop: 2, flexShrink: 0 }} />
-                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "#1C1C1C" }}>{item}</div>
+                    <CheckCircle
+                      size={18}
+                      style={{ color: "#22C55E", marginTop: 2, flexShrink: 0 }}
+                    />
+                    <div
+                      style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "#1C1C1C" }}
+                    >
+                      {item}
+                    </div>
                   </div>
                 ))}
                 <div className="my-5" style={{ height: 1, background: "#E5E0D8" }} />
-                <div style={{ background: "#F8F4EE", border: "1px solid #E5E0D8", borderRadius: 8, padding: 16 }}>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "#5A5A5A", letterSpacing: "0.08em", textTransform: "uppercase" }}>Selected Plot</div>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: "#0B7FC7", marginTop: 4 }}>{form.phaseName}</div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: 20, color: "#0B7FC7" }}>Plot #{form.plotNumber}</div>
-                  <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 16, color: "#E8A020", marginTop: 4 }}>Ksh {form.plotPrice.toLocaleString()}</div>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{form.plotLocation}</div>
+                <div
+                  style={{
+                    background: "#F8F4EE",
+                    border: "1px solid #E5E0D8",
+                    borderRadius: 8,
+                    padding: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 11,
+                      color: "#5A5A5A",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Selected Plot
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 600,
+                      fontSize: 14,
+                      color: "#0B7FC7",
+                      marginTop: 4,
+                    }}
+                  >
+                    {form.phaseName}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: 20,
+                      color: "#0B7FC7",
+                    }}
+                  >
+                    Plot #{form.plotNumber}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "Montserrat, sans-serif",
+                      fontWeight: 700,
+                      fontSize: 16,
+                      color: "#E8A020",
+                      marginTop: 4,
+                    }}
+                  >
+                    Ksh {form.plotPrice.toLocaleString()}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      color: "#5A5A5A",
+                      marginTop: 2,
+                    }}
+                  >
+                    {form.plotLocation}
+                  </div>
                 </div>
               </div>
             </aside>

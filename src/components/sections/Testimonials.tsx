@@ -2,19 +2,22 @@ import { Reveal } from "@/components/Reveal";
 
 const items = [
   {
-    quote: "I was worried about buying land from Nairobi without seeing it first. Gatepath arranged a site visit within 48 hours. The process was seamless, and I received my signed agreement the same day I paid my deposit.",
+    quote:
+      "I was worried about buying land from Nairobi without seeing it first. Gatepath arranged a site visit within 48 hours. The process was seamless, and I received my signed agreement the same day I paid my deposit.",
     name: "Mary Njoroge",
     initials: "MN",
     tag: "Sagana, Phase 2 Owner",
   },
   {
-    quote: "As someone in the diaspora, I needed a company I could trust to handle everything remotely. Gatepath's digital process is impressive — I paid by card, got my receipt by email, and my agreement was signed and delivered within hours.",
+    quote:
+      "As someone in the diaspora, I needed a company I could trust to handle everything remotely. Gatepath's digital process is impressive — I paid by card, got my receipt by email, and my agreement was signed and delivered within hours.",
     name: "Samuel Kariuki",
     initials: "SK",
     tag: "Malindi, Phase 4 Owner — UK Diaspora",
   },
   {
-    quote: "The loan calculator on their site helped me plan my installments before I even spoke to an agent. Transparent, professional, and genuinely helpful. I will be buying my second plot soon.",
+    quote:
+      "The loan calculator on their site helped me plan my installments before I even spoke to an agent. Transparent, professional, and genuinely helpful. I will be buying my second plot soon.",
     name: "David Mwangi",
     initials: "DM",
     tag: "Kithimani, Phase 1 Owner",
@@ -40,7 +43,9 @@ export function Testimonials() {
             >
               <div className="flex gap-0.5 text-accent text-lg">★★★★★</div>
               <div className="relative mt-4 flex-1">
-                <span className="absolute -top-4 -left-2 font-serif text-[60px] leading-none text-accent/80">"</span>
+                <span className="absolute -top-4 -left-2 font-serif text-[60px] leading-none text-accent/80">
+                  "
+                </span>
                 <p className="relative font-serif italic text-[20px] text-foreground leading-[1.7]">
                   {t.quote}
                 </p>

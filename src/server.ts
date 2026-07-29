@@ -12,7 +12,7 @@ let serverEntryPromise: Promise<ServerEntry> | undefined;
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
     serverEntryPromise = import("@tanstack/react-start/server-entry").then(
-      (m) => ((m as { default?: ServerEntry }).default ?? (m as unknown as ServerEntry)),
+      (m) => (m as { default?: ServerEntry }).default ?? (m as unknown as ServerEntry),
     );
   }
   return serverEntryPromise;
@@ -71,16 +71,17 @@ export default {
     try {
       const url = new URL(request.url);
       const isGet = request.method === "GET";
-      
+
       // Determine if the route is cacheable (anonymous read-only pages)
-      const isCacheable = isGet && 
-        !url.pathname.startsWith("/admin") && 
+      const isCacheable =
+        isGet &&
+        !url.pathname.startsWith("/admin") &&
         !url.pathname.startsWith("/document") &&
         !url.pathname.startsWith("/api");
 
       // Access Cloudflare global cache (wrapped in try/catch for local dev safety)
       const cache = typeof caches !== "undefined" ? (caches as any).default : null;
-      
+
       if (isCacheable && cache) {
         try {
           const cachedResponse = await cache.match(request);
@@ -102,11 +103,14 @@ export default {
         try {
           const cacheHeader = normalized.headers.get("Cache-Control");
           // Only cache if not explicitly marked private/no-store
-          if (!cacheHeader || (!cacheHeader.includes("private") && !cacheHeader.includes("no-store"))) {
+          if (
+            !cacheHeader ||
+            (!cacheHeader.includes("private") && !cacheHeader.includes("no-store"))
+          ) {
             const responseToCache = new Response(normalized.body, normalized);
             // Cache for 60 seconds at the edge
             responseToCache.headers.set("Cache-Control", "public, max-age=60");
-            
+
             if (ctx && typeof (ctx as any).waitUntil === "function") {
               (ctx as any).waitUntil(cache.put(request, responseToCache.clone()));
             } else {

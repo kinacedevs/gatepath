@@ -1,6 +1,6 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { MapPin, CheckCircle2, Clock, Download, Loader2 } from "lucide-react";
+import { MapPin, CheckCircle2, Clock, Download, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/properties/$slug")({
   }),
   loader: async ({ params }) => {
     // 1. Fetch phase from Supabase
-    const { data: dbPhase, error: phaseErr } = await supabase
+    const { data: dbPhase, error: phaseErr } = await (supabase as any)
       .from("phases")
       .select("*")
       .eq("slug", params.slug)
@@ -32,51 +32,54 @@ export const Route = createFileRoute("/properties/$slug")({
     }
 
     // 2. Fetch plot sizes
-    const { data: dbSizes } = await supabase
+    const { data: dbSizes } = await (supabase as any)
       .from("plot_sizes")
       .select("*")
       .eq("phase_id", dbPhase.id)
       .order("cash_price");
 
     // 3. Fetch plots
-    const { data: dbPlots } = await supabase
+    const { data: dbPlots } = await (supabase as any)
       .from("plots")
       .select("*")
       .eq("phase_id", dbPhase.id)
       .order("plot_number");
 
     // 4. Fetch 3 similar phases (excluding current)
-    const { data: rawSimilar } = await supabase
+    const { data: rawSimilar } = await (supabase as any)
       .from("phases")
       .select("*")
       .neq("id", dbPhase.id)
       .limit(3);
 
-    const similarIds = rawSimilar ? rawSimilar.map((p) => p.id) : [];
+    const similarIds = rawSimilar ? rawSimilar.map((p: any) => p.id) : [];
     const { data: similarSizes } = similarIds.length
-      ? await supabase.from("plot_sizes").select("*").in("phase_id", similarIds)
+      ? await (supabase as any).from("plot_sizes").select("*").in("phase_id", similarIds)
       : { data: [] };
 
     // Adapt similar phases for PhaseCard
-    const similarAdapted = (rawSimilar ?? []).map((p) => {
-      const sizesForPhase = (similarSizes ?? []).filter((s) => s.phase_id === p.id);
-      const defaultSize = sizesForPhase.find((s) => s.is_default) ?? sizesForPhase[0];
+    const similarAdapted = (rawSimilar ?? []).map((p: any) => {
+      const sizesForPhase = (similarSizes ?? []).filter((s: any) => s.phase_id === p.id);
+      const defaultSize = sizesForPhase.find((s: any) => s.is_default) ?? sizesForPhase[0];
       const startingPrice = sizesForPhase.length
-        ? Math.min(...sizesForPhase.map((s) => s.cash_price))
+        ? Math.min(...sizesForPhase.map((s: any) => s.cash_price))
         : 320000;
 
       return {
+        id: p.id,
         slug: p.slug,
         name: p.name,
         phaseNumber: p.phase_number ?? undefined,
         location: p.location,
         region: p.region,
-        status: p.status === "active" ? "ACTIVE" : p.status === "sold_out" ? "SOLD OUT" : "COMING SOON",
+        status:
+          p.status === "active" ? "ACTIVE" : p.status === "sold_out" ? "SOLD OUT" : "COMING SOON",
         totalPlots: p.total_plots,
         available: p.available_count,
         booked: p.booked_count,
         sold: p.sold_count,
-        image: p.image_url ?? "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
+        image:
+          p.image_url ?? "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
         description: p.description ?? "",
         features: p.features ?? [],
         startingPrice,
@@ -86,13 +89,13 @@ export const Route = createFileRoute("/properties/$slug")({
     });
 
     // Adapt loader phase for server-side render
-    const defaultSize = (dbSizes ?? []).find((s) => s.is_default) ?? (dbSizes ?? [])[0];
+    const defaultSize = (dbSizes ?? []).find((s: any) => s.is_default) ?? (dbSizes ?? [])[0];
     const startingPrice = (dbSizes ?? []).length
-      ? Math.min(...(dbSizes ?? []).map((s) => s.cash_price))
+      ? Math.min(...(dbSizes ?? []).map((s: any) => s.cash_price))
       : 0;
 
-    const mappedPlots = (dbPlots ?? []).map((p) => {
-      const sizeObj = (dbSizes ?? []).find((s) => s.id === p.size_id) ?? defaultSize;
+    const mappedPlots = (dbPlots ?? []).map((p: any) => {
+      const sizeObj = (dbSizes ?? []).find((s: any) => s.id === p.size_id) ?? defaultSize;
       return {
         id: p.plot_number,
         row: p.row_num,
@@ -104,22 +107,32 @@ export const Route = createFileRoute("/properties/$slug")({
     });
 
     const initialPhase: Phase = {
+      id: dbPhase.id,
       slug: dbPhase.slug,
       name: dbPhase.name,
       phaseNumber: dbPhase.phase_number ?? undefined,
       location: dbPhase.location,
       region: dbPhase.region,
-      status: dbPhase.status === "active" ? "ACTIVE" : dbPhase.status === "sold_out" ? "SOLD OUT" : "COMING SOON",
+      status:
+        dbPhase.status === "active"
+          ? "ACTIVE"
+          : dbPhase.status === "sold_out"
+            ? "SOLD OUT"
+            : "COMING SOON",
       totalPlots: dbPhase.total_plots,
       available: dbPhase.available_count,
       booked: dbPhase.booked_count,
       sold: dbPhase.sold_count,
-      image: dbPhase.image_url ?? "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
+      image:
+        dbPhase.image_url ??
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
       description: dbPhase.description ?? "",
       features: dbPhase.features ?? [],
       startingPrice,
       size: defaultSize ? defaultSize.label : "50x100 ft",
       plots: mappedPlots,
+      youtube_video_url: dbPhase.youtube_video_url,
+      hero_image_urls: dbPhase.hero_image_urls,
     };
 
     return {
@@ -140,7 +153,9 @@ export const Route = createFileRoute("/properties/$slug")({
   ),
   head: ({ loaderData }) => {
     const phase = loaderData?.initialPhase;
-    const title = phase ? `${phase.name} — Phase ${phase.phaseNumber ?? ""} | Gatepath Realtors` : "Phase | Gatepath Realtors";
+    const title = phase
+      ? `${phase.name} — Phase ${phase.phaseNumber ?? ""} | Gatepath Realtors`
+      : "Phase | Gatepath Realtors";
     const desc = phase?.description ?? "Browse plots in this phase.";
     return {
       meta: [
@@ -187,11 +202,25 @@ function PhaseDetailPage() {
   // Fallback to initial loader data during hydration/real-time setup
   const phase = livePhase || initialPhase;
 
+  // Carousel slider states for property photos
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const slides = [phase?.image, ...(phase?.hero_image_urls ?? [])].filter(Boolean).slice(0, 8);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [slides.length]);
+
   const onSelect = (p: Plot) => {
     setSelected(p);
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
       setTimeout(() => {
-        document.getElementById("plot-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document
+          .getElementById("plot-panel")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 50);
     }
   };
@@ -221,40 +250,110 @@ function PhaseDetailPage() {
 
       {/* HERO */}
       <section
-        className="relative pt-24 lg:pt-28"
+        className="pt-28 lg:pt-32 pb-8 border-b border-white/10 relative"
         style={{
-          height: "380px",
-          backgroundImage: `linear-gradient(135deg, rgba(11,127,199,0.85) 0%, rgba(11,127,199,0.55) 100%), url(${phase.image})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          background: "linear-gradient(135deg, var(--primary-deep) 0%, var(--primary-dark) 100%)",
         }}
       >
-        <div className="absolute bottom-8 left-0 right-0">
-          <div className="mx-auto max-w-7xl px-6 lg:px-12">
+        <div className="mx-auto max-w-7xl px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Left Column: Text details */}
+          <div className="lg:col-span-5 text-white">
             <div className="text-[13px] text-white/50">
-              <Link to="/" className="hover:text-accent">Home</Link> ›{" "}
+              <Link to="/" className="hover:text-accent">
+                Home
+              </Link>{" "}
+              ›{" "}
               {isDiaspora ? (
                 <>
-                  <Link to="/diaspora" className="hover:text-accent">Diaspora</Link> ›{" "}
+                  <Link to="/diaspora" className="hover:text-accent">
+                    Diaspora
+                  </Link>{" "}
+                  ›{" "}
                 </>
               ) : (
                 <>
-                  <Link to="/properties" className="hover:text-accent">Properties</Link> ›{" "}
+                  <Link to="/properties" className="hover:text-accent">
+                    Properties
+                  </Link>{" "}
+                  ›{" "}
                 </>
               )}
               <span>{phase.name}</span>
             </div>
             {phase.phaseNumber && (
-              <span className="mt-3 inline-block bg-accent text-white font-numbers font-semibold text-[11px] px-3.5 py-1.5 rounded-full">
+              <span className="mt-4 inline-block bg-accent text-primary-deep font-numbers font-extrabold text-[11px] px-3.5 py-1.5 rounded-full shadow-sm uppercase tracking-wider">
                 PHASE {phase.phaseNumber} — {phase.status}
               </span>
             )}
-            <h1 className="mt-3 font-serif font-bold text-[42px] md:text-[72px] text-white leading-[1.0]">
+            <h1 className="mt-4 font-serif font-bold text-[36px] md:text-[48px] lg:text-[54px] text-white leading-tight">
               {phase.name}
             </h1>
-            <div className="mt-3 flex items-center gap-2 text-white">
-              <MapPin size={16} className="text-accent" />
-              <span className="text-[16px]">{phase.location}, {phase.region}, Kenya</span>
+            <div className="mt-4 flex items-center gap-2 text-white/95">
+              <MapPin size={18} className="text-accent" />
+              <span className="text-[16px] font-medium">
+                {phase.location}, {phase.region}, Kenya
+              </span>
+            </div>
+          </div>
+
+          {/* Right Column: Dynamic Slider Carousel */}
+          <div className="lg:col-span-7">
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/5 w-full h-[260px] sm:h-[340px] md:h-[380px]">
+              {/* Slides Background Container */}
+              <div className="absolute inset-0">
+                {slides.map((slideUrl, idx) => (
+                  <div
+                    key={idx}
+                    className={`absolute inset-0 transition-opacity duration-700 ${
+                      idx === currentSlide ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    <img
+                      src={slideUrl}
+                      alt={`${phase.name} view ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Manual Slideshow Controls */}
+              {slides.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
+                    aria-label="Previous slide"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentSlide((prev) => (prev + 1) % slides.length);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95"
+                    aria-label="Next slide"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+                    {slides.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentSlide(idx)}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                          idx === currentSlide ? "bg-accent w-4" : "bg-white/40 hover:bg-white/60"
+                        }`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -279,7 +378,9 @@ function PhaseDetailPage() {
             ].map((s, i) => (
               <div key={s.l} className={i > 0 ? "pl-8" : ""}>
                 <div className={`font-numbers font-bold text-[22px] ${s.c}`}>{s.v}</div>
-                <div className="text-[11px] text-muted-foreground uppercase tracking-[0.08em]">{s.l}</div>
+                <div className="text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+                  {s.l}
+                </div>
               </div>
             ))}
           </div>
@@ -302,7 +403,8 @@ function PhaseDetailPage() {
               </div>
               <div className="flex flex-wrap items-center gap-4 text-[12px] text-foreground">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E]" /> Available ({phase.available})
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E]" /> Available (
+                  {phase.available})
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" /> Booked ({phase.booked})
@@ -340,7 +442,8 @@ function PhaseDetailPage() {
             </div>
 
             <p className="mt-4 text-[12px] text-muted-foreground italic">
-              Map is for illustrative purposes. Exact plot boundaries are confirmed during site visit.
+              Map is for illustrative purposes. Exact plot boundaries are confirmed during site
+              visit.
             </p>
           </div>
         </div>
@@ -360,17 +463,21 @@ function PhaseDetailPage() {
       <section className="mx-auto max-w-7xl px-6 lg:px-12 pb-16">
         <div className="bg-white rounded-[12px] border border-[#E5E0D8] shadow-[var(--shadow-card)] overflow-hidden">
           <div className="flex border-b border-[#E5E0D8] overflow-x-auto">
-            {([
-              ["location", "Location Details"],
-              ["infra", "Infrastructure & Amenities"],
-              ["legal", "Legal & Title"],
-              ["payment", "Payment Plans"],
-            ] as const).map(([k, label]) => (
+            {(
+              [
+                ["location", "Location Details"],
+                ["infra", "Infrastructure & Amenities"],
+                ["legal", "Legal & Title"],
+                ["payment", "Payment Plans"],
+              ] as const
+            ).map(([k, label]) => (
               <button
                 key={k}
                 onClick={() => setTab(k)}
                 className={`px-6 py-4 text-[14px] font-semibold whitespace-nowrap border-b-2 transition-colors ${
-                  tab === k ? "border-accent text-primary" : "border-transparent text-muted-foreground hover:text-primary"
+                  tab === k
+                    ? "border-accent text-primary"
+                    : "border-transparent text-muted-foreground hover:text-primary"
                 }`}
               >
                 {label}
@@ -383,11 +490,22 @@ function PhaseDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                   <p className="text-[15px] text-foreground leading-[1.75]">
-                    {phase.name} is situated in {phase.location}, {phase.region}. The phase is accessible via tarmac road with proximity to local amenities, water sources, and major transport corridors. The terrain is gentle and well-drained, ideal for residential and mixed-use development.
+                    {phase.name} is situated in {phase.location}, {phase.region}. The phase is
+                    accessible via tarmac road with proximity to local amenities, water sources, and
+                    major transport corridors. The terrain is gentle and well-drained, ideal for
+                    residential and mixed-use development.
                   </p>
                 </div>
-                <div className="bg-[#F0F4F8] rounded-lg h-[260px] flex items-center justify-center text-muted-foreground">
-                  <MapPin size={32} className="text-accent mr-2" /> Map preview
+                <div className="rounded-xl overflow-hidden h-[280px] shadow-md border border-[#E5E0D8] bg-slate-100 relative">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(phase.location + ", " + phase.region + ", Kenya")}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                    allowFullScreen
+                    title={`${phase.name} Location Map`}
+                  />
                 </div>
               </div>
             )}
@@ -404,7 +522,10 @@ function PhaseDetailPage() {
                   ["Sewerage (planned)", false],
                   ["Plot beacons installed", true],
                 ].map(([label, done]) => (
-                  <div key={label as string} className="flex items-center gap-3 text-[14px] text-foreground">
+                  <div
+                    key={label as string}
+                    className="flex items-center gap-3 text-[14px] text-foreground"
+                  >
                     {done ? (
                       <CheckCircle2 size={20} className="text-[#22C55E] shrink-0" />
                     ) : (
@@ -419,7 +540,8 @@ function PhaseDetailPage() {
             {tab === "legal" && (
               <div>
                 <p className="text-[15px] text-foreground leading-[1.75]">
-                  All plots carry individual freehold title deeds. The land is surveyed, registered, and free of any encumbrances.
+                  All plots carry individual freehold title deeds. The land is surveyed, registered,
+                  and free of any encumbrances.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <button className="border-[1.5px] border-primary text-primary font-medium text-[14px] px-5 py-2.5 rounded-md hover:bg-primary hover:text-white transition-colors">
@@ -438,13 +560,32 @@ function PhaseDetailPage() {
             {tab === "payment" && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {[
-                  { name: "Plan A — Full Payment", body: "Pay 100% upfront and enjoy a 5% discount on the listed price.", tag: "5% Discount" },
-                  { name: "Plan B — 6 Months", body: "30% deposit, balance spread over 6 monthly installments.", tag: "30% Deposit" },
-                  { name: "Plan C — 12 Months", body: "20% deposit, balance over 12 months. installment markup applies.", tag: "20% Deposit" },
+                  {
+                    name: "Plan A — Full Payment",
+                    body: "Pay 100% upfront and enjoy a 5% discount on the listed price.",
+                    tag: "5% Discount",
+                  },
+                  {
+                    name: "Plan B — 6 Months",
+                    body: "30% deposit, balance spread over 6 monthly installments.",
+                    tag: "30% Deposit",
+                  },
+                  {
+                    name: "Plan C — 12 Months",
+                    body: "20% deposit, balance over 12 months. installment markup applies.",
+                    tag: "20% Deposit",
+                  },
                 ].map((p) => (
-                  <div key={p.name} className="border border-[#E5E0D8] rounded-lg p-5 hover:border-accent transition-colors">
-                    <div className="text-[11px] font-numbers font-semibold text-accent uppercase tracking-wider">{p.tag}</div>
-                    <h4 className="mt-2 font-serif font-semibold text-[20px] text-primary">{p.name}</h4>
+                  <div
+                    key={p.name}
+                    className="border border-[#E5E0D8] rounded-lg p-5 hover:border-accent transition-colors"
+                  >
+                    <div className="text-[11px] font-numbers font-semibold text-accent uppercase tracking-wider">
+                      {p.tag}
+                    </div>
+                    <h4 className="mt-2 font-serif font-semibold text-[20px] text-primary">
+                      {p.name}
+                    </h4>
                     <p className="mt-2 text-[13px] text-muted-foreground leading-[1.6]">{p.body}</p>
                   </div>
                 ))}
@@ -461,7 +602,8 @@ function PhaseDetailPage() {
             Property Video Tour
           </h3>
           <p className="text-[14px] text-muted-foreground mb-6">
-            Take a virtual tour of the environment, road connectivity, and physical landmarks surrounding {phase.name}.
+            Take a virtual tour of the environment, road connectivity, and physical landmarks
+            surrounding {phase.name}.
           </p>
 
           {phase.youtube_video_url ? (
@@ -483,7 +625,10 @@ function PhaseDetailPage() {
                   return (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-white bg-slate-900">
                       <p className="text-[16px] font-semibold">Watch on YouTube</p>
-                      <p className="text-[13px] opacity-75 mt-2 max-w-md">Our team has uploaded a video tour for this property. Click below to view it directly on YouTube.</p>
+                      <p className="text-[13px] opacity-75 mt-2 max-w-md">
+                        Our team has uploaded a video tour for this property. Click below to view it
+                        directly on YouTube.
+                      </p>
                       <a
                         href={phase.youtube_video_url}
                         target="_blank"
@@ -498,7 +643,7 @@ function PhaseDetailPage() {
               })()}
             </div>
           ) : (
-            <div 
+            <div
               style={{
                 backgroundImage: `linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url(${phase.image})`,
                 backgroundSize: "cover",
@@ -508,12 +653,13 @@ function PhaseDetailPage() {
             >
               <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-white fill-current" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
+                  <path d="M8 5v14l11-7z" />
                 </svg>
               </div>
               <p className="text-[18px] font-serif font-semibold">Video Tour Coming Soon</p>
               <p className="text-[13px] opacity-80 mt-2 max-w-md">
-                Our site media team is currently capturing drone footage and walkthrough tours of {phase.name}. Check back soon or request a live video tour!
+                Our site media team is currently capturing drone footage and walkthrough tours of{" "}
+                {phase.name}. Check back soon or request a live video tour!
               </p>
             </div>
           )}
@@ -527,7 +673,7 @@ function PhaseDetailPage() {
             You May Also Like
           </h2>
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-            {similar.map((p) => (
+            {similar.map((p: any) => (
               <PhaseCard key={p.slug} phase={p as Parameters<typeof PhaseCard>[0]["phase"]} />
             ))}
           </div>

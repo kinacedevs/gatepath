@@ -18,8 +18,9 @@ export function CTABanner() {
             Take the First Step Today.
           </h2>
           <p className="mt-8 text-[17px] md:text-[19px] font-light text-white/90 leading-[1.75] max-w-2xl mx-auto">
-            Browse available plots across Malindi, Sagana, Diani, Nanyuki, Thika and 7 more locations.
-            Secure yours with a simple deposit — and receive your signed agreement the same day.
+            Browse available plots across Malindi, Sagana, Diani, Nanyuki, Thika and 7 more
+            locations. Secure yours with a simple deposit — and receive your signed agreement the
+            same day.
           </p>
           <div className="mt-10 flex flex-wrap gap-5 justify-center">
             <Link

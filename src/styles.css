@@ -45,60 +45,63 @@
 :root {
   --radius: 0.5rem;
 
-  /* Brand — Gatepath blue & gold */
-  --background: #F8F4EE;                          /* warm ivory */
-  --ivory: #F8F4EE;
-  --stone: #F0F4F8;                               /* light blue-tinted stone */
-  --foreground: #1C1C1C;                          /* charcoal */
+  /* Brand — Gatepath Midnight Blue & Metallic Gold */
+  --background: #FAF7F2; /* soft luxury cream */
+  --ivory: #FAF7F2;
+  --stone: #F8F9FA; /* secondary soft cream/off-white */
+  --foreground: #1C1C1C; /* charcoal */
 
-  --primary: #0B7FC7;                             /* Gatepath cerulean blue */
+  --primary: #0B7FC7; /* Vibrant Brand Cerulean Blue */
   --primary-foreground: #FFFFFF;
   --primary-dark: #0960A0;
   --primary-deep: #074B7D;
-  --nav: #074B7D;
+  --nav: #0B7FC7;
   --footer-deep: #063A61;
 
-  --accent: #E8A020;                              /* Gatepath warm gold */
+  --accent: #D4AF37; /* Premium Metallic Gold */
   --accent-foreground: #1C1C1C;
-  --accent-dark: #C8861A;
+  --accent-dark: #AA8C2C;
 
-  --secondary: #F0F4F8;
-  --secondary-foreground: #1C1C1C;
+  --secondary: #f0f4f8;
+  --secondary-foreground: #1c1c1c;
 
-  --muted: #EEF2F6;
-  --muted-foreground: #5A5A5A;
+  --muted: #eef2f6;
+  --muted-foreground: #5a5a5a;
 
-  --card: #FFFFFF;
-  --card-foreground: #1C1C1C;
+  --card: #ffffff;
+  --card-foreground: #1c1c1c;
 
-  --popover: #FFFFFF;
-  --popover-foreground: #1C1C1C;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c1c;
 
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
 
-  --border: #DCE4EC;
-  --input: #DCE4EC;
-  --ring: #E8A020;
+  --border: #dce4ec;
+  --input: #dce4ec;
+  --ring: #e8a020;
 
-  --available: #22C55E;
-  --booked: #F59E0B;
-  --sold: #EF4444;
+  --available: #22c55e;
+  --booked: #f59e0b;
+  --sold: #ef4444;
 
   --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
   --font-display: "Playfair Display", ui-serif, Georgia, serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-numbers: "Montserrat", ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-card: 0 4px 24px rgba(11, 127, 199, 0.10);
+  --shadow-card: 0 4px 24px rgba(11, 127, 199, 0.1);
   --shadow-hover: 0 8px 40px rgba(11, 127, 199, 0.18);
   --shadow-soft: 0 4px 20px rgba(11, 127, 199, 0.12);
-
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { scroll-behavior: smooth; }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -107,7 +110,11 @@
     line-height: 1.75;
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4, h5 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
     font-family: var(--font-serif);
     font-weight: 600;
     letter-spacing: 0.01em;
@@ -115,10 +122,18 @@
 }
 
 @layer utilities {
-  .font-serif   { font-family: var(--font-serif); }
-  .font-display { font-family: var(--font-display); }
-  .font-sans    { font-family: var(--font-sans); }
-  .font-numbers { font-family: var(--font-numbers); }
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  .font-numbers {
+    font-family: var(--font-numbers);
+  }
 
   .gold-divider {
     height: 1px;
@@ -138,7 +153,9 @@
   .fade-in-up {
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
+    transition:
+      opacity 0.6s ease,
+      transform 0.6s ease;
     will-change: opacity, transform;
   }
   .fade-in-up.is-visible {
@@ -147,17 +164,168 @@
   }
 
   @keyframes marquee {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
   }
   .animate-marquee {
     animation: marquee 40s linear infinite;
   }
-  .marquee-pause:hover .animate-marquee { animation-play-state: paused; }
+  .marquee-pause:hover .animate-marquee {
+    animation-play-state: paused;
+  }
 
   @keyframes bounceDown {
-    0%, 100% { transform: translateY(0); opacity: 0.7; }
-    50%      { transform: translateY(8px); opacity: 1; }
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translateY(8px);
+      opacity: 1;
+    }
   }
-  .animate-bounce-down { animation: bounceDown 1.8s ease-in-out infinite; }
+  .animate-bounce-down {
+    animation: bounceDown 1.8s ease-in-out infinite;
+  }
+}
+
+
+/* Stitch CRM Design DNA */
+@theme inline {
+  /* Colors */
+  --color-on-tertiary: #ffffff;
+  --color-on-primary: #ffffff;
+  --color-tertiary-container: #2b1701;
+  --color-on-primary-fixed: #0d1c32;
+  --color-error-container: #ffdad6;
+  --color-inverse-on-surface: #ebf1ff;
+  --color-on-surface-variant: #44474d;
+  --color-surface-bright: #f9f9ff;
+  --color-inverse-primary: #b9c7e4;
+  --color-primary-container: #0d1c32;
+  --color-on-tertiary-container: #9f7d5b;
+  --color-on-error: #ffffff;
+  --color-on-secondary-fixed-variant: #574500;
+  --color-surface-container-highest: #d8e3fa;
+  --color-on-tertiary-fixed: #2b1701;
+  --color-error: #ba1a1a;
+  --color-secondary-fixed-dim: #e9c349;
+  --color-surface-container-high: #dee8ff;
+  --color-outline: #75777e;
+  --color-on-background: #111c2c;
+  --color-on-primary-fixed-variant: #39475f;
+  --color-tertiary-fixed-dim: #e7bf99;
+  --color-primary-fixed-dim: #b9c7e4;
+  --color-surface-tint: #515f78;
+  --color-primary-fixed: #d6e3ff;
+  --color-on-secondary: #ffffff;
+  --color-tertiary: #000000;
+  --color-on-secondary-fixed: #241a00;
+  --color-surface-variant: #d8e3fa;
+  --color-tertiary-fixed: #ffdcbd;
+  --color-outline-variant: #c5c6cd;
+  --color-primary: #000000;
+  --color-on-surface: #111c2c;
+  --color-background: #f9f9ff;
+  --color-surface-container: #e7eeff;
+  --color-on-primary-container: #76849f;
+  --color-secondary-container: #fed65b;
+  --color-on-tertiary-fixed-variant: #5d4124;
+  --color-surface: #f9f9ff;
+  --color-secondary: #735c00;
+  --color-surface-container-low: #f0f3ff;
+  --color-secondary-fixed: #ffe088;
+  --color-on-secondary-container: #745c00;
+  --color-surface-dim: #cfdaf1;
+  --color-inverse-surface: #263142;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-error-container: #93000a;
+
+  /* Typography */
+  --font-body-md: "Inter", sans-serif;
+  --font-stat-lg: "Montserrat", sans-serif;
+  --font-label-md: "Inter", sans-serif;
+  --font-body-lg: "Inter", sans-serif;
+  --font-headline-md: "Montserrat", sans-serif;
+  --font-display-lg: "Montserrat", sans-serif;
+  --font-headline-lg: "Montserrat", sans-serif;
+  
+  --text-body-md: 14px;
+  --text-body-md--line-height: 1.5;
+  --text-body-md--font-weight: 400;
+  
+  --text-stat-lg: 28px;
+  --text-stat-lg--line-height: 1;
+  --text-stat-lg--font-weight: 700;
+  
+  --text-label-md: 12px;
+  --text-label-md--line-height: 1;
+  --text-label-md--letter-spacing: 0.05em;
+  --text-label-md--font-weight: 600;
+  
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 1.6;
+  --text-body-lg--font-weight: 400;
+  
+  --text-headline-md: 20px;
+  --text-headline-md--line-height: 1.4;
+  --text-headline-md--font-weight: 600;
+  
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 1.2;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 700;
+  
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 1.3;
+  --text-headline-lg--font-weight: 600;
+
+  /* Spacing */
+  --spacing-gutter: 16px;
+  --spacing-container-padding: 24px;
+  --spacing-section-gap: 40px;
+  --spacing-sidebar-width: 280px;
+  --spacing-base: 8px;
+}
+
+
+@layer components {
+  .active-glow {
+    box-shadow: inset 4px 0 0 0 var(--color-secondary-container);
+  }
+  .luxury-card {
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    transition: all 0.2s ease;
+  }
+  .luxury-card:hover {
+    box-shadow: 0px 4px 12px rgba(10, 25, 47, 0.05);
+  }
+  .gradient-line {
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-secondary-container) 0%, transparent 100%);
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .plot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+    gap: 4px;
+  }
+  .plot-unit {
+    aspect-ratio: 1/1;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+  .plot-unit:hover {
+    transform: scale(1.1);
+    z-index: 10;
+  }
 }

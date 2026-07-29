@@ -1,109 +1,148 @@
-import { MapPin, ArrowRight } from "lucide-react";
+import React from "react";
+import { MapPin, ArrowRight, Download, FileText } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { Reveal } from "@/components/Reveal";
 
-const phaseSlugs = ["baraka-plains-phase-6", "amani-gardens-phase-3", "malindi-acres-phase-5"];
+interface ProjectPreviewCard {
+  slug: string;
+  name: string;
+  location: string;
+  startingPrice: number;
+  availableCount: number;
+  totalPlots: number;
+  image: string;
+  status: "Active" | "Coming Soon";
+}
 
-type Status = "AVAILABLE" | "BOOKED" | "SOLD";
-
-const plots: {
-  phase: string; title: string; loc: string; price: string; status: Status; img: string;
-}[] = [
+const featuredProjects: ProjectPreviewCard[] = [
   {
-    phase: "Phase 6 — Baraka Plains",
-    title: "Plot 10 — 50×100 ft",
-    loc: "Sagana, Kirinyaga",
-    price: "320,000",
-    status: "AVAILABLE",
-    img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
+    slug: "baraka-plains-phase-6",
+    name: "Baraka Plains Phase 6",
+    location: "Matuu, Machakos",
+    startingPrice: 320000,
+    availableCount: 12,
+    totalPlots: 18,
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+    status: "Active",
   },
   {
-    phase: "Phase 3 — Amani Gardens",
-    title: "Plot 2 — 50×100 ft",
-    loc: "Sagana, Kirinyaga",
-    price: "350,000",
-    status: "AVAILABLE",
-    img: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=1200&q=80",
+    slug: "amani-gardens-phase-3",
+    name: "Amani Gardens Phase 3",
+    location: "Makutano, Sagana, Kirinyaga",
+    startingPrice: 749000,
+    availableCount: 22,
+    totalPlots: 30,
+    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
+    status: "Active",
   },
   {
-    phase: "Phase 5 — Malindi Acres",
-    title: "Plot 1 — 50×100 ft",
-    loc: "Malindi, Coast",
-    price: "380,000",
-    status: "AVAILABLE",
-    img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
+    slug: "watali-gardens-phase-1",
+    name: "Watali Gardens Phase 1",
+    location: "Marafa, Malindi, Kilifi",
+    startingPrice: 250000,
+    availableCount: 30,
+    totalPlots: 40,
+    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80",
+    status: "Active",
   },
 ];
 
-const statusStyles: Record<Status, string> = {
-  AVAILABLE: "bg-[oklch(0.72_0.18_145)] text-white",
-  BOOKED:    "bg-[oklch(0.76_0.17_70)] text-white",
-  SOLD:      "bg-[oklch(0.65_0.22_27)] text-white",
-};
-
 export function PropertyPreview() {
   return (
-    <section id="properties" className="bg-primary py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <Reveal className="text-center max-w-3xl mx-auto">
-          <span className="eyebrow">Available Now</span>
-          <h2 className="mt-5 font-serif font-semibold text-[36px] md:text-[52px] text-white leading-[1.15]">
-            Browse Live Plots.
-            <br />
-            Buy With Confidence.
-          </h2>
-          <p className="mt-6 text-[17px] text-white/75 max-w-xl mx-auto leading-[1.7]">
-            Every plot on our platform shows real-time availability. Green means ready to buy. No outdated listings. No wasted visits.
-          </p>
-        </Reveal>
-
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plots.map((p, i) => (
-            <Reveal
-              key={p.title}
-              className="bg-background rounded-[10px] overflow-hidden shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] hover:scale-[1.02] transition-all duration-400"
-            >
-              <div className="relative h-[200px] overflow-hidden">
-                <img src={p.img} alt={p.title} loading="lazy" className="h-full w-full object-cover" />
-                <span className={`absolute top-3 right-3 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide ${statusStyles[p.status]}`}>
-                  {p.status}
-                </span>
-              </div>
-              <div className="p-6">
-                <div className="font-sans font-semibold text-[13px] text-accent uppercase tracking-[0.1em]">
-                  {p.phase}
-                </div>
-                <h3 className="mt-2 font-serif font-semibold text-[24px] text-primary leading-tight">
-                  {p.title}
-                </h3>
-                <div className="mt-3 flex items-center gap-2 text-muted-foreground text-[14px]">
-                  <MapPin size={14} strokeWidth={1.8} />
-                  <span>{p.loc}</span>
-                </div>
-                <div className="mt-4 font-numbers font-bold text-primary">
-                  <span className="text-[14px] mr-1">Ksh</span>
-                  <span className="text-[22px]">{p.price}</span>
-                </div>
-                <div className="my-4 h-px bg-border" />
-                <Link
-                  to="/properties/$slug"
-                  params={{ slug: phaseSlugs[i] ?? "malindi-greens" }}
-                  className="inline-flex items-center gap-1.5 text-[14px] font-medium text-accent hover:underline"
-                >
-                  View Plot Details <ArrowRight size={14} />
-                </Link>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-
-        <div className="mt-14 text-center">
+    <section className="bg-[#F8F4EE] py-20 lg:py-28">
+      <div className="mx-auto max-w-7xl px-6 lg:px-10 space-y-12">
+        {/* Header matching Screenshot 4 */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="space-y-2">
+            <span className="text-xs font-extrabold uppercase tracking-[0.25em] text-[#E8A020] block">
+              ACTIVE PROJECTS
+            </span>
+            <h2 className="font-serif font-bold text-4xl sm:text-5xl text-[#074B7D]">
+              Land worth investing in.
+            </h2>
+          </div>
           <Link
             to="/properties"
-            className="inline-flex items-center justify-center bg-accent text-white px-10 py-4 text-base font-semibold rounded-md hover:bg-[#C8861A] hover:scale-[1.02] transition-all duration-300"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0B7FC7] hover:text-[#074B7D] transition-colors"
           >
-            View All Available Plots
+            View all 9 projects <ArrowRight size={14} />
           </Link>
+        </div>
+
+        {/* 3 Active Project Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {featuredProjects.map((project) => (
+            <div
+              key={project.slug}
+              className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden flex flex-col justify-between"
+            >
+              <div>
+                {/* Poster Display Box */}
+                <div className="relative h-56 w-full overflow-hidden bg-slate-100">
+                  <img
+                    src={project.image}
+                    alt={project.name}
+                    className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
+                  />
+                  {/* Status Pill Badge */}
+                  <span className="absolute top-4 left-4 bg-[#22C55E] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                    {project.status}
+                  </span>
+                </div>
+
+                {/* Card Content Body */}
+                <div className="p-6 space-y-4">
+                  <div>
+                    <h3 className="font-serif font-bold text-2xl text-[#074B7D] hover:text-[#0B7FC7] transition-colors">
+                      <Link to="/properties/$slug" params={{ slug: project.slug }}>{project.name}</Link>
+                    </h3>
+                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                      <MapPin size={14} className="text-[#E8A020]" /> {project.location}
+                    </p>
+                  </div>
+
+                  {/* Availability Progress Rail */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                    <div className="flex justify-between text-[11px] font-semibold text-slate-600">
+                      <span>Plots Available: <strong className="text-[#22C55E]">{project.availableCount}</strong></span>
+                      <span>Total: {project.totalPlots}</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                      <div
+                        className="bg-[#22C55E] h-full"
+                        style={{ width: `${(project.availableCount / project.totalPlots) * 100}%` }}
+                      />
+                      <div
+                        className="bg-[#F59E0B] h-full"
+                        style={{ width: `${((project.totalPlots - project.availableCount) / 2 / project.totalPlots) * 100}%` }}
+                      />
+                      <div
+                        className="bg-[#EF4444] h-full"
+                        style={{ width: `${((project.totalPlots - project.availableCount) / 2 / project.totalPlots) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Footer Price & Map CTA */}
+              <div className="p-6 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Starting Price</span>
+                  <span className="font-stat-lg text-xl font-extrabold text-[#0B7FC7]">
+                    Ksh {project.startingPrice.toLocaleString()}
+                  </span>
+                </div>
+
+                <Link
+                  to="/properties/$slug"
+                  params={{ slug: project.slug }}
+                  className="px-4 py-2.5 bg-[#074B7D] hover:bg-[#063A61] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-md"
+                >
+                  Explore Map <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

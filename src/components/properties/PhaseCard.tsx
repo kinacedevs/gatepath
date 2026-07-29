@@ -10,7 +10,7 @@ const statusStyles: Record<Phase["status"], string> = {
 
 export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?: "KES" | "USD" }) {
   // Build a mini availability strip of 8 squares
-  const ratio = (n: number) => phase.totalPlots > 0 ? Math.round((n / phase.totalPlots) * 8) : 0;
+  const ratio = (n: number) => (phase.totalPlots > 0 ? Math.round((n / phase.totalPlots) * 8) : 0);
   const a = Math.max(0, Math.min(8, ratio(phase.available)));
   const b = Math.max(0, Math.min(8, ratio(phase.booked)));
   const s = Math.max(0, 8 - a - b);
@@ -25,7 +25,7 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
       to="/properties/$slug"
       params={{ slug: phase.slug }}
       search={currency === "USD" ? { from: "diaspora" } : undefined}
-      className="group block bg-white rounded-[12px] overflow-hidden shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] hover:-translate-y-1.5 transition-all duration-400 cursor-pointer"
+      className="group block bg-white rounded-2xl overflow-hidden border border-[#EBE8E0] shadow-[0_10px_30px_rgba(10,25,47,0.04)] hover:shadow-[0_20px_45px_rgba(10,25,47,0.08)] hover:-translate-y-1.5 transition-all duration-400 cursor-pointer"
     >
       <div className="relative h-[220px] overflow-hidden">
         <img
@@ -37,15 +37,14 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
         <div
           className="absolute inset-0"
           style={{
-            background:
-              "linear-gradient(to top, rgba(11,127,199,0.6) 0%, transparent 60%)",
+            background: "linear-gradient(to top, rgba(10,25,47,0.7) 0%, transparent 60%)",
           }}
         />
-        <span className="absolute top-4 left-4 bg-white text-primary font-numbers font-semibold text-[11px] px-3 py-[5px] rounded-full">
+        <span className="absolute top-4 left-4 bg-white text-primary font-numbers font-bold text-[11px] px-3.5 py-[6px] rounded-full shadow-md">
           PHASE {phase.phaseNumber}
         </span>
         <span
-          className={`absolute top-4 right-4 font-numbers font-semibold text-[10px] px-3 py-[5px] rounded-full ${statusStyles[phase.status]}`}
+          className={`absolute top-4 right-4 font-numbers font-bold text-[10px] px-3.5 py-[6px] rounded-full ${statusStyles[phase.status]}`}
         >
           {phase.status}
         </span>
@@ -53,10 +52,9 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
           {strip.map((t, i) => (
             <span
               key={i}
-              className="w-[14px] h-[14px] rounded-[2px]"
+              className="w-[14px] h-[14px] rounded-[3px]"
               style={{
-                background:
-                  t === "a" ? "#22C55E" : t === "b" ? "#F59E0B" : "#EF4444",
+                background: t === "a" ? "#22C55E" : t === "b" ? "#F59E0B" : "#EF4444",
               }}
             />
           ))}
@@ -65,48 +63,48 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
 
       <div className="p-6">
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-          <MapPin size={14} className="text-accent" strokeWidth={1.8} />
-          <span>
+          <MapPin size={14} className="text-accent" strokeWidth={2} />
+          <span className="font-medium">
             {phase.location}, {phase.region}
           </span>
         </div>
-        <h3 className="mt-1 font-serif font-semibold text-[26px] text-primary leading-tight">
+        <h3 className="mt-1.5 font-serif font-bold text-[24px] text-primary leading-tight">
           {phase.name}
         </h3>
         <p
-          className="mt-2 text-[14px] text-muted-foreground leading-[1.6] overflow-hidden"
+          className="mt-2 text-[14px] text-muted-foreground leading-[1.65] overflow-hidden"
           style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
         >
           {phase.description}
         </p>
 
-        <div className="mt-4 pt-4 border-t border-[#F0F4F8] flex justify-between">
+        <div className="mt-4 pt-4 border-t border-[#F4EFE6] flex justify-between">
           <div>
             <div className="font-numbers font-bold text-[18px] text-primary">
               {phase.totalPlots}
             </div>
-            <div className="text-[11px] text-muted-foreground">Total Plots</div>
+            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Total Plots</div>
           </div>
           <div>
             <div className="font-numbers font-bold text-[18px] text-[#22C55E]">
               {phase.available}
             </div>
-            <div className="text-[11px] text-muted-foreground">Available</div>
+            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Available</div>
           </div>
           <div className="text-right">
             <div className="font-numbers font-bold text-primary">
               <span className="text-[12px] mr-0.5">{currency === "USD" ? "$" : "Ksh"}</span>
-              <span className="text-[16px]">
+              <span className="text-[17px]">
                 {currency === "USD"
                   ? Math.round(phase.startingPrice / 130).toLocaleString()
                   : phase.startingPrice.toLocaleString()}
               </span>
             </div>
-            <div className="text-[11px] text-muted-foreground">Starting</div>
+            <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Starting</div>
           </div>
         </div>
 
-        <div className="mt-5 w-full bg-primary text-white font-semibold text-[14px] py-3 rounded-[6px] text-center group-hover:bg-accent transition-colors duration-300">
+        <div className="mt-5 w-full bg-primary text-white font-bold text-[14px] py-3 rounded-lg text-center group-hover:bg-gradient-to-r group-hover:from-accent group-hover:to-[#D4AF37] group-hover:text-white transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
           Explore Phase Map →
         </div>
       </div>

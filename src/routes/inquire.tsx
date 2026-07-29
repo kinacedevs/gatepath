@@ -3,7 +3,7 @@
  * Step 1 of 3. Matches the real Gatepath Sales Booking Form exactly.
  * Writes to Supabase inquiries table on submission.
  */
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
@@ -35,30 +35,62 @@ export const Route = createFileRoute("/inquire")({
     size: s.size !== undefined ? String(s.size) : undefined,
     price: s.price !== undefined ? String(s.price) : undefined,
     location: s.location !== undefined ? String(s.location) : undefined,
-    intent: (s.intent === "free_visit" || s.intent === "reserve" || s.intent === "deposit") ? s.intent : undefined,
+    intent:
+      s.intent === "free_visit" || s.intent === "reserve" || s.intent === "deposit"
+        ? s.intent
+        : undefined,
   }),
   component: InquiryPage,
   head: () => ({
     meta: [
       { title: "Sales Booking Form — Gatepath Realtors" },
-      { name: "description", content: "Fill in your details to secure your plot. Quick, secure, and binding." },
+      {
+        name: "description",
+        content: "Fill in your details to secure your plot. Quick, secure, and binding.",
+      },
     ],
   }),
 });
 
 const HEARD_FROM = [
-  "Facebook", "Instagram", "TikTok", "WhatsApp Group",
-  "Friend / Family Referral", "Google Search", "Physical Signage",
-  "Email Newsletter", "YouTube", "Radio / TV", "Other",
+  "Facebook",
+  "Instagram",
+  "TikTok",
+  "WhatsApp Group",
+  "Friend / Family Referral",
+  "Google Search",
+  "Physical Signage",
+  "Email Newsletter",
+  "YouTube",
+  "Radio / TV",
+  "CEO",
+  "Gatepath Staff",
+  "Influencer",
+  "Other",
 ];
 
 const RELATIONSHIPS = [
-  "Spouse / Partner", "Parent", "Child", "Sibling",
-  "Relative", "Friend", "Colleague", "Other",
+  "Spouse / Partner",
+  "Parent",
+  "Child",
+  "Sibling",
+  "Relative",
+  "Friend",
+  "Colleague",
+  "Other",
 ];
 
 function sanitize(val: string): string {
-  return val.replace(/[<>"'&]/g, "").trim();
+  return (val || "").replace(/[<>"'&]/g, "").trim();
+}
+
+function calculateAge(dobString: string): number {
+  if (!dobString) return 0;
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return 0;
+  const diffMs = Date.now() - dob.getTime();
+  const ageDate = new Date(diffMs);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
 }
 
 function validate(form: ReturnType<typeof useInquiry>["form"]) {
@@ -69,20 +101,70 @@ function validate(form: ReturnType<typeof useInquiry>["form"]) {
   if (name.length < 3) errs.fullName = "Enter your full name (minimum 3 characters)";
   else if (!/^[A-Za-z\s'-]+$/.test(name)) errs.fullName = "Name should contain letters only";
 
-  // Phone — Kenyan local OR international
-  const cleanPhone = form.phone.replace(/[\s-]/g, "");
-  const kenyanLocal = /^(07|01)\d{8}$/.test(cleanPhone);
-  const intlFormat = /^\+\d{7,15}$/.test(cleanPhone.startsWith("00") ? "+" + cleanPhone.slice(2) : cleanPhone);
-  if (!kenyanLocal && !intlFormat) errs.phone = "Enter a valid phone number (Kenyan: 07XX... or international: +44...)";
+  // Phone — Kenyan local (10 digits) OR International (+ country code 10-15 digits)
+  const cleanPhone = (form.phone || "").replace(/[\s-]/g, "");
+  if (!cleanPhone) {
+    errs.phone = "Phone number is required";
+  } else if (cleanPhone.startsWith("0")) {
+    if (!/^(07|01)\d{8}$/.test(cleanPhone)) {
+      errs.phone = "Kenyan phone number must start with 07 or 01 and contain exactly 10 digits (e.g. 0712345678)";
+    }
+  } else if (cleanPhone.startsWith("+")) {
+    if (!/^\+\d{9,15}$/.test(cleanPhone)) {
+      errs.phone = "International phone number must start with + followed by 9 to 15 digits";
+    }
+  } else {
+    errs.phone = "Enter phone starting with 07... (10 digits) or +254... (international)";
+  }
 
   // Email
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Enter a valid email address";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email || "")) errs.email = "Enter a valid email address";
 
-  // ID / Passport
-  const id = form.idNumber.trim().toUpperCase();
+  // Main Buyer Date of Birth & 18+ Age Check
+  if (!form.dateOfBirth) {
+    errs.dateOfBirth = "Date of birth is required";
+  } else {
+    const buyerAge = calculateAge(form.dateOfBirth);
+    if (buyerAge < 18) {
+      errs.dateOfBirth = `Main buyer must be at least 18 years old (current calculated age: ${buyerAge} yrs)`;
+    }
+  }
+
+  // ID / Passport (Main Buyer)
+  const id = (form.idNumber || "").trim().toUpperCase();
   const kenyanId = /^\d{7,8}$/.test(id);
   const passport = /^[A-Z]{1,2}\d{6,7}$/.test(id);
-  if (!kenyanId && !passport) errs.idNumber = "Enter a valid Kenyan ID (7–8 digits) or Passport (e.g. A1234567)";
+  if (!id) {
+    errs.idNumber = "National ID or Passport number is required";
+  } else if (!kenyanId && !passport) {
+    errs.idNumber = "Enter a valid Kenyan ID (7–8 digits) or Passport (e.g. A1234567)";
+  }
+
+  // KRA PIN (Main Buyer optional, but if entered must match format A000000000X)
+  if (form.kraPin && form.kraPin.trim()) {
+    const cleanKra = form.kraPin.trim().toUpperCase();
+    if (!/^[A-Z]\d{9}[A-Z]$/.test(cleanKra)) {
+      errs.kraPin = "KRA PIN must follow format A000000000X (e.g. A012345678X)";
+    }
+  }
+
+  // Next of Kin Validation & Minor Check
+  const kinAge = form.kinDob ? calculateAge(form.kinDob) : 18;
+  const isKinMinor = kinAge < 18;
+
+  if (form.kinFullName && form.kinFullName.trim().length > 0) {
+    if (form.kinFullName.trim().length < 3) {
+      errs.kinFullName = "Next of Kin name should be at least 3 characters";
+    }
+
+    // ID & KRA are required ONLY if Next of Kin is 18+ years old
+    if (!isKinMinor && form.kinIdPassport && form.kinIdPassport.trim()) {
+      const kinId = form.kinIdPassport.trim().toUpperCase();
+      if (!/^\d{7,8}$/.test(kinId) && !/^[A-Z]{1,2}\d{6,7}$/.test(kinId)) {
+        errs.kinIdPassport = "Next of Kin ID must be a valid 7–8 digit ID or Passport";
+      }
+    }
+  }
 
   // Terms of payment (only required for deposits/reservations)
   if (form.intent !== "free_visit" && !form.termsOfPayment) {
@@ -104,6 +186,9 @@ function InquiryPage() {
   const [bannerError, setBannerError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [consentError, setConsentError] = useState(false);
+  const [referralCodeInput, setReferralCodeInput] = useState("");
 
   // Seed form from URL params on first load
   useEffect(() => {
@@ -155,18 +240,20 @@ function InquiryPage() {
   };
 
   const sectionHead = (text: string) => (
-    <div style={{
-      fontFamily: "Montserrat, sans-serif",
-      fontWeight: 700,
-      fontSize: 11,
-      color: "#FFFFFF",
-      letterSpacing: "0.22em",
-      background: "#0B7FC7",
-      padding: "8px 16px",
-      borderRadius: 4,
-      marginBottom: 18,
-      marginTop: 8,
-    }}>
+    <div
+      style={{
+        fontFamily: "Montserrat, sans-serif",
+        fontWeight: 700,
+        fontSize: 11,
+        color: "#FFFFFF",
+        letterSpacing: "0.22em",
+        background: "#0B7FC7",
+        padding: "8px 16px",
+        borderRadius: 4,
+        marginBottom: 18,
+        marginTop: 8,
+      }}
+    >
       {text}
     </div>
   );
@@ -178,10 +265,19 @@ function InquiryPage() {
     setSubmitted(true);
     setDbError(null);
 
+    if (!consentChecked) {
+      setConsentError(true);
+      setBannerError(true);
+      return;
+    }
+    setConsentError(false);
+
     if (Object.keys(errors).length > 0) {
       setBannerError(true);
       const firstKey = Object.keys(errors)[0];
-      document.querySelector(`[name="${firstKey}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document
+        .querySelector(`[name="${firstKey}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     setBannerError(false);
@@ -193,13 +289,41 @@ function InquiryPage() {
     const finalPrice = form.termsOfPayment === "cash" ? cashPrice : installmentPrice;
     const deposit = Math.round(finalPrice * 0.3);
     const balance = finalPrice - deposit - (form.discount || 0);
-    const monthly = form.paymentPeriodMonths > 0 ? Math.round(balance / form.paymentPeriodMonths) : 0;
+    const monthly =
+      form.paymentPeriodMonths > 0 ? Math.round(balance / form.paymentPeriodMonths) : 0;
 
     // Update form with calculated values
     setForm({ deposit, balance, monthlyPayment: monthly, price: finalPrice });
 
+    let referralCode = null;
+    if (typeof window !== "undefined") {
+      referralCode = localStorage.getItem("gatepath_ref");
+    }
+
+    // Validate CEO / Staff / Influencer Referral Codes
+    if (["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)) {
+      if (!referralCodeInput.trim()) {
+        setDbError("A registered referral code is required for CEO, Gatepath Staff, or Influencer selections.");
+        setLoading(false);
+        setBannerError(true);
+        return;
+      }
+      const { data: aff, error: affErr } = await (supabase as any)
+        .from("affiliates")
+        .select("id, partner_name")
+        .eq("referral_code", referralCodeInput.trim().toUpperCase())
+        .single();
+
+      if (affErr || !aff) {
+        setDbError("Invalid referral code. Please enter a valid registered CEO, Staff, or Influencer referral code.");
+        setLoading(false);
+        setBannerError(true);
+        return;
+      }
+    }
+
     // Write to Supabase
-    const { data: insertedInq, error: insertErr } = await supabase
+    const { data: insertedInq, error: insertErr } = await (supabase as any)
       .from("inquiries")
       .insert({
         phase_name: sanitize(form.phaseName),
@@ -210,30 +334,40 @@ function InquiryPage() {
         plot_location: sanitize(form.plotLocation),
         project_name: sanitize(form.phaseName),
         booking_date: new Date().toISOString().split("T")[0],
-        terms_of_payment: form.intent === "free_visit" ? null : (form.termsOfPayment || "cash") as "cash" | "installment",
+        terms_of_payment:
+          form.intent === "free_visit"
+            ? null
+            : ((form.termsOfPayment || "cash") as "cash" | "installment"),
         price: form.intent === "free_visit" ? form.plotPrice : finalPrice,
-        discount: form.intent === "free_visit" ? 0 : (form.discount || 0),
+        discount: form.intent === "free_visit" ? 0 : form.discount || 0,
         deposit: form.intent === "free_visit" ? 0 : deposit,
         balance: form.intent === "free_visit" ? form.plotPrice : balance,
         payment_period_months: form.intent === "free_visit" ? null : form.paymentPeriodMonths,
         monthly_payment: form.intent === "free_visit" ? 0 : monthly,
         client_full_name: sanitize(form.fullName),
-        client_dob: form.intent === "free_visit" ? null : (form.dateOfBirth || null),
+        client_dob: form.intent === "free_visit" ? null : form.dateOfBirth || null,
         client_phone: form.phone.replace(/\s/g, ""),
-        client_postal_address: form.intent === "free_visit" ? null : (sanitize(form.postalAddress) || null),
+        client_postal_address:
+          form.intent === "free_visit" ? null : sanitize(form.postalAddress) || null,
         client_email: form.email.toLowerCase().trim(),
-        client_kra_pin: form.intent === "free_visit" ? null : (sanitize(form.kraPin) || null),
+        client_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kraPin) || null,
         client_id_passport: sanitize(form.idNumber).toUpperCase(),
-        client_occupation: form.intent === "free_visit" ? null : (sanitize(form.occupation) || null),
-        kin_full_name: form.intent === "free_visit" ? null : (sanitize(form.kinFullName) || null),
-        kin_phone: form.intent === "free_visit" ? null : (form.kinPhone || null),
-        kin_dob: form.intent === "free_visit" ? null : (form.kinDob || null),
-        kin_relationship: form.intent === "free_visit" ? null : (form.kinRelationship || null),
-        kin_id_passport: form.intent === "free_visit" ? null : (sanitize(form.kinIdPassport) || null),
+        client_occupation: form.intent === "free_visit" ? null : sanitize(form.occupation) || null,
+        kin_full_name: form.intent === "free_visit" ? null : sanitize(form.kinFullName) || null,
+        kin_phone: form.intent === "free_visit" ? null : form.kinPhone || null,
+        kin_dob: form.intent === "free_visit" ? null : form.kinDob || null,
+        kin_relationship: form.intent === "free_visit" ? null : form.kinRelationship || null,
+        kin_id_passport: form.intent === "free_visit" ? null : sanitize(form.kinIdPassport) || null,
         heard_from: form.heardFrom,
         payment_preference: form.intent, // Set intent ('free_visit', 'reserve', 'deposit') as payment preference
         location_preference: sanitize(form.locationPreference),
         questions: sanitize(form.questions),
+        referred_by: ["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)
+          ? referralCodeInput.trim().toUpperCase()
+          : referralCode,
+        referral_code_used: ["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)
+          ? referralCodeInput.trim().toUpperCase()
+          : null,
         status: "pending",
       })
       .select()
@@ -268,13 +402,39 @@ function InquiryPage() {
         <div style={{ background: "#0B7FC7", padding: "32px 24px" }}>
           <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-center">
             <div>
-              <div style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 600, fontSize: 11, color: "#E8A020", letterSpacing: "0.25em" }}>
+              <div
+                style={{
+                  fontFamily: "Montserrat, sans-serif",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  color: "#E8A020",
+                  letterSpacing: "0.25em",
+                }}
+              >
                 STEP 1 OF 3 — SALES BOOKING FORM
               </div>
-              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "clamp(28px, 5vw, 44px)", color: "#FFFFFF", marginTop: 8, lineHeight: 1.1 }}>
+              <h1
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 700,
+                  fontSize: "clamp(28px, 5vw, 44px)",
+                  color: "#FFFFFF",
+                  marginTop: 8,
+                  lineHeight: 1.1,
+                }}
+              >
                 Secure Your Plot Today
               </h1>
-              <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 300, fontSize: 16, color: "rgba(255,255,255,0.75)", marginTop: 10, maxWidth: 560 }}>
+              <p
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 300,
+                  fontSize: 16,
+                  color: "rgba(255,255,255,0.75)",
+                  marginTop: 10,
+                  maxWidth: 560,
+                }}
+              >
                 Complete this form accurately. All details go into your official purchase agreement.
               </p>
             </div>
@@ -284,16 +444,40 @@ function InquiryPage() {
 
         {/* Body */}
         <div className="mx-auto" style={{ maxWidth: 1160, padding: "40px 24px" }}>
-
           {/* No plot selected warning */}
           {noPlot && (
-            <div className="mb-6" style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 8, padding: "14px 18px" }}>
-              <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: "#92400E" }}>
+            <div
+              className="mb-6"
+              style={{
+                background: "#FEF3C7",
+                border: "1px solid #F59E0B",
+                borderRadius: 8,
+                padding: "14px 18px",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  color: "#92400E",
+                }}
+              >
                 No plot selected yet.
               </div>
-              <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#92400E", marginTop: 4 }}>
+              <div
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 13,
+                  color: "#92400E",
+                  marginTop: 4,
+                }}
+              >
                 Go back and choose a plot from the phase map first.{" "}
-                <a href="/properties" style={{ color: "#92400E", textDecoration: "underline", fontWeight: 600 }}>
+                <a
+                  href="/properties"
+                  style={{ color: "#92400E", textDecoration: "underline", fontWeight: 600 }}
+                >
                   ← Browse Properties
                 </a>
               </div>
@@ -301,7 +485,6 @@ function InquiryPage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-
             {/* ── MAIN FORM ── */}
             <form
               onSubmit={handleSubmit}
@@ -316,7 +499,19 @@ function InquiryPage() {
             >
               {/* Error banner */}
               {(bannerError || dbError) && (
-                <div className="mb-5" style={{ background: "#FEE2E2", border: "1px solid #EF4444", borderRadius: 6, padding: "12px 16px", fontFamily: "Inter, sans-serif", fontWeight: 500, fontSize: 14, color: "#991B1B" }}>
+                <div
+                  className="mb-5"
+                  style={{
+                    background: "#FEE2E2",
+                    border: "1px solid #EF4444",
+                    borderRadius: 6,
+                    padding: "12px 16px",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 500,
+                    fontSize: 14,
+                    color: "#991B1B",
+                  }}
+                >
                   {dbError || "Please fix the highlighted fields before continuing."}
                 </div>
               )}
@@ -331,17 +526,41 @@ function InquiryPage() {
                     const checked = e.target.checked;
                     setForm({
                       intent: checked ? "reserve" : "free_visit",
-                      reservePlot: checked
+                      reservePlot: checked,
                     });
                   }}
-                  style={{ width: 20, height: 20, cursor: "pointer", marginTop: 2, accentColor: "#0B7FC7" }}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    cursor: "pointer",
+                    marginTop: 2,
+                    accentColor: "#0B7FC7",
+                  }}
                 />
                 <div>
-                  <label htmlFor="reservePlotToggle" style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: 14, color: "#0B7FC7", cursor: "pointer" }}>
+                  <label
+                    htmlFor="reservePlotToggle"
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 700,
+                      fontSize: 14,
+                      color: "#0B7FC7",
+                      cursor: "pointer",
+                    }}
+                  >
                     Reserve plot instead (Ksh 10,000 hold fee)
                   </label>
-                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", margin: "4px 0 0 0", lineHeight: 1.5 }}>
-                    Secures this plot for 14 days and prepares the official purchase agreement. This requires additional details (Next of Kin, KRA PIN).
+                  <p
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      color: "#5A5A5A",
+                      margin: "4px 0 0 0",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Secures this plot for 14 days and prepares the official purchase agreement. This
+                    requires additional details (Next of Kin, KRA PIN).
                   </p>
                 </div>
               </div>
@@ -359,26 +578,66 @@ function InquiryPage() {
                   ["Price", form.plotPrice ? `Ksh ${form.plotPrice.toLocaleString()}` : "—"],
                   ["Status", "Available ✓"],
                 ].map(([l, v]) => (
-                  <div key={l} style={{ background: "#F5F2EE", border: "1px solid #E5E0D8", borderRadius: 7, padding: "11px 14px" }}>
-                    <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10, color: "#888", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>{l}</div>
-                    <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: l === "Status" ? "#22C55E" : "#0B7FC7" }}>{v}</div>
+                  <div
+                    key={l}
+                    style={{
+                      background: "#F5F2EE",
+                      border: "1px solid #E5E0D8",
+                      borderRadius: 7,
+                      padding: "11px 14px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 10,
+                        color: "#888",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em",
+                        marginBottom: 3,
+                      }}
+                    >
+                      {l}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontWeight: 600,
+                        fontSize: 14,
+                        color: l === "Status" ? "#22C55E" : "#0B7FC7",
+                      }}
+                    >
+                      {v}
+                    </div>
                   </div>
                 ))}
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={label}>
-                  Date of Booking
-                </label>
+                <label style={label}>Date of Booking</label>
                 <input
                   readOnly
-                  value={new Date().toLocaleDateString("en-KE", { day: "2-digit", month: "long", year: "numeric" })}
+                  value={new Date().toLocaleDateString("en-KE", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
                   style={{ ...inp("bookingDate"), background: "#F5F2EE", color: "#5A5A5A" }}
                 />
               </div>
               <button
                 type="button"
                 onClick={() => window.history.back()}
-                style={{ background: "none", border: "none", padding: 0, fontFamily: "Inter, sans-serif", fontSize: 13, color: "#E8A020", cursor: "pointer", textDecoration: "underline", marginBottom: 24 }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 13,
+                  color: "#E8A020",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  marginBottom: 24,
+                }}
               >
                 Wrong plot? ← Go back and reselect
               </button>
@@ -396,8 +655,18 @@ function InquiryPage() {
                     <label style={label}>Terms of Payment *</label>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { id: "cash" as const, icon: "💵", label: "Cash", sub: `Ksh ${form.plotPrice.toLocaleString()} — full payment` },
-                        { id: "installment" as const, icon: "📅", label: "Instalments (Lipa Pole Pole)", sub: "Spread over 6 months" },
+                        {
+                          id: "cash" as const,
+                          icon: "💵",
+                          label: "Cash",
+                          sub: `Ksh ${form.plotPrice.toLocaleString()} — full payment`,
+                        },
+                        {
+                          id: "installment" as const,
+                          icon: "📅",
+                          label: "Instalments (Lipa Pole Pole)",
+                          sub: "Spread over 6 months",
+                        },
                       ].map((opt) => {
                         const sel = form.termsOfPayment === opt.id;
                         return (
@@ -419,13 +688,42 @@ function InquiryPage() {
                             }}
                           >
                             <div style={{ fontSize: 20, marginBottom: 4 }}>{opt.icon}</div>
-                            <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 13, color: "#0B7FC7" }}>{opt.label}</div>
-                            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 2 }}>{opt.sub}</div>
+                            <div
+                              style={{
+                                fontFamily: "Inter, sans-serif",
+                                fontWeight: 600,
+                                fontSize: 13,
+                                color: "#0B7FC7",
+                              }}
+                            >
+                              {opt.label}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: "Inter, sans-serif",
+                                fontSize: 12,
+                                color: "#5A5A5A",
+                                marginTop: 2,
+                              }}
+                            >
+                              {opt.sub}
+                            </div>
                           </button>
                         );
                       })}
                     </div>
-                    {showErr("termsOfPayment") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 6 }}>{errors.termsOfPayment}</div>}
+                    {showErr("termsOfPayment") && (
+                      <div
+                        style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontSize: 12,
+                          color: "#EF4444",
+                          marginTop: 6,
+                        }}
+                      >
+                        {errors.termsOfPayment}
+                      </div>
+                    )}
                   </div>
 
                   {/* Payment period */}
@@ -438,7 +736,9 @@ function InquiryPage() {
                         style={inp("paymentPeriodMonths")}
                       >
                         {[3, 6, 12, 18, 24].map((m) => (
-                          <option key={m} value={m}>{m} months</option>
+                          <option key={m} value={m}>
+                            {m} months
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -478,7 +778,18 @@ function InquiryPage() {
                   onBlur={blur("fullName")}
                   style={inp("fullName")}
                 />
-                {showErr("fullName") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.fullName}</div>}
+                {showErr("fullName") && (
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      color: "#EF4444",
+                      marginTop: 4,
+                    }}
+                  >
+                    {errors.fullName}
+                  </div>
+                )}
               </div>
 
               {/* Date of Birth + Phone — conditional DOB */}
@@ -490,7 +801,9 @@ function InquiryPage() {
                       name="dateOfBirth"
                       type="date"
                       value={form.dateOfBirth}
-                      max={new Date(Date.now() - 18 * 365.25 * 86400000).toISOString().split("T")[0]}
+                      max={
+                        new Date(Date.now() - 18 * 365.25 * 86400000).toISOString().split("T")[0]
+                      }
                       onChange={(e) => setForm({ dateOfBirth: e.target.value })}
                       onBlur={blur("dateOfBirth")}
                       style={inp("dateOfBirth")}
@@ -519,7 +832,18 @@ function InquiryPage() {
                     onBlur={blur("phone")}
                     style={inp("phone")}
                   />
-                  {showErr("phone") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.phone}</div>}
+                  {showErr("phone") && (
+                    <div
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 12,
+                        color: "#EF4444",
+                        marginTop: 4,
+                      }}
+                    >
+                      {errors.phone}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -551,10 +875,28 @@ function InquiryPage() {
                   onBlur={blur("email")}
                   style={inp("email")}
                 />
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", marginTop: 4 }}>
+                <div
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 12,
+                    color: "#5A5A5A",
+                    marginTop: 4,
+                  }}
+                >
                   Your signed agreement and receipt will be emailed here
                 </div>
-                {showErr("email") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.email}</div>}
+                {showErr("email") && (
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      color: "#EF4444",
+                      marginTop: 4,
+                    }}
+                  >
+                    {errors.email}
+                  </div>
+                )}
               </div>
 
               {/* KRA PIN + ID — conditional KRA PIN */}
@@ -596,7 +938,18 @@ function InquiryPage() {
                     onBlur={blur("idNumber")}
                     style={inp("idNumber")}
                   />
-                  {showErr("idNumber") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.idNumber}</div>}
+                  {showErr("idNumber") && (
+                    <div
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 12,
+                        color: "#EF4444",
+                        marginTop: 4,
+                      }}
+                    >
+                      {errors.idNumber}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -668,7 +1021,11 @@ function InquiryPage() {
                         style={inp("kinRelationship")}
                       >
                         <option value="">Select relationship...</option>
-                        {RELATIONSHIPS.map((r) => <option key={r} value={r}>{r}</option>)}
+                        {RELATIONSHIPS.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -697,17 +1054,51 @@ function InquiryPage() {
                 <select
                   name="heardFrom"
                   value={form.heardFrom}
-                  onChange={(e) => { setForm({ heardFrom: e.target.value }); setTouched((t) => ({ ...t, heardFrom: true })); }}
+                  onChange={(e) => {
+                    setForm({ heardFrom: e.target.value });
+                    setTouched((t) => ({ ...t, heardFrom: true }));
+                  }}
                   onBlur={blur("heardFrom")}
                   style={inp("heardFrom")}
                 >
                   <option value="">Select an option...</option>
-                  {HEARD_FROM.map((h) => <option key={h} value={h}>{h}</option>)}
+                  {HEARD_FROM.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
                 </select>
-                {showErr("heardFrom") && <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.heardFrom}</div>}
+                {showErr("heardFrom") && (
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      color: "#EF4444",
+                      marginTop: 4,
+                    }}
+                  >
+                    {errors.heardFrom}
+                  </div>
+                )}
               </div>
 
-              {/* Any questions */}
+              {/* Referral Code Validation Box */}
+              {["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom) && (
+                <div className="mb-5 animate-in fade-in duration-200">
+                  <label style={label}>Referral Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={referralCodeInput}
+                    onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
+                    placeholder="Enter CEO / Staff / Influencer Referral Code"
+                    style={inp("referralCode")}
+                  />
+                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "#8A8179", marginTop: 4 }}>
+                    Verification ensures the legitimacy of the referral reward program.
+                  </p>
+                </div>
+              )}
               <div className="mb-6">
                 <label style={label}>Any questions or special requirements? (Optional)</label>
                 <textarea
@@ -720,11 +1111,79 @@ function InquiryPage() {
               </div>
 
               {/* Legal notice (from real booking form) */}
-              <div style={{ background: "#F5F2EE", border: "1px solid #E5E0D8", borderRadius: 8, padding: "14px 16px", marginBottom: 24 }}>
-                <p style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A", lineHeight: 1.75, margin: 0 }}>
-                  <strong style={{ color: "#0B7FC7" }}>N.B:</strong> Please note that all details on this form are important. Therefore, when filling this form, ensure that you accurately capture all information. After filling this form, it shall be forwarded to the legal department either physically or digitally.
+              <div
+                style={{
+                  background: "#F5F2EE",
+                  border: "1px solid #E5E0D8",
+                  borderRadius: 8,
+                  padding: "14px 16px",
+                  marginBottom: 24,
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 12,
+                    color: "#5A5A5A",
+                    lineHeight: 1.75,
+                    margin: 0,
+                  }}
+                >
+                  <strong style={{ color: "#0B7FC7" }}>N.B:</strong> Please note that all details on
+                  this form are important. Therefore, when filling this form, ensure that you
+                  accurately capture all information. After filling this form, it shall be forwarded
+                  to the legal department either physically or digitally.
                 </p>
               </div>
+
+              {/* Privacy Consent Checkbox */}
+              <div className="mb-6 flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="privacy-consent"
+                  checked={consentChecked}
+                  onChange={(e) => {
+                    setConsentChecked(e.target.checked);
+                    if (e.target.checked) setConsentError(false);
+                  }}
+                  className="mt-1 shrink-0 w-4 h-4 rounded border-gray-300 text-[#0B7FC7] focus:ring-[#0B7FC7]"
+                  style={{ accentColor: "#0B7FC7", cursor: "pointer" }}
+                />
+                <label
+                  htmlFor="privacy-consent"
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 13,
+                    color: "#5A5A5A",
+                    lineHeight: 1.5,
+                    cursor: "pointer",
+                  }}
+                >
+                  I consent to Gatepath Realtors collecting my personal details (including ID copy
+                  and KRA PIN) for lands verification and title transfer under the{" "}
+                  <Link
+                    to="/privacy"
+                    target="_blank"
+                    className="text-[#0B7FC7] font-semibold underline hover:text-[#09669E]"
+                  >
+                    Privacy Policy
+                  </Link>{" "}
+                  as per the Kenya Data Protection Act. *
+                </label>
+              </div>
+              {consentError && (
+                <div
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 12,
+                    color: "#EF4444",
+                    marginTop: -16,
+                    marginBottom: 20,
+                  }}
+                >
+                  Please check the consent box to continue.
+                </div>
+              )}
 
               {/* Submit */}
               <button
@@ -751,8 +1210,24 @@ function InquiryPage() {
 
             {/* ── SIDEBAR ── */}
             <aside className="lg:sticky lg:top-[200px] lg:self-start">
-              <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 28, border: "1px solid #E5E0D8", marginBottom: 16 }}>
-                <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 22, color: "#0B7FC7", marginBottom: 18 }}>
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  borderRadius: 12,
+                  padding: 28,
+                  border: "1px solid #E5E0D8",
+                  marginBottom: 16,
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 700,
+                    fontSize: 22,
+                    color: "#0B7FC7",
+                    marginBottom: 18,
+                  }}
+                >
                   What happens next?
                 </h3>
                 {[
@@ -762,35 +1237,103 @@ function InquiryPage() {
                   ["Pay your deposit securely", "Receive signed agreement via email same day"],
                 ].map(([title, desc], i) => (
                   <div key={i} className="flex gap-3 mb-4">
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#E8A020", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: "#E8A020",
+                        color: "#FFFFFF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontFamily: "Montserrat, sans-serif",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        flexShrink: 0,
+                      }}
+                    >
                       {i + 1}
                     </div>
                     <div>
-                      <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: "#1C1C1C" }}>{title}</div>
-                      <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#5A5A5A", marginTop: 2 }}>{desc}</div>
+                      <div
+                        style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontWeight: 600,
+                          fontSize: 14,
+                          color: "#1C1C1C",
+                        }}
+                      >
+                        {title}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontSize: 13,
+                          color: "#5A5A5A",
+                          marginTop: 2,
+                        }}
+                      >
+                        {desc}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: "#FFFFFF", borderRadius: 12, padding: 24, border: "1px solid #E5E0D8" }}>
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  borderRadius: 12,
+                  padding: 24,
+                  border: "1px solid #E5E0D8",
+                }}
+              >
                 <div style={{ borderLeft: "3px solid #E8A020", paddingLeft: 14, marginBottom: 16 }}>
-                  <em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: 18, color: "#0B7FC7", lineHeight: 1.4 }}>
+                  <em
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontStyle: "italic",
+                      fontSize: 18,
+                      color: "#0B7FC7",
+                      lineHeight: 1.4,
+                    }}
+                  >
                     "Your Interest is Our Priority."
                   </em>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#888", marginTop: 6 }}>— Gatepath Realtors</div>
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 12,
+                      color: "#888",
+                      marginTop: 6,
+                    }}
+                  >
+                    — Gatepath Realtors
+                  </div>
                 </div>
                 <a
                   href="https://wa.me/254799488488"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", gap: 8, background: "#25D366", color: "#FFFFFF", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, padding: "12px 18px", borderRadius: 8, textDecoration: "none" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "#25D366",
+                    color: "#FFFFFF",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 600,
+                    fontSize: 14,
+                    padding: "12px 18px",
+                    borderRadius: 8,
+                    textDecoration: "none",
+                  }}
                 >
                   <span style={{ fontSize: 18 }}>💬</span> Chat on WhatsApp
                 </a>
               </div>
             </aside>
-
           </div>
         </div>
       </div>

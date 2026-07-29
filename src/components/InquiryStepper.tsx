@@ -12,10 +12,7 @@ const STEPS = [
 
 export function InquiryStepper({ currentStep }: StepperProps) {
   return (
-    <div
-      className="sticky top-20 z-20 bg-white border-b"
-      style={{ borderColor: "#E5E0D8" }}
-    >
+    <div className="sticky top-20 z-20 bg-white border-b" style={{ borderColor: "#E5E0D8" }}>
       <div className="mx-auto max-w-5xl px-4 md:px-12 py-5 md:py-6">
         <div className="flex items-center justify-between">
           {STEPS.map((step, i) => {
@@ -30,11 +27,7 @@ export function InquiryStepper({ currentStep }: StepperProps) {
                     style={{
                       width: 40,
                       height: 40,
-                      background: done
-                        ? "#22C55E"
-                        : active
-                          ? "#0B7FC7"
-                          : "#FFFFFF",
+                      background: done ? "#22C55E" : active ? "#0B7FC7" : "#FFFFFF",
                       border: done || active ? "none" : "1.5px solid #D0CCC5",
                       color: "#FFFFFF",
                     }}

@@ -32,7 +32,7 @@ export interface InquiryFormData {
   postalAddress: string;
   email: string;
   kraPin: string;
-  idNumber: string;        // ID/PASSPORT No
+  idNumber: string; // ID/PASSPORT No
   occupation: string;
 
   // ── Next of Kin (Sales Booking Form) ──
@@ -154,7 +154,11 @@ export function InquiryProvider({ children }: { children: ReactNode }) {
 
   const resetForm = () => {
     setFormState(defaultForm);
-    try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {
+      /* ignore */
+    }
   };
 
   return (

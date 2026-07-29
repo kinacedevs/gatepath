@@ -18,6 +18,8 @@ function ReceiptDocumentPage() {
   const { id } = Route.useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [brandingLogo, setBrandingLogo] = useState(logoIcon);
+  const [companyBrandingName, setCompanyBrandingName] = useState("Gatepath Realtors Limited");
   const [data, setData] = useState<{
     payment: any;
     inquiry: any;
@@ -29,7 +31,7 @@ function ReceiptDocumentPage() {
       try {
         setLoading(true);
         // Fetch payment details
-        const { data: payment, error: pError } = await supabase
+        const { data: payment, error: pError } = await (supabase as any)
           .from("payments")
           .select("*")
           .eq("id", id)
@@ -40,7 +42,7 @@ function ReceiptDocumentPage() {
         }
 
         // Fetch associated inquiry
-        const { data: inquiry, error: iError } = await supabase
+        const { data: inquiry, error: iError } = await (supabase as any)
           .from("inquiries")
           .select("*")
           .eq("id", payment.inquiry_id)
@@ -50,8 +52,26 @@ function ReceiptDocumentPage() {
           throw new Error("Associated inquiry details not found.");
         }
 
+        // Fetch custom branding
+        const { data: brandingData } = await ((supabase as any)
+          .from("site_banners")
+          .select("data")
+          .eq("id", "custom_branding")
+          .maybeSingle());
+
+        if (brandingData?.data) {
+          if (brandingData.data.logo_url) setBrandingLogo(brandingData.data.logo_url);
+          if (brandingData.data.company_name) {
+            setCompanyBrandingName(
+              brandingData.data.company_name.toLowerCase().includes("limited")
+                ? brandingData.data.company_name
+                : `${brandingData.data.company_name} Limited`
+            );
+          }
+        }
+
         // Fetch optional signed agreement
-        const { data: agreement } = await supabase
+        const { data: agreement } = await (supabase as any)
           .from("agreements")
           .select("*")
           .eq("payment_id", payment.id)
@@ -85,7 +105,9 @@ function ReceiptDocumentPage() {
         <div className="bg-white max-w-md w-full p-8 rounded-xl border border-[#E5E0D8] text-center shadow-xl">
           <span className="text-4xl">⚠️</span>
           <h2 className="font-serif font-bold text-2xl text-red-600 mt-4">Document Error</h2>
-          <p className="text-[#5A5A5A] mt-2 text-[14px]">{error || "Unable to display receipt details."}</p>
+          <p className="text-[#5A5A5A] mt-2 text-[14px]">
+            {error || "Unable to display receipt details."}
+          </p>
           <Link
             to="/"
             className="mt-6 inline-block w-full py-2.5 bg-[#0B7FC7] text-white rounded-lg font-semibold text-[13px]"
@@ -124,19 +146,18 @@ function ReceiptDocumentPage() {
 
       {/* Corporate Receipt Paper */}
       <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-[#E5E0D8] p-8 md:p-12 shadow-2xl relative overflow-hidden print:border-none print:shadow-none print:p-0">
-        
         {/* Subtle Watermark logo background */}
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none">
-          <img src={logoIcon} alt="" className="w-96 h-96 object-contain" />
+          <img src={brandingLogo} alt="" className="w-96 h-96 object-contain" />
         </div>
 
         {/* Receipt Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-8 border-b border-[#E5E0D8]">
           <div className="flex items-center gap-3">
-            <img src={logoIcon} alt="Logo" className="w-12 h-12 object-contain" />
+            <img src={brandingLogo} alt="Logo" className="w-12 h-12 object-contain" />
             <div>
               <h1 className="font-serif font-bold text-xl md:text-2xl text-[#0B7FC7] tracking-tight">
-                GATEPATH REALTORS
+                {companyBrandingName.toUpperCase().replace(" LIMITED", "")}
               </h1>
               <p className="text-[11px] uppercase tracking-wider text-[#E8A020] font-semibold">
                 Your Interest is Our Priority
@@ -146,7 +167,8 @@ function ReceiptDocumentPage() {
           <div className="mt-4 md:mt-0 text-left md:text-right">
             <h2 className="font-serif font-bold text-2xl text-[#06243A]">PAYMENT RECEIPT</h2>
             <p className="text-[12px] text-muted-foreground mt-1">
-              Date: {new Date(payment.created_at).toLocaleDateString("en-KE", { dateStyle: "long" })}
+              Date:{" "}
+              {new Date(payment.created_at).toLocaleDateString("en-KE", { dateStyle: "long" })}
             </p>
             <p className="text-[12px] text-[#E8A020] font-mono mt-0.5">
               Ref: {payment.paystack_reference}
@@ -160,7 +182,7 @@ function ReceiptDocumentPage() {
             <h3 className="font-semibold text-muted-foreground uppercase text-[10px] tracking-wider mb-2">
               ISSUED BY
             </h3>
-            <p className="font-semibold text-[#0B7FC7]">Gatepath Realtors Limited</p>
+            <p className="font-semibold text-[#0B7FC7]">{companyBrandingName}</p>
             <p className="text-muted-foreground mt-1">1st Floor, CNM Centre,</p>
             <p className="text-muted-foreground">Ruiru Eastern Bypass, Nairobi, Kenya</p>
             <p className="text-muted-foreground mt-1">Phone: +254 799 488 488</p>
@@ -219,7 +241,8 @@ function ReceiptDocumentPage() {
                 <tr className="bg-[#FDFCF9]">
                   <td className="py-3" colSpan={2}>
                     <span className="text-muted-foreground text-[12px]">
-                      Payment Plan Option selected: <strong>{payment.loan_period_months} Months In-House Installments</strong>
+                      Payment Plan Option selected:{" "}
+                      <strong>{payment.loan_period_months} Months In-House Installments</strong>
                     </span>
                   </td>
                   <td className="py-3 text-right text-[12px] font-mono text-muted-foreground">
@@ -273,7 +296,9 @@ function ReceiptDocumentPage() {
                 {/* Gold CEO Stamp mock */}
                 <div className="border-2 border-dashed border-[#E8A020] text-[#E8A020] px-4 py-2 rounded-lg text-center rotate-[-3deg] uppercase font-bold text-[11px] tracking-wider bg-white">
                   <div>Joe Muchiri</div>
-                  <div className="text-[9px] font-normal text-muted-foreground mt-0.5">CEO / MD, Gatepath</div>
+                  <div className="text-[9px] font-normal text-muted-foreground mt-0.5">
+                    CEO / MD, Gatepath
+                  </div>
                   <div className="text-[8px] font-mono text-muted-foreground mt-0.5">
                     SIGNED: {new Date(agreement.ceo_signed_at).toLocaleDateString()}
                   </div>
@@ -289,8 +314,12 @@ function ReceiptDocumentPage() {
 
         {/* Document Footer Note */}
         <div className="text-center mt-12 pt-6 border-t border-[#F5F0E8] text-[11px] text-muted-foreground">
-          <p>This is a system generated secure transaction receipt. No physical signature required.</p>
-          <p className="mt-1">Gatepath Realtors Limited. Registered under the Companies Act of Kenya.</p>
+          <p>
+            This is a system generated secure transaction receipt. No physical signature required.
+          </p>
+          <p className="mt-1">
+            {companyBrandingName}. Registered under the Companies Act of Kenya.
+          </p>
         </div>
       </div>
     </div>

@@ -11,12 +11,21 @@ import { supabase } from "./supabase";
 export async function sendAfricaTalkingSms(
   to: string,
   message: string,
-  envVars: { apiKey?: string; username?: string; senderId?: string } = {}
+  envVars: { apiKey?: string; username?: string; senderId?: string } = {},
 ) {
   // Read keys from environment
-  const apiKey = envVars.apiKey || (typeof process !== "undefined" ? process.env.AFRICAS_TALKING_API_KEY : "") || "";
-  const username = envVars.username || (typeof process !== "undefined" ? process.env.AFRICAS_TALKING_USERNAME : "") || "sandbox";
-  const senderId = envVars.senderId || (typeof process !== "undefined" ? process.env.AFRICAS_TALKING_SENDER_ID : "") || "";
+  const apiKey =
+    envVars.apiKey ||
+    (typeof process !== "undefined" ? process.env.AFRICAS_TALKING_API_KEY : "") ||
+    "";
+  const username =
+    envVars.username ||
+    (typeof process !== "undefined" ? process.env.AFRICAS_TALKING_USERNAME : "") ||
+    "sandbox";
+  const senderId =
+    envVars.senderId ||
+    (typeof process !== "undefined" ? process.env.AFRICAS_TALKING_SENDER_ID : "") ||
+    "";
 
   if (!apiKey || apiKey === "") {
     console.warn("[Gatepath SMS] Africa's Talking API Key not configured. Skipping SMS send.");
@@ -31,9 +40,10 @@ export async function sendAfricaTalkingSms(
     formattedTo = "+" + formattedTo;
   }
 
-  const endpoint = username === "sandbox"
-    ? "https://api.sandbox.africastalking.com/version1/messaging"
-    : "https://api.africastalking.com/version1/messaging";
+  const endpoint =
+    username === "sandbox"
+      ? "https://api.sandbox.africastalking.com/version1/messaging"
+      : "https://api.africastalking.com/version1/messaging";
 
   const bodyParams = new URLSearchParams();
   bodyParams.append("username", username);
@@ -47,9 +57,9 @@ export async function sendAfricaTalkingSms(
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
-        "apiKey": apiKey,
+        apiKey: apiKey,
       },
       body: bodyParams.toString(),
     });
@@ -70,10 +80,14 @@ export async function sendResendEmail(
   to: string,
   subject: string,
   html: string,
-  envVars: { apiKey?: string; fromEmail?: string } = {}
+  envVars: { apiKey?: string; fromEmail?: string } = {},
 ) {
-  const apiKey = envVars.apiKey || (typeof process !== "undefined" ? process.env.RESEND_API_KEY : "") || "";
-  const fromEmail = envVars.fromEmail || (typeof process !== "undefined" ? process.env.RESEND_FROM_EMAIL : "") || "Gatepath Realtors <noreply@gatepathrealtors.com>";
+  const apiKey =
+    envVars.apiKey || (typeof process !== "undefined" ? process.env.RESEND_API_KEY : "") || "";
+  const fromEmail =
+    envVars.fromEmail ||
+    (typeof process !== "undefined" ? process.env.RESEND_FROM_EMAIL : "") ||
+    "Gatepath Realtors <noreply@gatepathrealtors.com>";
 
   if (!apiKey || apiKey === "") {
     console.warn("[Gatepath Email] Resend API Key not configured. Skipping Email send.");
@@ -85,7 +99,7 @@ export async function sendResendEmail(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         from: fromEmail,
@@ -333,18 +347,20 @@ export function getAgreementSignedEmailHtml(params: {
  * Server Function: Dispatches reservation emails and SMS
  */
 export const sendReservationNotificationFn = createServerFn({ method: "POST" })
-  .validator((d: {
-    buyerName: string;
-    buyerEmail: string;
-    buyerPhone: string;
-    plotNumber: string;
-    phaseName: string;
-    amount: number;
-    reference: string;
-    isHold: boolean;
-    visitDate?: string;
-    transportMode?: string;
-  }) => d)
+  .validator(
+    (d: {
+      buyerName: string;
+      buyerEmail: string;
+      buyerPhone: string;
+      plotNumber: string;
+      phaseName: string;
+      amount: number;
+      reference: string;
+      isHold: boolean;
+      visitDate?: string;
+      transportMode?: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     console.log("[Notification ServerFn] Processing reservation hold notification...");
 
@@ -381,9 +397,7 @@ export const sendReservationNotificationFn = createServerFn({ method: "POST" })
  * Server Function: Dispatches agreement signed notifications
  */
 export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST" })
-  .validator((d: {
-    inquiryId: string;
-  }) => d)
+  .validator((d: { inquiryId: string }) => d)
   .handler(async ({ data }) => {
     console.log("[Notification ServerFn] Processing agreement signed notification...");
 
@@ -392,7 +406,7 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
       .from("inquiries")
       .select("*")
       .eq("id", data.inquiryId)
-      .maybeSingle();
+      .maybeSingle() as { data: import("./types").Inquiry | null; error: any };
 
     if (!inquiry) {
       return { success: false, error: "Inquiry not found" };
@@ -402,7 +416,7 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
       .from("payments")
       .select("*")
       .eq("inquiry_id", data.inquiryId)
-      .maybeSingle();
+      .maybeSingle() as { data: import("./types").Payment | null; error: any };
 
     const agreementUrl = `http://localhost:5173/document/agreement/${data.inquiryId}`;
 
@@ -423,15 +437,14 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
     const smsMessage = `Hello ${inquiry.client_full_name}, your Purchase Agreement for Plot #${inquiry.plot_number_ref} at ${inquiry.phase_name} has been signed by the CEO. View/download here: ${agreementUrl}`;
     const smsResult = await sendAfricaTalkingSms(inquiry.client_phone, smsMessage);
 
-    // Update agreement table flags
     if (payment) {
-      await supabase
+      await ((supabase as any)
         .from("agreements")
         .update({
           email_sent: emailResult.success,
           sms_sent: smsResult.success,
         })
-        .eq("payment_id", payment.id);
+        .eq("payment_id", payment.id));
     }
 
     return { success: true, emailResult, smsResult };
@@ -441,17 +454,19 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
  * Server Function: Dispatches free site visit booking notifications
  */
 export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
-  .validator((d: {
-    buyerName: string;
-    buyerEmail: string;
-    buyerPhone: string;
-    plotNumber: string;
-    phaseName: string;
-    visitDate: string;
-    visitTime: string;
-    transportMode: string;
-    pickupLocation: string;
-  }) => d)
+  .validator(
+    (d: {
+      buyerName: string;
+      buyerEmail: string;
+      buyerPhone: string;
+      plotNumber: string;
+      phaseName: string;
+      visitDate: string;
+      visitTime: string;
+      transportMode: string;
+      pickupLocation: string;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     console.log("[Notification ServerFn] Processing free site visit booking notification...");
 
@@ -514,7 +529,8 @@ export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
     const emailResult = await sendResendEmail(data.buyerEmail, subject, emailHtml);
 
     // SMS Message
-    const transportStr = data.transportMode === "self" ? "Self Drive" : data.transportMode.toUpperCase();
+    const transportStr =
+      data.transportMode === "self" ? "Self Drive" : data.transportMode.toUpperCase();
     const pickupStr = data.transportMode === "self" ? "" : `, Pickup: ${data.pickupLocation}`;
     const smsMessage = `Hello ${data.buyerName}, your free site visit for Plot #${data.plotNumber} at ${data.phaseName} has been scheduled for ${data.visitDate} (${data.visitTime === "morning" ? "Morning" : "Afternoon"}). Transport: ${transportStr}${pickupStr}. Gatepath Realtors!`;
 

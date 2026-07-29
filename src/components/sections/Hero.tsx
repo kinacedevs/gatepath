@@ -1,77 +1,147 @@
-import { ChevronDown } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
+import { MessageCircle, ArrowRight, ShieldCheck, Award, MapPin } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export function Hero() {
-  return (
-    <section
-      id="home"
-      className="relative isolate min-h-screen flex items-center overflow-hidden"
-    >
-      <div className="absolute inset-0 -z-10">
-        <img
-          src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2000&q=80"
-          alt="Aerial view of lush green Kenyan farmland"
-          className="h-full w-full object-cover"
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(11,127,199,0.78) 0%, rgba(11,127,199,0.55) 50%, rgba(232,160,32,0.30) 100%)",
-          }}
-        />
-      </div>
+  const [images, setImages] = useState<string[]>([]);
+  const [current, setCurrent] = useState(0);
 
-      <div className="mx-auto max-w-7xl px-6 lg:px-10 w-full py-32 md:py-40">
-        <div className="max-w-[860px] text-white text-center md:text-left fade-in-up is-visible">
-          <div className="inline-flex items-center gap-4 mb-8">
-            <span className="h-px w-[30px] bg-accent" />
-            <span className="font-numbers font-medium text-[13px] tracking-[0.25em] uppercase text-accent">
-              Kenya's Trusted Land Marketplace
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("site_banners")
+          .select("*")
+          .eq("id", "homepage_hero")
+          .single();
+        if (data?.data?.images && data.data.images.length > 0) {
+          setImages(data.data.images);
+        } else {
+          setImages([
+            "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80",
+            "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1920&q=80",
+            "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1920&q=80"
+          ]);
+        }
+      } catch (err) {
+        setImages([
+          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80"
+        ]);
+      }
+    };
+    fetchBanners();
+  }, []);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [images]);
+
+  const locationsList = [
+    "Diani", "Matuu", "Sagana", "Makutano", "Thika", "Juja", "Kithimani", "Kiambu", "Nanyuki", "Malindi", "Mambrui", "Gongoni"
+  ];
+
+  return (
+    <section className="relative min-h-screen w-full flex flex-col justify-between pt-28 pb-0 bg-[#074B7D] overflow-hidden text-white">
+      {/* Background Image Carousel with Non-Distorting Cover Fit & Deep Gradient Overlay */}
+      {images.length > 0 && (
+        <div className="absolute inset-0 w-full h-full z-0">
+          <img
+            src={images[current]}
+            alt="Gatepath Premium Land Hero"
+            className="w-full h-full object-cover object-center transition-opacity duration-1000"
+          />
+          {/* Deep Navy Gradient Mask matching Figma Exact DNA */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#074B7D]/95 via-[#074B7D]/80 to-[#074B7D]/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#074B7D] via-transparent to-[#074B7D]/50" />
+        </div>
+      )}
+
+      {/* Main Content Container (Desktop & Mobile Pixel Perfect Layout) */}
+      <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-10 my-auto py-12 flex flex-col justify-center">
+        <div className="max-w-3xl space-y-6">
+          {/* Top Gold Eyebrow */}
+          <div className="inline-flex items-center gap-2">
+            <span className="h-[2px] w-8 bg-[#E8A020]"></span>
+            <span className="text-xs font-extrabold uppercase tracking-[0.25em] text-[#E8A020] font-sans">
+              GATEPATH REALTORS • KENYA
             </span>
           </div>
 
-          <h1 className="font-serif font-bold text-[48px] md:text-[72px] lg:text-[80px] leading-[1.0] tracking-[0.01em]">
-            Own Your Piece of
-            <br />
-            <em className="not-italic md:italic text-accent">Kenya's Future.</em>
+          {/* Main Headline (Cormorant Garamond 700 with Gold Accent) */}
+          <h1 className="font-serif font-bold text-5xl sm:text-6xl lg:text-7xl tracking-tight leading-[1.08] text-white">
+            This is <span className="italic font-normal">real land.</span><br />
+            <span className="text-[#E8A020]">Real title deeds.</span><br />
+            Real futures.
           </h1>
 
-          <p className="mt-8 text-[17px] md:text-[20px] font-light leading-[1.7] text-white/90 max-w-2xl mx-auto md:mx-0">
-            Premium plots in Malindi, Sagana, Diani, Thika, Nanyuki and beyond.
-            Transparent pricing. Verified titles. Flexible payment plans.
-            <br />
-            <span className="font-serif italic text-accent text-[20px] md:text-[22px]">
-              Your Interest is Our Priority.
-            </span>
+          {/* Subheadline Description */}
+          <p className="text-base sm:text-lg text-slate-200 font-sans max-w-2xl leading-relaxed">
+            500+ plots sold across 12 Kenyan locations. Every title verified. Prices from <strong className="text-white">Ksh 160,000</strong>. Instalment plans, M-Pesa accepted.
           </p>
 
-          <div className="mt-10 flex flex-wrap gap-4 justify-center md:justify-start">
+          {/* Action CTAs */}
+          <div className="flex flex-wrap items-center gap-4 pt-4">
             <Link
               to="/properties"
-              className="inline-flex items-center justify-center bg-accent text-white px-9 py-4 text-base font-semibold rounded-md hover:bg-[#C8861A] hover:scale-[1.02] transition-all duration-300"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[#E8A020] hover:bg-[#C8861A] text-white font-bold text-sm rounded-xl transition-all duration-300 shadow-xl hover:-translate-y-0.5"
             >
-              Browse Available Plots →
+              Explore Our Land <ArrowRight size={18} />
             </Link>
+
             <a
-              href="https://wa.me/254799488488?text=Hello%20Gatepath%20Realtors%2C%20I%20would%20like%20to%20book%20a%20free%20site%20visit."
+              href="https://wa.me/254799488488?text=Hello%20Gatepath%20Realtors%2C%20I%20would%20like%20to%20inquire%20about%20your%20available%20plots."
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-transparent border-2 border-white text-white px-9 py-4 text-base font-medium rounded-md hover:bg-white/15 transition-all duration-300"
+              className="inline-flex items-center gap-2.5 px-6 py-4 border-2 border-white/40 hover:border-white bg-white/10 backdrop-blur-md text-white font-semibold text-sm rounded-xl transition-all duration-300 hover:bg-white/20"
             >
-              Book a Free Site Visit
+              <MessageCircle size={18} className="text-[#25D366]" /> Chat on WhatsApp
             </a>
           </div>
         </div>
       </div>
 
-      <a
-        href="#trust"
-        aria-label="Scroll down"
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-accent animate-bounce-down"
-      >
-        <ChevronDown size={32} strokeWidth={1.5} />
-      </a>
+      {/* Bottom Floating Stats & Marquee Strip */}
+      <div className="relative z-10 w-full bg-[#063A61]/90 backdrop-blur-lg border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-6 grid grid-cols-2 md:grid-cols-5 gap-6 text-center md:text-left border-b border-white/10">
+          <div>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">500+</span>
+            <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Plots Sold</span>
+          </div>
+          <div>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">12+</span>
+            <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Locations</span>
+          </div>
+          <div>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">100%</span>
+            <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Title Verified</span>
+          </div>
+          <div>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">5★</span>
+            <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Rated</span>
+          </div>
+          <div>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">Est. 2018</span>
+            <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Registered</span>
+          </div>
+        </div>
+
+        {/* Continuous Auto-scrolling Location Marquee */}
+        <div className="py-3 px-6 overflow-hidden flex items-center bg-[#074B7D]">
+          <div className="flex items-center gap-6 whitespace-nowrap text-xs font-semibold text-slate-200 animate-marquee">
+            {locationsList.concat(locationsList).map((loc, idx) => (
+              <span key={idx} className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E8A020]" />
+                <span className="hover:text-white transition-colors cursor-pointer">{loc}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

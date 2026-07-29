@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
-import { Search, BookOpen, Clock, ArrowRight, ShieldCheck, HelpCircle, FileText, Newspaper } from "lucide-react";
+import {
+  Search,
+  BookOpen,
+  Clock,
+  ArrowRight,
+  ShieldCheck,
+  HelpCircle,
+  FileText,
+  Newspaper,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
@@ -35,7 +44,8 @@ const DEFAULT_POSTS: BlogPost[] = [
     id: "seed-1",
     title: "How to Buy Land in Kenya Safely from the Diaspora: A Step-by-Step Guide",
     slug: "diaspora-buying-guide-kenya-land",
-    summary: "Discover the critical legal checks, verification steps, and secure transaction workflows required to acquire title deeds in Kenya while living abroad.",
+    summary:
+      "Discover the critical legal checks, verification steps, and secure transaction workflows required to acquire title deeds in Kenya while living abroad.",
     content: `Buying land in Kenya from the diaspora has historically been associated with anxiety due to lack of transparency, family conflicts, or fraudulent brokers. However, with the modernization of land registries and robust digital escrow platforms, you can now purchase and verify your land with 100% confidence.
 
 Here is a step-by-step roadmap to guide you:
@@ -59,7 +69,8 @@ Never send money directly to family members or individual brokers without legal 
 Your advocate will draft or review the Agreement for Sale, verify the seller's documentation, and handle the land transfer forms.
 
 By taking these measured steps, you protect your hard-earned foreign income and build long-term generational wealth in Kenya.`,
-    featured_image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    featured_image:
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
     category: "Buying Guide",
     author_name: "Joe Muchiri",
     tags: ["Diaspora", "Title Deeds", "Legal Checks"],
@@ -71,7 +82,8 @@ By taking these measured steps, you protect your hard-earned foreign income and 
     id: "seed-2",
     title: "Understanding Title Deeds in Kenya: Sectional vs. Freehold vs. Leasehold",
     slug: "understanding-title-deeds-kenya",
-    summary: "A breakdown of the different types of land ownership ownership in Kenya and what they mean for your long-term investment strategy.",
+    summary:
+      "A breakdown of the different types of land ownership ownership in Kenya and what they mean for your long-term investment strategy.",
     content: `If you are purchasing land in Kenya, one of the most critical decisions is understanding the tenure of the title deed you are receiving. Misunderstanding these terms can limit how you use your land or result in unexpected recurring costs.
 
 ### 1. Freehold Titles (Absolute Ownership)
@@ -88,7 +100,8 @@ Leasehold land is owned by the government (or local authority) and leased to an 
 Under the Sectional Properties Act, individual units within a shared block or gated estate receive independent title deeds for their space, alongside a shared portion of the common areas.
 
 At Gatepath Realtors, we specialize in providing freehold titles for our plots in places like Malindi, Sagana, and Diani, giving you permanent control over your asset.`,
-    featured_image: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=1200&q=80",
+    featured_image:
+      "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=1200&q=80",
     category: "Legal",
     author_name: "Joe Muchiri",
     tags: ["Title Deeds", "Legal", "Land Rates"],
@@ -100,7 +113,8 @@ At Gatepath Realtors, we specialize in providing freehold titles for our plots i
     id: "seed-3",
     title: "Why Sagana is Becoming Kenya's Hottest Real Estate Corridor",
     slug: "sagana-investment-boom",
-    summary: "From adventure tourism to industrial hubs, discover the infrastructure drivers fueling double-digit appreciation rates in Sagana.",
+    summary:
+      "From adventure tourism to industrial hubs, discover the infrastructure drivers fueling double-digit appreciation rates in Sagana.",
     content: `Sagana, traditionally known for rapid water sports and transit farming, is undergoing an unprecedented real estate transformation. Strategically located along the Kenol-Sagana-Marua dual carriage superhighway, the area is attracting massive institutional interest.
 
 Here are the key factors driving the investment boom in Sagana:
@@ -115,28 +129,29 @@ With white-water rafting, camping facilities, and luxury lodges along the Sagana
 The establishment of regional agro-processing hubs and warehouses is creating thousands of jobs, driving up demand for affordable residential housing plots.
 
 Investing in projects like **Baraka Plains Phase 6** or **Amani Gardens Phase 3** places you directly in the path of this high-yield growth curve.`,
-    featured_image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
+    featured_image:
+      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
     category: "Investment",
     author_name: "Joe Muchiri",
     tags: ["Sagana", "Infrastructure", "Appreciation"],
     status: "published",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  }
+  },
 ];
 
 function BlogIndexPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [selectedCat, setSelectedCat] = useState<typeof CATEGORIES[number]>("All Articles");
+  const [selectedCat, setSelectedCat] = useState<(typeof CATEGORIES)[number]>("All Articles");
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
         // Attempt to fetch from Supabase
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("blog_posts")
           .select("*")
           .eq("status", "published")
@@ -147,7 +162,7 @@ function BlogIndexPage() {
           setPosts(DEFAULT_POSTS);
         } else if (!data || data.length === 0) {
           // If table is empty, auto-seed the defaults
-          const { error: seedErr } = await supabase.from("blog_posts").insert(DEFAULT_POSTS);
+          const { error: seedErr } = await (supabase as any).from("blog_posts").insert(DEFAULT_POSTS);
           if (!seedErr) {
             setPosts(DEFAULT_POSTS);
           } else {
@@ -179,8 +194,8 @@ function BlogIndexPage() {
 
   const catIcons: Record<string, any> = {
     "All Articles": BookOpen,
-    "Investment": ShieldCheck,
-    "Legal": FileText,
+    Investment: ShieldCheck,
+    Legal: FileText,
     "Buying Guide": HelpCircle,
     "Company News": Newspaper,
   };
@@ -191,14 +206,21 @@ function BlogIndexPage() {
 
       {/* Header Banner */}
       <section className="bg-primary py-20 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-15 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80')" }} />
+        <div
+          className="absolute inset-0 opacity-15 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80')",
+          }}
+        />
         <div className="mx-auto max-w-7xl px-6 lg:px-10 relative text-center">
           <span className="eyebrow text-accent">Gatepath Insights</span>
           <h1 className="mt-4 font-serif text-[40px] md:text-[56px] font-bold leading-tight max-w-3xl mx-auto">
             Knowledge Hub for Kenyan Property Investors
           </h1>
           <p className="mt-6 text-[18px] text-white/70 max-w-2xl mx-auto leading-relaxed">
-            Avoid the pitfalls. Read about legal due diligence, land search processes, infrastructure developments, and investment trends.
+            Avoid the pitfalls. Read about legal due diligence, land search processes,
+            infrastructure developments, and investment trends.
           </p>
         </div>
       </section>
@@ -206,7 +228,6 @@ function BlogIndexPage() {
       {/* Filter / Search Bar */}
       <section className="bg-white border-b border-gray-100 py-6 sticky top-[100px] z-20 shadow-sm">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 flex flex-col md:flex-row gap-6 justify-between items-center">
-          
           {/* Categories Tab */}
           <div className="flex flex-wrap gap-2 justify-center md:justify-start">
             {CATEGORIES.map((cat) => {
@@ -231,7 +252,10 @@ function BlogIndexPage() {
 
           {/* Search bar */}
           <div className="relative w-full md:w-[320px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={17} />
+            <Search
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              size={17}
+            />
             <input
               type="text"
               placeholder="Search topics or tags..."
@@ -255,7 +279,13 @@ function BlogIndexPage() {
             <div className="text-center py-24">
               <BookOpen size={48} className="mx-auto text-gray-300 mb-4" />
               <p className="text-gray-600 text-lg font-serif">No articles match your search.</p>
-              <button onClick={() => { setSelectedCat("All Articles"); setQ(""); }} className="mt-4 text-accent hover:underline text-sm font-semibold">
+              <button
+                onClick={() => {
+                  setSelectedCat("All Articles");
+                  setQ("");
+                }}
+                className="mt-4 text-accent hover:underline text-sm font-semibold"
+              >
                 Clear Filters
               </button>
             </div>
@@ -269,7 +299,10 @@ function BlogIndexPage() {
                   {/* Image container */}
                   <div className="h-[210px] w-full overflow-hidden relative bg-gray-100 shrink-0">
                     <img
-                      src={post.featured_image || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80"}
+                      src={
+                        post.featured_image ||
+                        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80"
+                      }
                       alt={post.title}
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                     />
@@ -287,7 +320,13 @@ function BlogIndexPage() {
                         <span>•</span>
                         <div className="flex items-center gap-1">
                           <Clock size={11} />
-                          <span>{new Date(post.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                          <span>
+                            {new Date(post.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
                         </div>
                       </div>
 
@@ -308,7 +347,10 @@ function BlogIndexPage() {
                     <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
                       <div className="flex gap-1.5 flex-wrap">
                         {post.tags.slice(0, 2).map((tag) => (
-                          <span key={tag} className="text-[10px] bg-gray-50 border border-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
+                          <span
+                            key={tag}
+                            className="text-[10px] bg-gray-50 border border-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium"
+                          >
                             #{tag}
                           </span>
                         ))}
@@ -319,7 +361,10 @@ function BlogIndexPage() {
                         className="text-xs text-primary hover:text-accent font-bold uppercase tracking-wider flex items-center gap-1 group"
                       >
                         Read More
-                        <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" />
+                        <ArrowRight
+                          size={13}
+                          className="transition-transform group-hover:translate-x-1"
+                        />
                       </Link>
                     </div>
                   </div>
@@ -335,9 +380,14 @@ function BlogIndexPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-10 flex flex-col md:flex-row justify-between items-center gap-6">
           <div>
             <h3 className="font-serif text-xl font-bold">Ready to secure a verified property?</h3>
-            <p className="text-sm text-white/70 mt-1">Browse our list of verified land phases with ready title deeds.</p>
+            <p className="text-sm text-white/70 mt-1">
+              Browse our list of verified land phases with ready title deeds.
+            </p>
           </div>
-          <Link to="/properties" className="bg-accent text-white px-6 py-3.5 text-xs uppercase tracking-wider font-bold rounded hover:bg-[#C8861A] transition-all">
+          <Link
+            to="/properties"
+            className="bg-accent text-white px-6 py-3.5 text-xs uppercase tracking-wider font-bold rounded hover:bg-[#C8861A] transition-all"
+          >
             Explore Properties →
           </Link>
         </div>

@@ -17,6 +17,15 @@ export type Phase = {
   description: string | null;
   features: string[];
   image_url: string | null;
+  youtube_video_url: string | null;
+  /** PDF brochure URL (uploaded & managed from admin Media tab) */
+  brochure_url: string | null;
+  /** Plot map PDF URL for client download */
+  plot_map_url: string | null;
+  /** JSON-encoded array of hero carousel image URLs */
+  hero_image_urls: string[] | null;
+  /** Diaspora section banner override image URL */
+  diaspora_image_url: string | null;
   total_plots: number;
   available_count: number;
   booked_count: number;
@@ -92,6 +101,7 @@ export type Inquiry = {
   location_preference: string | null;
   questions: string | null;
   heard_from: string | null;
+  referred_by: string | null;
   status: "pending" | "reviewed" | "approved" | "rejected";
   created_at: string;
   updated_at: string;
@@ -105,6 +115,7 @@ export type Booking = {
   attendees: number;
   visit_notes: string | null;
   visit_type: "physical" | "virtual";
+  pickup_location: string | null;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   created_at: string;
   updated_at: string;
@@ -145,6 +156,16 @@ export type AdminUser = {
   email: string;
   full_name: string | null;
   role: "ceo" | "manager" | "agent";
+  created_at: string;
+};
+
+export type Affiliate = {
+  id: string;
+  partner_name: string;
+  phone: string;
+  email: string;
+  referral_code: string;
+  commission_rate: number;
   created_at: string;
 };
 
@@ -227,6 +248,32 @@ export type Database = {
         Insert: Omit<BlogPost, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<BlogPost, "id" | "created_at" | "updated_at">>;
       };
+      affiliates: {
+        Row: Affiliate;
+        Insert: Omit<Affiliate, "id" | "created_at">;
+        Update: Partial<Omit<Affiliate, "id" | "created_at">>;
+      };
+      site_banners: {
+        Row: { id: string; data: Record<string, any>; updated_at: string };
+        Insert: { id: string; data: Record<string, any> };
+        Update: { data?: Record<string, any>; updated_at?: string };
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      // Permissive record — prevents supabase.rpc() from collapsing to never
+      [key: string]: {
+        Args: Record<string, unknown>;
+        Returns: unknown;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 };

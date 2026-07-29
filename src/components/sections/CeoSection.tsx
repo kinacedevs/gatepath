@@ -67,10 +67,14 @@ export function CeoSection() {
             Led by Joe Muchiri.
           </h2>
           <p className="mt-6 text-[17px] text-white/80 leading-[1.8]">
-            Gatepath Realtors was founded with a single belief: that every Kenyan deserves access to secure, affordable land. Under the leadership of Joe Muchiri, we have grown from humble beginnings along the Thika corridor to serve clients across 12+ locations — from the Coast to the Rift Valley.
+            Gatepath Realtors was founded with a single belief: that every Kenyan deserves access to
+            secure, affordable land. Under the leadership of Joe Muchiri, we have grown from humble
+            beginnings along the Thika corridor to serve clients across 12+ locations — from the
+            Coast to the Rift Valley.
           </p>
           <p className="mt-4 text-[17px] text-white/80 leading-[1.8]">
-            Every plot we sell has been personally verified. Every client we serve receives the same standard: clarity, respect, and integrity.
+            Every plot we sell has been personally verified. Every client we serve receives the same
+            standard: clarity, respect, and integrity.
           </p>
 
           <blockquote className="mt-8 pl-6 border-l-4 border-accent">
@@ -105,7 +109,11 @@ export function CeoSection() {
 
           <div className="mt-6 flex gap-3">
             {[Linkedin, Facebook, Instagram].map((Icon, i) => (
-              <a key={i} href="#" className="h-10 w-10 border border-accent/50 rounded-full flex items-center justify-center text-accent hover:bg-accent hover:text-primary transition-colors">
+              <a
+                key={i}
+                href="#"
+                className="h-10 w-10 border border-accent/50 rounded-full flex items-center justify-center text-accent hover:bg-accent hover:text-primary transition-colors"
+              >
                 <Icon size={16} strokeWidth={1.5} />
               </a>
             ))}

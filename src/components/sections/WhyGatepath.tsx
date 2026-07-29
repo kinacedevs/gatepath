@@ -1,12 +1,36 @@
 import { Reveal } from "@/components/Reveal";
 
 const features = [
-  { emoji: "🏷️", title: "Fair Published Prices", text: "No phone calls needed to know what a plot costs. All prices visible online." },
-  { emoji: "📜", title: "Verified Title Deeds", text: "Every plot carries a clean title deed. Full legal due diligence done for you." },
-  { emoji: "📅", title: "Flexible Payment Plans", text: "Cash, installments, or bank loan. We structure a plan that works for your income." },
-  { emoji: "🏢", title: "Physical Offices", text: "Visit us at CNM Centre, Ruiru Eastern Bypass. We are a real company with a real address." },
-  { emoji: "🤝", title: "Guided Through Every Step", text: "From first inquiry to title transfer, a dedicated agent walks with you." },
-  { emoji: "📱", title: "Full Digital Process", text: "Inquire, book, pay, and receive your signed agreement — all from your phone." },
+  {
+    emoji: "🏷️",
+    title: "Fair Published Prices",
+    text: "No phone calls needed to know what a plot costs. All prices visible online.",
+  },
+  {
+    emoji: "📜",
+    title: "Verified Title Deeds",
+    text: "Every plot carries a clean title deed. Full legal due diligence done for you.",
+  },
+  {
+    emoji: "📅",
+    title: "Flexible Payment Plans",
+    text: "Cash, installments, or bank loan. We structure a plan that works for your income.",
+  },
+  {
+    emoji: "🏢",
+    title: "Physical Offices",
+    text: "Visit us at CNM Centre, Ruiru Eastern Bypass. We are a real company with a real address.",
+  },
+  {
+    emoji: "🤝",
+    title: "Guided Through Every Step",
+    text: "From first inquiry to title transfer, a dedicated agent walks with you.",
+  },
+  {
+    emoji: "📱",
+    title: "Full Digital Process",
+    text: "Inquire, book, pay, and receive your signed agreement — all from your phone.",
+  },
 ];
 
 export function WhyGatepath() {
@@ -21,7 +45,9 @@ export function WhyGatepath() {
             Proven.
           </h2>
           <p className="mt-6 text-[17px] text-muted-foreground leading-[1.8]">
-            At Gatepath Realtors, we believe buying land should be simple, safe, and satisfying. Since 2023, we've helped hundreds of Kenyans — from Nairobi professionals to diaspora investors — secure titled land at fair prices.
+            At Gatepath Realtors, we believe buying land should be simple, safe, and satisfying.
+            Since 2023, we've helped hundreds of Kenyans — from Nairobi professionals to diaspora
+            investors — secure titled land at fair prices.
           </p>
           <blockquote className="mt-8 pl-6 border-l-4 border-accent">
             <p className="font-serif italic text-[24px] md:text-[28px] text-primary leading-snug">

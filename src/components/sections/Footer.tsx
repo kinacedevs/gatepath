@@ -2,10 +2,19 @@ import { Facebook, Instagram, Music2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import logoIcon from "@/assets/logo-icon.png";
 
-
 const locations = [
-  "Malindi", "Mambrui", "Gongoni", "Diani", "Matuu", "Sagana",
-  "Makutano", "Thika", "Juja", "Kithimani", "Kiambu", "Nanyuki",
+  "Malindi",
+  "Mambrui",
+  "Gongoni",
+  "Diani",
+  "Matuu",
+  "Sagana",
+  "Makutano",
+  "Thika",
+  "Juja",
+  "Kithimani",
+  "Kiambu",
+  "Nanyuki",
 ];
 
 export function Footer() {
@@ -40,11 +49,16 @@ export function Footer() {
             "Your Interest is Our Priority."
           </p>
           <p className="mt-4 text-[14px] text-white/60 leading-relaxed">
-            Trusted Kenyan land specialists. From the Coast to the Highlands — we help you own a piece of Kenya.
+            Trusted Kenyan land specialists. From the Coast to the Highlands — we help you own a
+            piece of Kenya.
           </p>
           <div className="mt-6 flex gap-3">
             {[Facebook, Instagram, Music2].map((Icon, i) => (
-              <a key={i} href="#" className="h-10 w-10 rounded-full border border-accent flex items-center justify-center text-white hover:bg-accent hover:text-primary transition-colors">
+              <a
+                key={i}
+                href="#"
+                className="h-10 w-10 rounded-full border border-accent flex items-center justify-center text-white hover:bg-accent hover:text-primary transition-colors"
+              >
                 <Icon size={16} strokeWidth={1.5} />
               </a>
             ))}
@@ -53,14 +67,27 @@ export function Footer() {
 
         {/* Quick Links */}
         <div>
-          <h4 className="font-numbers font-medium text-[11px] tracking-[0.3em] text-accent">QUICK LINKS</h4>
+          <h4 className="font-numbers font-medium text-[11px] tracking-[0.3em] text-accent">
+            QUICK LINKS
+          </h4>
           <ul className="mt-5 space-y-3 text-[14px] text-white/70">
-            {[["Home","/"],["Properties","/properties"],["Locations","/properties"],["Blog","/blog"],["About Us","#about"],["Contact","#contact"]].map(([l,h]) => (
+            {[
+              ["Home", "/"],
+              ["Properties", "/properties"],
+              ["Locations", "/properties"],
+              ["Blog", "/blog"],
+              ["About Us", "#about"],
+              ["Contact", "#contact"],
+            ].map(([l, h]) => (
               <li key={l}>
                 {h.startsWith("/") ? (
-                  <Link to={h} className="hover:text-accent hover:underline transition-colors">{l}</Link>
+                  <Link to={h} className="hover:text-accent hover:underline transition-colors">
+                    {l}
+                  </Link>
                 ) : (
-                  <a href={h} className="hover:text-accent hover:underline transition-colors">{l}</a>
+                  <a href={h} className="hover:text-accent hover:underline transition-colors">
+                    {l}
+                  </a>
                 )}
               </li>
             ))}
@@ -69,34 +96,48 @@ export function Footer() {
 
         {/* Locations */}
         <div>
-          <h4 className="font-numbers font-medium text-[11px] tracking-[0.3em] text-accent">WHERE WE OPERATE</h4>
+          <h4 className="font-numbers font-medium text-[11px] tracking-[0.3em] text-accent">
+            WHERE WE OPERATE
+          </h4>
           <ul className="mt-5 grid grid-cols-2 gap-x-3 gap-y-2 text-[14px] text-white/70">
             {locations.map((l) => (
-              <li key={l}><a href="#locations" className="hover:text-accent transition-colors">{l}</a></li>
+              <li key={l}>
+                <a href="#locations" className="hover:text-accent transition-colors">
+                  {l}
+                </a>
+              </li>
             ))}
           </ul>
         </div>
 
         {/* Contact */}
         <div>
-          <h4 className="font-numbers font-medium text-[11px] tracking-[0.3em] text-accent">GET IN TOUCH</h4>
+          <h4 className="font-numbers font-medium text-[11px] tracking-[0.3em] text-accent">
+            GET IN TOUCH
+          </h4>
           <ul className="mt-5 space-y-4">
             <li>
-              <a href="tel:+254799488488" className="text-[15px] font-medium text-white hover:text-accent">
+              <a
+                href="tel:+254799488488"
+                className="text-[15px] font-medium text-white hover:text-accent"
+              >
                 📞 +254 799 488 488
               </a>
             </li>
             <li>
-              <a href="mailto:info@gatepathrealtors.com" className="text-[14px] text-accent hover:underline">
+              <a
+                href="mailto:info@gatepathrealtors.com"
+                className="text-[14px] text-accent hover:underline"
+              >
                 ✉️ info@gatepathrealtors.com
               </a>
             </li>
             <li className="text-[13px] text-white/60 leading-relaxed">
-              🏢 1st Floor, CNM Centre,<br />Ruiru Eastern Bypass, Nairobi
+              🏢 1st Floor, CNM Centre,
+              <br />
+              Ruiru Eastern Bypass, Nairobi
             </li>
-            <li className="text-[13px] text-white/50">
-              Mon–Fri: 8am–6pm | Sat: 9am–4pm
-            </li>
+            <li className="text-[13px] text-white/50">Mon–Fri: 8am–6pm | Sat: 9am–4pm</li>
           </ul>
         </div>
       </div>
@@ -105,8 +146,12 @@ export function Footer() {
         <div className="mx-auto max-w-7xl px-6 lg:px-10 py-6 flex flex-col md:flex-row justify-between gap-2 text-[13px] text-white/50">
           <span>© {new Date().getFullYear()} Gatepath Realtors. All rights reserved.</span>
           <div className="flex gap-5">
-            <a href="#" className="hover:text-accent">Privacy Policy</a>
-            <a href="#" className="hover:text-accent">Terms of Use</a>
+            <a href="#" className="hover:text-accent">
+              Privacy Policy
+            </a>
+            <a href="#" className="hover:text-accent">
+              Terms of Use
+            </a>
           </div>
         </div>
       </div>

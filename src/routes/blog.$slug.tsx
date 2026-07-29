@@ -27,28 +27,30 @@ export const Route = createFileRoute("/blog/$slug")({
   head: ({ loaderData }) => {
     const post = loaderData?.post;
     if (!post) return {};
-    
+
     // Create structured JSON-LD Schema markup for Google
     const schemaMarkup = {
       "@context": "https://schema.org",
       "@type": "BlogPosting",
-      "headline": post.title,
-      "description": post.summary,
-      "image": post.featured_image || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
-      "author": {
+      headline: post.title,
+      description: post.summary,
+      image:
+        post.featured_image ||
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
+      author: {
         "@type": "Person",
-        "name": post.author_name
+        name: post.author_name,
       },
-      "publisher": {
+      publisher: {
         "@type": "Organization",
-        "name": "Gatepath Realtors",
-        "logo": {
+        name: "Gatepath Realtors",
+        logo: {
           "@type": "ImageObject",
-          "url": "https://hcnbgtnghvyyokspotfe.supabase.co/storage/v1/object/public/assets/logo-icon.png"
-        }
+          url: "https://hcnbgtnghvyyokspotfe.supabase.co/storage/v1/object/public/assets/logo-icon.png",
+        },
       },
-      "datePublished": post.created_at,
-      "dateModified": post.updated_at
+      datePublished: post.created_at,
+      dateModified: post.updated_at,
     };
 
     return {
@@ -69,9 +71,9 @@ export const Route = createFileRoute("/blog/$slug")({
       script: [
         {
           type: "application/ld+json",
-          children: JSON.stringify(schemaMarkup)
-        }
-      ]
+          children: JSON.stringify(schemaMarkup),
+        },
+      ],
     };
   },
   notFoundComponent: () => (
@@ -82,13 +84,16 @@ export const Route = createFileRoute("/blog/$slug")({
         <p className="mt-4 text-gray-500 max-w-md mx-auto">
           The article you are looking for might have been moved, deleted, or does not exist.
         </p>
-        <Link to="/blog" className="mt-8 inline-flex items-center gap-2 bg-accent text-white px-6 py-3 rounded font-semibold text-sm uppercase tracking-wider hover:bg-[#C8861A] transition-all">
+        <Link
+          to="/blog"
+          className="mt-8 inline-flex items-center gap-2 bg-accent text-white px-6 py-3 rounded font-semibold text-sm uppercase tracking-wider hover:bg-[#C8861A] transition-all"
+        >
           <ArrowLeft size={16} /> Back to Blog
         </Link>
       </div>
       <Footer />
     </div>
-  )
+  ),
 });
 
 function BlogPostPage() {
@@ -127,7 +132,6 @@ function BlogPostPage() {
       {/* Main Content Area */}
       <main className="flex-1 py-16 bg-gray-50/30">
         <div className="mx-auto max-w-4xl px-6 lg:px-10">
-          
           {/* Breadcrumb / Back Link */}
           <Link
             to="/blog"
@@ -162,7 +166,11 @@ function BlogPostPage() {
                   <div className="text-xs text-gray-400 font-sans flex items-center gap-3">
                     <span className="flex items-center gap-1">
                       <Calendar size={11} />
-                      {new Date(post.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                      {new Date(post.created_at).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
@@ -186,7 +194,10 @@ function BlogPostPage() {
           {/* Featured Image */}
           <div className="mt-8 rounded-xl overflow-hidden shadow-lg h-[460px] w-full bg-gray-100">
             <img
-              src={post.featured_image || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80"}
+              src={
+                post.featured_image ||
+                "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80"
+              }
               alt={post.title}
               className="w-full h-full object-cover"
             />
@@ -222,7 +233,10 @@ function BlogPostPage() {
           {/* Tags */}
           <div className="mt-12 pt-6 border-t border-gray-100 flex gap-2 flex-wrap">
             {post.tags.map((tag) => (
-              <span key={tag} className="text-xs bg-gray-50 border border-gray-100 text-gray-500 px-3 py-1 rounded-full font-medium">
+              <span
+                key={tag}
+                className="text-xs bg-gray-50 border border-gray-100 text-gray-500 px-3 py-1 rounded-full font-medium"
+              >
                 #{tag}
               </span>
             ))}
@@ -239,7 +253,9 @@ function BlogPostPage() {
                 <Award size={16} className="text-[#E8A020]" />
               </h4>
               <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-                Joe Muchiri is the CEO & Managing Director of Gatepath Realtors. With over a decade of experience in land surveying, title registration, and diaspora investments, Joe writes to demystify land acquisition in Kenya.
+                Joe Muchiri is the CEO & Managing Director of Gatepath Realtors. With over a decade
+                of experience in land surveying, title registration, and diaspora investments, Joe
+                writes to demystify land acquisition in Kenya.
               </p>
             </div>
           </section>
@@ -257,18 +273,25 @@ function BlogPostPage() {
                     className="group block bg-white rounded-lg border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
                   >
                     <div className="h-[140px] bg-gray-100 overflow-hidden">
-                      <img src={post.featured_image || ""} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      <img
+                        src={post.featured_image || ""}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
                     </div>
                     <div className="p-4">
-                      <span className="text-[9px] uppercase tracking-wider font-bold text-accent">{post.category}</span>
-                      <h4 className="font-serif text-sm font-bold text-gray-900 mt-1 line-clamp-2 group-hover:text-accent transition-colors">{post.title}</h4>
+                      <span className="text-[9px] uppercase tracking-wider font-bold text-accent">
+                        {post.category}
+                      </span>
+                      <h4 className="font-serif text-sm font-bold text-gray-900 mt-1 line-clamp-2 group-hover:text-accent transition-colors">
+                        {post.title}
+                      </h4>
                     </div>
                   </Link>
                 ))}
               </div>
             </section>
           )}
-
         </div>
       </main>
 

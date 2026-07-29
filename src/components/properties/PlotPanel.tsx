@@ -96,8 +96,8 @@ export function PlotPanel({
         <div className="p-6">
           <h4 className="font-serif font-semibold text-[22px] text-primary">Plot Sold</h4>
           <p className="mt-3 text-[14px] text-muted-foreground leading-[1.7]">
-            This plot has been sold. Explore other available plots in this phase, or view our
-            other phases.
+            This plot has been sold. Explore other available plots in this phase, or view our other
+            phases.
           </p>
           <button
             onClick={onClear}
@@ -134,19 +134,29 @@ export function PlotPanel({
       <div className="p-6">
         <div className="grid grid-cols-2 gap-4 text-[13px]">
           <div>
-            <div className="text-muted-foreground text-[11px] uppercase tracking-wider">Location</div>
-            <div className="text-foreground font-medium mt-0.5">{phase.location}, {phase.region}</div>
+            <div className="text-muted-foreground text-[11px] uppercase tracking-wider">
+              Location
+            </div>
+            <div className="text-foreground font-medium mt-0.5">
+              {phase.location}, {phase.region}
+            </div>
           </div>
           <div>
-            <div className="text-muted-foreground text-[11px] uppercase tracking-wider">Plot Size</div>
+            <div className="text-muted-foreground text-[11px] uppercase tracking-wider">
+              Plot Size
+            </div>
             <div className="text-foreground font-medium mt-0.5">{plot.size} ft</div>
           </div>
           <div>
-            <div className="text-muted-foreground text-[11px] uppercase tracking-wider">Land Use</div>
+            <div className="text-muted-foreground text-[11px] uppercase tracking-wider">
+              Land Use
+            </div>
             <div className="text-foreground font-medium mt-0.5">Residential / Mixed</div>
           </div>
           <div>
-            <div className="text-muted-foreground text-[11px] uppercase tracking-wider">Road Access</div>
+            <div className="text-muted-foreground text-[11px] uppercase tracking-wider">
+              Road Access
+            </div>
             <div className="text-foreground font-medium mt-0.5">Tarmac frontage</div>
           </div>
         </div>
@@ -156,11 +166,11 @@ export function PlotPanel({
             Listed Price
           </div>
           <div className="font-numbers font-bold text-[36px] text-primary leading-tight">
-            {currency === "USD" ? `$ ${priceUsd.toLocaleString()}` : `Ksh ${plot.price.toLocaleString()}`}
+            {currency === "USD"
+              ? `$ ${priceUsd.toLocaleString()}`
+              : `Ksh ${plot.price.toLocaleString()}`}
           </div>
-          <div className="text-[13px] text-accent italic mt-1">
-            Flexible payment plan available
-          </div>
+          <div className="text-[13px] text-accent italic mt-1">Flexible payment plan available</div>
 
           <div className="mt-3 flex flex-wrap gap-2">
             <PaymentPill icon="💳" label="Card" />
@@ -174,7 +184,9 @@ export function PlotPanel({
           href={reserveHref}
           className="mt-6 block w-full text-center bg-accent text-white font-bold text-[15px] py-4 rounded-lg hover:bg-[#C8861A] hover:scale-[1.02] transition-all"
         >
-          {currency === "USD" ? "🌟 Reserve Plot ($77 USD Hold)" : "🌟 Reserve Plot (Ksh 10,000 Hold)"}
+          {currency === "USD"
+            ? "🌟 Reserve Plot ($77 USD Hold)"
+            : "🌟 Reserve Plot (Ksh 10,000 Hold)"}
         </a>
         <a
           href={visitHref}

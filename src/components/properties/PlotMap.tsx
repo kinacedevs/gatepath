@@ -43,8 +43,7 @@ export function PlotMap({
   const width = LEFT_PAD + cols * PLOT_W + (cols - 1) * GAP + RIGHT_PAD;
   const height = TOP_PAD + rows * PLOT_H + (rows - 1) * GAP + ROAD_GAP + BOTTOM_PAD;
 
-  const yFor = (row: number) =>
-    TOP_PAD + (row - 1) * (PLOT_H + GAP) + (row >= 3 ? ROAD_GAP : 0);
+  const yFor = (row: number) => TOP_PAD + (row - 1) * (PLOT_H + GAP) + (row >= 3 ? ROAD_GAP : 0);
   const xFor = (col: number) => LEFT_PAD + (col - 1) * (PLOT_W + GAP);
 
   return (
@@ -62,10 +61,51 @@ export function PlotMap({
         <g transform={`translate(${width - 35}, 28)`} stroke="#5A5A5A" strokeWidth="1" fill="none">
           <line x1="0" y1="-12" x2="0" y2="12" />
           <line x1="-12" y1="0" x2="12" y2="0" />
-          <text x="0" y="-15" textAnchor="middle" fontSize="9" fill="#0B7FC7" fontFamily="Montserrat" fontWeight="600" stroke="none">N</text>
-          <text x="0" y="22" textAnchor="middle" fontSize="8" fill="#5A5A5A" fontFamily="Montserrat" stroke="none">S</text>
-          <text x="-18" y="3" textAnchor="middle" fontSize="8" fill="#5A5A5A" fontFamily="Montserrat" stroke="none">W</text>
-          <text x="18" y="3" textAnchor="middle" fontSize="8" fill="#5A5A5A" fontFamily="Montserrat" stroke="none">E</text>
+          <text
+            x="0"
+            y="-15"
+            textAnchor="middle"
+            fontSize="9"
+            fill="#0B7FC7"
+            fontFamily="Montserrat"
+            fontWeight="600"
+            stroke="none"
+          >
+            N
+          </text>
+          <text
+            x="0"
+            y="22"
+            textAnchor="middle"
+            fontSize="8"
+            fill="#5A5A5A"
+            fontFamily="Montserrat"
+            stroke="none"
+          >
+            S
+          </text>
+          <text
+            x="-18"
+            y="3"
+            textAnchor="middle"
+            fontSize="8"
+            fill="#5A5A5A"
+            fontFamily="Montserrat"
+            stroke="none"
+          >
+            W
+          </text>
+          <text
+            x="18"
+            y="3"
+            textAnchor="middle"
+            fontSize="8"
+            fill="#5A5A5A"
+            fontFamily="Montserrat"
+            stroke="none"
+          >
+            E
+          </text>
         </g>
 
         {/* Access road label (left, rotated) */}
@@ -139,8 +179,7 @@ export function PlotMap({
           const isSelected = selectedId === p.id;
           const isHovered = hovered?.plot.id === p.id;
           const dimmed = showAvailableOnly && p.status !== "available";
-          const fill =
-            isHovered && p.status === "available" ? darken(c.fill, 0.15) : c.fill;
+          const fill = isHovered && p.status === "available" ? darken(c.fill, 0.15) : c.fill;
           return (
             <g
               key={p.id}
@@ -191,10 +230,8 @@ export function PlotMap({
                 strokeWidth={isSelected ? 3 : 1.5}
                 rx="3"
                 style={
-                  isSelected
-                    ? { filter: "drop-shadow(0 0 8px rgba(11,127,199,0.4))" }
-                    : undefined
-                }
+                  isSelected ? { filter: "drop-shadow(0 0 8px rgba(11,127,199,0.4))" } : undefined
+                 }
               />
               <text
                 x={x + PLOT_W / 2}

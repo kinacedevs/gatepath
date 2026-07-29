@@ -1,12 +1,25 @@
 const locations = [
-  "Malindi", "Mambrui", "Gongoni", "Diani", "Matuu", "Sagana",
-  "Makutano", "Thika", "Juja", "Kithimani", "Kiambu", "Nanyuki",
+  "Malindi",
+  "Mambrui",
+  "Gongoni",
+  "Diani",
+  "Matuu",
+  "Sagana",
+  "Makutano",
+  "Thika",
+  "Juja",
+  "Kithimani",
+  "Kiambu",
+  "Nanyuki",
 ];
 
 export function LocationsMarquee() {
   const loop = [...locations, ...locations];
   return (
-    <section id="locations" className="bg-background py-8 border-y border-border/60 overflow-hidden">
+    <section
+      id="locations"
+      className="bg-background py-8 border-y border-border/60 overflow-hidden"
+    >
       <div className="text-center mb-5">
         <span className="eyebrow">Where We Operate</span>
       </div>

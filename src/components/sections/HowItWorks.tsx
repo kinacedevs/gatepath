@@ -2,10 +2,30 @@ import { Search, FileText, MapPin, ShieldCheck } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 
 const steps = [
-  { icon: Search, num: "01", title: "Browse Available Plots", text: "Explore our phases by location. Each plot is colour-coded: green for available, amber for reserved, red for sold." },
-  { icon: FileText, num: "02", title: "Select & Send Inquiry", text: "Click your preferred plot. A form pre-fills with the plot details — just add your payment preference and any questions." },
-  { icon: MapPin, num: "03", title: "Book Your Free Site Visit", text: "Schedule a free guided visit to the land. Our agent meets you at the site — see it before you commit." },
-  { icon: ShieldCheck, num: "04", title: "Pay & Receive Agreement", text: "Pay your deposit securely online. Receive your signed purchase agreement and official receipt — instantly on your email." },
+  {
+    icon: Search,
+    num: "01",
+    title: "Browse Available Plots",
+    text: "Explore our phases by location. Each plot is colour-coded: green for available, amber for reserved, red for sold.",
+  },
+  {
+    icon: FileText,
+    num: "02",
+    title: "Select & Send Inquiry",
+    text: "Click your preferred plot. A form pre-fills with the plot details — just add your payment preference and any questions.",
+  },
+  {
+    icon: MapPin,
+    num: "03",
+    title: "Book Your Free Site Visit",
+    text: "Schedule a free guided visit to the land. Our agent meets you at the site — see it before you commit.",
+  },
+  {
+    icon: ShieldCheck,
+    num: "04",
+    title: "Pay & Receive Agreement",
+    text: "Pay your deposit securely online. Receive your signed purchase agreement and official receipt — instantly on your email.",
+  },
 ];
 
 export function HowItWorks() {
@@ -27,7 +47,7 @@ export function HowItWorks() {
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 lg:gap-8 relative">
             {steps.map((s, i) => (
-              <Reveal key={s.num} className="text-center" >
+              <Reveal key={s.num} className="text-center">
                 <div className="relative inline-flex">
                   <div className="h-16 w-16 rounded-full bg-accent flex items-center justify-center mx-auto shadow-[0_8px_24px_rgba(232,160,32,0.4)]">
                     <s.icon size={26} className="text-primary" strokeWidth={1.75} />

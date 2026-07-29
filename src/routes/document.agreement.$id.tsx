@@ -18,6 +18,8 @@ function AgreementDocumentPage() {
   const { id } = Route.useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [brandingLogo, setBrandingLogo] = useState(logoIcon);
+  const [companyBrandingName, setCompanyBrandingName] = useState("Gatepath Realtors Limited");
   const [data, setData] = useState<{
     inquiry: any;
     payment: any;
@@ -30,7 +32,7 @@ function AgreementDocumentPage() {
         setLoading(true);
 
         // Fetch associated inquiry
-        const { data: inquiry, error: iError } = await supabase
+        const { data: inquiry, error: iError } = await (supabase as any)
           .from("inquiries")
           .select("*")
           .eq("id", id)
@@ -40,8 +42,26 @@ function AgreementDocumentPage() {
           throw new Error("Agreement details not found.");
         }
 
+        // Fetch custom branding
+        const { data: brandingData } = await ((supabase as any)
+          .from("site_banners")
+          .select("data")
+          .eq("id", "custom_branding")
+          .maybeSingle());
+
+        if (brandingData?.data) {
+          if (brandingData.data.logo_url) setBrandingLogo(brandingData.data.logo_url);
+          if (brandingData.data.company_name) {
+            setCompanyBrandingName(
+              brandingData.data.company_name.toLowerCase().includes("limited")
+                ? brandingData.data.company_name
+                : `${brandingData.data.company_name} Limited`
+            );
+          }
+        }
+
         // Fetch associated payment
-        const { data: payment } = await supabase
+        const { data: payment } = await (supabase as any)
           .from("payments")
           .select("*")
           .eq("inquiry_id", inquiry.id)
@@ -51,7 +71,7 @@ function AgreementDocumentPage() {
           .maybeSingle();
 
         // Fetch signed agreement
-        const { data: agreement, error: aError } = await supabase
+        const { data: agreement, error: aError } = await (supabase as any)
           .from("agreements")
           .select("*")
           .eq("inquiry_id", inquiry.id)
@@ -85,7 +105,9 @@ function AgreementDocumentPage() {
         <div className="bg-white max-w-md w-full p-8 rounded-xl border border-[#E5E0D8] text-center shadow-xl">
           <span className="text-4xl">⚠️</span>
           <h2 className="font-serif font-bold text-2xl text-red-600 mt-4">Document Error</h2>
-          <p className="text-[#5A5A5A] mt-2 text-[14px]">{error || "Unable to display purchase agreement details."}</p>
+          <p className="text-[#5A5A5A] mt-2 text-[14px]">
+            {error || "Unable to display purchase agreement details."}
+          </p>
           <Link
             to="/"
             className="mt-6 inline-block w-full py-2.5 bg-[#0B7FC7] text-white rounded-lg font-semibold text-[13px]"
@@ -131,15 +153,14 @@ function AgreementDocumentPage() {
 
       {/* Legal Agreement Paper */}
       <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-[#E5E0D8] p-10 md:p-16 shadow-2xl relative print:border-none print:shadow-none print:p-0">
-        
         {/* Header */}
         <div className="text-center pb-8 border-b border-[#E5E0D8] mb-10">
-          <img src={logoIcon} alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" />
+          <img src={brandingLogo} alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" />
           <h1 className="font-serif font-bold text-2xl text-[#0B7FC7] tracking-tight uppercase">
             Agreement for Sale of Land
           </h1>
           <p className="text-[11px] uppercase tracking-wider text-[#E8A020] font-semibold mt-1">
-            Gatepath Realtors Limited
+            {companyBrandingName}
           </p>
         </div>
 
@@ -154,10 +175,11 @@ function AgreementDocumentPage() {
           </p>
           <div className="pl-6 border-l-2 border-[#E8A020]">
             <p>
-              <strong>GATEPATH REALTORS LIMITED</strong>, a company incorporated in the Republic of Kenya with its
-              registered office at 1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi, Kenya
-              (hereinafter referred to as the <strong>"Vendor"</strong>, which expression shall where the context so
-              admits include its successors and assigns) of the one part;
+              <strong>{companyBrandingName.toUpperCase()}</strong>, a company incorporated in the Republic of
+              Kenya with its registered office at 1st Floor, CNM Centre, Ruiru Eastern Bypass,
+              Nairobi, Kenya (hereinafter referred to as the <strong>"Vendor"</strong>, which
+              expression shall where the context so admits include its successors and assigns) of
+              the one part;
             </p>
           </div>
 
@@ -167,11 +189,11 @@ function AgreementDocumentPage() {
           <div className="pl-6 border-l-2 border-[#0B7FC7]">
             <p>
               <strong>{inquiry.client_full_name}</strong> of ID/Passport number{" "}
-              <span className="font-semibold font-mono">{inquiry.client_id_passport}</span>, of Postal Address{" "}
-              <span>{inquiry.client_postal_address || "N/A"}</span> and email address{" "}
-              <span className="font-semibold">{inquiry.client_email}</span> (hereinafter referred to as the{" "}
-              <strong>"Purchaser"</strong>, which expression shall include their personal representatives and
-              permitted assigns) of the other part.
+              <span className="font-semibold font-mono">{inquiry.client_id_passport}</span>, of
+              Postal Address <span>{inquiry.client_postal_address || "N/A"}</span> and email address{" "}
+              <span className="font-semibold">{inquiry.client_email}</span> (hereinafter referred to
+              as the <strong>"Purchaser"</strong>, which expression shall include their personal
+              representatives and permitted assigns) of the other part.
             </p>
           </div>
 
@@ -183,10 +205,10 @@ function AgreementDocumentPage() {
             <strong>{inquiry.phase_name}</strong> (hereinafter referred to as the "Property").
           </p>
           <p>
-            The Vendor has agreed to sell and the Purchaser has agreed to purchase a portion of the Property,
-            specifically designated as <strong>Plot Number {inquiry.plot_number}</strong> measuring approximately{" "}
-            <strong>{inquiry.plot_size || "1/8th Acre"}</strong>, on the terms and conditions hereinafter
-            contained.
+            The Vendor has agreed to sell and the Purchaser has agreed to purchase a portion of the
+            Property, specifically designated as <strong>Plot Number {inquiry.plot_number}</strong>{" "}
+            measuring approximately <strong>{inquiry.plot_size || "1/8th Acre"}</strong>, on the
+            terms and conditions hereinafter contained.
           </p>
 
           <p className="pt-4 font-semibold text-center uppercase tracking-wider text-[#06243A]">
@@ -200,13 +222,15 @@ function AgreementDocumentPage() {
             <div className="pl-4 space-y-2">
               <p>
                 1.1. The total purchase price for the Plot is KES{" "}
-                <span className="font-semibold">{Number(inquiry.plot_price).toLocaleString()}</span> (Kenya
-                Shillings {inquiry.plot_price.toLocaleString()}).
+                <span className="font-semibold">{Number(inquiry.plot_price).toLocaleString()}</span>{" "}
+                (Kenya Shillings {inquiry.plot_price.toLocaleString()}).
               </p>
               <p>
                 1.2. The Purchaser has paid a deposit of KES{" "}
                 <span className="font-semibold">
-                  {payment ? Number(payment.amount).toLocaleString() : Number(inquiry.deposit).toLocaleString()}
+                  {payment
+                    ? Number(payment.amount).toLocaleString()
+                    : Number(inquiry.deposit).toLocaleString()}
                 </span>{" "}
                 representing a commitment to purchase.
               </p>
@@ -214,14 +238,21 @@ function AgreementDocumentPage() {
                 <p>
                   1.3. The remaining balance of KES{" "}
                   <span className="font-semibold">
-                    {Number(inquiry.plot_price - (payment?.amount || inquiry.deposit)).toLocaleString()}
+                    {Number(
+                      inquiry.plot_price - (payment?.amount || inquiry.deposit),
+                    ).toLocaleString()}
                   </span>{" "}
                   shall be paid in monthly installments of KES{" "}
-                  <span className="font-semibold">{Number(inquiry.monthly_payment).toLocaleString()}</span> over a
-                  period of <strong>{inquiry.payment_period_months} months</strong>.
+                  <span className="font-semibold">
+                    {Number(inquiry.monthly_payment).toLocaleString()}
+                  </span>{" "}
+                  over a period of <strong>{inquiry.payment_period_months} months</strong>.
                 </p>
               ) : (
-                <p>1.3. The balance purchase price shall be paid in full upon issuance of the Title Deed.</p>
+                <p>
+                  1.3. The balance purchase price shall be paid in full upon issuance of the Title
+                  Deed.
+                </p>
               )}
             </div>
 
@@ -230,12 +261,13 @@ function AgreementDocumentPage() {
             </p>
             <div className="pl-4 space-y-2">
               <p>
-                2.1. Upon completion of payment of the full purchase price, the Vendor shall execute the Transfer
-                documents and deliver to the Purchaser the original Title Deed in respect of the Plot.
+                2.1. Upon completion of payment of the full purchase price, the Vendor shall execute
+                the Transfer documents and deliver to the Purchaser the original Title Deed in
+                respect of the Plot.
               </p>
               <p>
-                2.2. All legal fees, stamp duty, and registration charges associated with the transfer of the Title
-                Deed shall be borne by the Purchaser unless stated otherwise.
+                2.2. All legal fees, stamp duty, and registration charges associated with the
+                transfer of the Title Deed shall be borne by the Purchaser unless stated otherwise.
               </p>
             </div>
 
@@ -244,12 +276,12 @@ function AgreementDocumentPage() {
             </p>
             <div className="pl-4 space-y-2">
               <p>
-                3.1. The Vendor covenants that it has good and lawful title to the Property and has full power to
-                sell and transfer the same.
+                3.1. The Vendor covenants that it has good and lawful title to the Property and has
+                full power to sell and transfer the same.
               </p>
               <p>
-                3.2. The Vendor shall deliver the Plot to the Purchaser free from all encumbrances, charges, or
-                disputes.
+                3.2. The Vendor shall deliver the Plot to the Purchaser free from all encumbrances,
+                charges, or disputes.
               </p>
             </div>
 
@@ -257,9 +289,9 @@ function AgreementDocumentPage() {
               <strong>4. DISPUTE RESOLUTION</strong>
             </p>
             <p className="pl-4">
-              Any dispute arising out of or in connection with this Agreement shall be resolved amicably through
-              mediation in Nairobi, Kenya. If mediation fails, the dispute shall be referred to arbitration in
-              accordance with the Arbitration Act of Kenya.
+              Any dispute arising out of or in connection with this Agreement shall be resolved
+              amicably through mediation in Nairobi, Kenya. If mediation fails, the dispute shall be
+              referred to arbitration in accordance with the Arbitration Act of Kenya.
             </p>
           </div>
         </div>
@@ -282,7 +314,9 @@ function AgreementDocumentPage() {
                   <div className="border-2 border-dashed border-[#E8A020] text-[#E8A020] px-6 py-3 rounded-xl bg-white rotate-[-2deg] flex flex-col items-center max-w-xs shadow-md">
                     <Award className="text-[#E8A020] mb-1" size={24} />
                     <span className="font-bold text-[13px]">Joe Muchiri</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Managing Director, Gatepath</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">
+                      Managing Director, Gatepath
+                    </span>
                     <span className="text-[8px] font-mono text-muted-foreground mt-0.5">
                       Verified Code: {agreement.id.slice(0, 8).toUpperCase()}
                     </span>
@@ -296,7 +330,7 @@ function AgreementDocumentPage() {
                   Awaiting CEO Signature
                 </div>
               )}
-              <p className="font-bold text-[14px]">Gatepath Realtors Limited</p>
+              <p className="font-bold text-[14px]">{companyBrandingName}</p>
               <p className="text-[12px] text-muted-foreground">Represented by: Joe Muchiri</p>
             </div>
 
@@ -323,8 +357,11 @@ function AgreementDocumentPage() {
 
         {/* Legal Disclaimer */}
         <div className="text-center mt-16 pt-6 border-t border-[#F5F0E8] text-[11px] text-muted-foreground">
-          <p>This is a secure electronic purchase agreement generated in accordance with the Laws of Kenya.</p>
-          <p className="mt-1">© Gatepath Realtors Limited. All rights reserved.</p>
+          <p>
+            This is a secure electronic purchase agreement generated in accordance with the Laws of
+            Kenya.
+          </p>
+          <p className="mt-1">© {companyBrandingName}. All rights reserved.</p>
         </div>
       </div>
     </div>

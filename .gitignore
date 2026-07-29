@@ -25,6 +25,12 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Debug/diff scratch files — not part of the source tree
+admin_diff.txt
+admin_diff_utf8.txt
+temp_tabs.txt
+debug_reconstruct.py
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

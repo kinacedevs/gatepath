@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ThankYouRouteImport } from './routes/thank-you'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PaymentRouteImport } from './routes/payment'
+import { Route as PartnerRouteImport } from './routes/partner'
+import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as InquireRouteImport } from './routes/inquire'
 import { Route as DiasporaRouteImport } from './routes/diaspora'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookVisitRouteImport } from './routes/book-visit'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PropertiesIndexRouteImport } from './routes/properties.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
@@ -28,9 +34,29 @@ const ThankYouRoute = ThankYouRouteImport.update({
   path: '/thank-you',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PaymentRoute = PaymentRouteImport.update({
   id: '/payment',
   path: '/payment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartnerRoute = PartnerRouteImport.update({
+  id: '/partner',
+  path: '/partner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocationsRoute = LocationsRouteImport.update({
+  id: '/locations',
+  path: '/locations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InquireRoute = InquireRouteImport.update({
@@ -43,6 +69,11 @@ const DiasporaRoute = DiasporaRouteImport.update({
   path: '/diaspora',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookVisitRoute = BookVisitRouteImport.update({
   id: '/book-visit',
   path: '/book-visit',
@@ -51,6 +82,11 @@ const BookVisitRoute = BookVisitRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -91,11 +127,17 @@ const DocumentAgreementIdRoute = DocumentAgreementIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/book-visit': typeof BookVisitRoute
+  '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
+  '/locations': typeof LocationsRoute
+  '/partner': typeof PartnerRoute
   '/payment': typeof PaymentRoute
+  '/portal': typeof PortalRoute
+  '/privacy': typeof PrivacyRoute
   '/thank-you': typeof ThankYouRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
@@ -106,11 +148,17 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/book-visit': typeof BookVisitRoute
+  '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
+  '/locations': typeof LocationsRoute
+  '/partner': typeof PartnerRoute
   '/payment': typeof PaymentRoute
+  '/portal': typeof PortalRoute
+  '/privacy': typeof PrivacyRoute
   '/thank-you': typeof ThankYouRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
@@ -122,11 +170,17 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/book-visit': typeof BookVisitRoute
+  '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
   '/inquire': typeof InquireRoute
+  '/locations': typeof LocationsRoute
+  '/partner': typeof PartnerRoute
   '/payment': typeof PaymentRoute
+  '/portal': typeof PortalRoute
+  '/privacy': typeof PrivacyRoute
   '/thank-you': typeof ThankYouRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
@@ -139,11 +193,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/admin'
     | '/book-visit'
+    | '/contact'
     | '/diaspora'
     | '/inquire'
+    | '/locations'
+    | '/partner'
     | '/payment'
+    | '/portal'
+    | '/privacy'
     | '/thank-you'
     | '/blog/$slug'
     | '/properties/$slug'
@@ -154,11 +214,17 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/admin'
     | '/book-visit'
+    | '/contact'
     | '/diaspora'
     | '/inquire'
+    | '/locations'
+    | '/partner'
     | '/payment'
+    | '/portal'
+    | '/privacy'
     | '/thank-you'
     | '/blog/$slug'
     | '/properties/$slug'
@@ -169,11 +235,17 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/admin'
     | '/book-visit'
+    | '/contact'
     | '/diaspora'
     | '/inquire'
+    | '/locations'
+    | '/partner'
     | '/payment'
+    | '/portal'
+    | '/privacy'
     | '/thank-you'
     | '/blog/$slug'
     | '/properties/$slug'
@@ -185,11 +257,17 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   BookVisitRoute: typeof BookVisitRoute
+  ContactRoute: typeof ContactRoute
   DiasporaRoute: typeof DiasporaRoute
   InquireRoute: typeof InquireRoute
+  LocationsRoute: typeof LocationsRoute
+  PartnerRoute: typeof PartnerRoute
   PaymentRoute: typeof PaymentRoute
+  PortalRoute: typeof PortalRoute
+  PrivacyRoute: typeof PrivacyRoute
   ThankYouRoute: typeof ThankYouRoute
   BlogSlugRoute: typeof BlogSlugRoute
   PropertiesSlugRoute: typeof PropertiesSlugRoute
@@ -208,11 +286,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ThankYouRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/payment': {
       id: '/payment'
       path: '/payment'
       fullPath: '/payment'
       preLoaderRoute: typeof PaymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partner': {
+      id: '/partner'
+      path: '/partner'
+      fullPath: '/partner'
+      preLoaderRoute: typeof PartnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/locations': {
+      id: '/locations'
+      path: '/locations'
+      fullPath: '/locations'
+      preLoaderRoute: typeof LocationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inquire': {
@@ -229,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiasporaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/book-visit': {
       id: '/book-visit'
       path: '/book-visit'
@@ -241,6 +354,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -297,11 +417,17 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   BookVisitRoute: BookVisitRoute,
+  ContactRoute: ContactRoute,
   DiasporaRoute: DiasporaRoute,
   InquireRoute: InquireRoute,
+  LocationsRoute: LocationsRoute,
+  PartnerRoute: PartnerRoute,
   PaymentRoute: PaymentRoute,
+  PortalRoute: PortalRoute,
+  PrivacyRoute: PrivacyRoute,
   ThankYouRoute: ThankYouRoute,
   BlogSlugRoute: BlogSlugRoute,
   PropertiesSlugRoute: PropertiesSlugRoute,
