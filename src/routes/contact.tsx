@@ -35,18 +35,18 @@ function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F4EE] text-foreground font-sans">
+    <div className="min-h-screen bg-ivory text-foreground font-sans">
       <Navbar />
 
       {/* Hero Header */}
-      <section className="relative pt-32 pb-20 bg-[#074B7D] text-white overflow-hidden">
+      <section className="relative pt-32 pb-20 bg-primary-deep text-white overflow-hidden">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 relative z-10">
           <div className="max-w-3xl space-y-4">
-            <span className="px-3 py-1 bg-[#E8A020]/20 text-[#E8A020] border border-[#E8A020]/30 text-xs font-bold rounded-full uppercase tracking-wider">
+            <span className="px-3 py-1 bg-accent/20 text-accent border border-accent/30 text-xs font-bold rounded-full uppercase tracking-wider">
               WE ARE HERE FOR YOU
             </span>
             <h1 className="font-serif font-bold text-4xl sm:text-5xl lg:text-6xl leading-tight">
-              Get in Touch with <span className="text-[#E8A020]">Gatepath Realtors</span>
+              Get in Touch with <span className="text-accent">Gatepath Realtors</span>
             </h1>
             <p className="text-base text-slate-300 max-w-2xl leading-relaxed">
               Have a question about our plots in Malindi, Sagana, Diani, or Matuu? Call us, chat via WhatsApp, or visit our head office in Ruiru, Nairobi.
@@ -66,7 +66,7 @@ function ContactPage() {
                 <MessageCircle size={24} />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl text-[#074B7D]">Direct Phone & WhatsApp</h3>
+                <h3 className="font-serif font-bold text-xl text-primary-deep">Direct Phone & WhatsApp</h3>
                 <p className="text-xs text-slate-500 mt-1">Chat directly with a sales advisor or schedule a site visit.</p>
               </div>
               <div className="pt-2 border-t border-slate-100 space-y-2">
@@ -79,27 +79,27 @@ function ContactPage() {
                   <MessageCircle size={16} /> WhatsApp: +254 799 488 488
                 </a>
                 <p className="text-xs font-semibold text-slate-700 flex items-center gap-2">
-                  <Phone size={14} className="text-[#E8A020]" /> Phone: +254 799 488 488
+                  <Phone size={14} className="text-accent" /> Phone: +254 799 488 488
                 </p>
               </div>
             </div>
 
             {/* Card 2: Email & Office Address */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-[#0B7FC7]/15 flex items-center justify-center text-[#0B7FC7]">
+              <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center text-primary">
                 <MapPin size={24} />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl text-[#074B7D]">Headquarters & Email</h3>
+                <h3 className="font-serif font-bold text-xl text-primary-deep">Headquarters & Email</h3>
                 <p className="text-xs text-slate-500 mt-1">Visit our customer operations office in Ruiru.</p>
               </div>
               <div className="pt-2 border-t border-slate-100 space-y-2 text-xs text-slate-700">
                 <p className="flex items-start gap-2">
-                  <MapPin size={16} className="text-[#E8A020] shrink-0 mt-0.5" />
+                  <MapPin size={16} className="text-accent shrink-0 mt-0.5" />
                   <span><strong>CNM Centre, 1st Floor</strong><br />Ruiru Eastern Bypass, Nairobi, Kenya</span>
                 </p>
                 <p className="flex items-center gap-2 pt-1">
-                  <Mail size={16} className="text-[#E8A020] shrink-0" />
+                  <Mail size={16} className="text-accent shrink-0" />
                   <span>info@gatepathrealtors.com</span>
                 </p>
               </div>
@@ -108,8 +108,8 @@ function ContactPage() {
             {/* Card 3: Opening Hours */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
               <div className="flex items-center gap-3">
-                <Clock size={20} className="text-[#E8A020]" />
-                <h4 className="font-serif font-bold text-base text-[#074B7D]">Working Hours</h4>
+                <Clock size={20} className="text-accent" />
+                <h4 className="font-serif font-bold text-base text-primary-deep">Working Hours</h4>
               </div>
               <div className="text-xs text-slate-600 space-y-1 pt-1 border-t border-slate-100">
                 <p className="flex justify-between"><span>Monday – Friday:</span> <strong>8:00 AM – 6:00 PM</strong></p>
@@ -123,8 +123,8 @@ function ContactPage() {
           <div className="lg:col-span-7">
             <div className="bg-white p-8 lg:p-10 rounded-3xl border border-slate-200 shadow-sm space-y-6">
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-[#E8A020]">ONLINE INQUIRY</span>
-                <h3 className="font-serif font-bold text-2xl text-[#074B7D] mt-1">Send Us a Message</h3>
+                <span className="text-xs font-bold uppercase tracking-widest text-accent">ONLINE INQUIRY</span>
+                <h3 className="font-serif font-bold text-2xl text-primary-deep mt-1">Send Us a Message</h3>
                 <p className="text-xs text-slate-500 mt-1">Our sales team responds within 2 hours during office hours.</p>
               </div>
 
@@ -147,7 +147,7 @@ function ContactPage() {
                         value={formData.fullName}
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                         placeholder="John Doe"
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#0B7FC7]"
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -158,7 +158,7 @@ function ContactPage() {
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         placeholder="+254 700 000 000"
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#0B7FC7]"
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                       />
                     </div>
                   </div>
@@ -171,7 +171,7 @@ function ContactPage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="john@example.com"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#0B7FC7]"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                     />
                   </div>
 
@@ -180,7 +180,7 @@ function ContactPage() {
                     <select
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#0B7FC7]"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                     >
                       <option value="Inquiry about Plots">Inquiry about Plots</option>
                       <option value="Book Free Site Visit">Book Free Site Visit</option>
@@ -197,13 +197,13 @@ function ContactPage() {
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       placeholder="Specify the plot or location you are interested in..."
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#0B7FC7]"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-4 bg-[#074B7D] hover:bg-[#063A61] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md"
+                    className="w-full py-4 bg-primary-deep hover:bg-footer-deep text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md"
                   >
                     <Send size={16} /> Send Message Now
                   </button>

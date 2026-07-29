@@ -386,7 +386,7 @@ function BlogIndexPage() {
           </div>
           <Link
             to="/properties"
-            className="bg-accent text-white px-6 py-3.5 text-xs uppercase tracking-wider font-bold rounded hover:bg-[#C8861A] transition-all"
+            className="bg-accent text-white px-6 py-3.5 text-xs uppercase tracking-wider font-bold rounded hover:bg-accent-dark transition-all"
           >
             Explore Properties →
           </Link>

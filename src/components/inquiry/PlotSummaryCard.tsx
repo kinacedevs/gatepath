@@ -16,7 +16,7 @@ export function PlotSummaryCard() {
           fontFamily: "Montserrat, sans-serif",
           fontWeight: 500,
           fontSize: 11,
-          color: "#E8A020",
+          color: "var(--accent)",
           letterSpacing: "0.15em",
         }}
       >
@@ -51,7 +51,7 @@ export function PlotSummaryCard() {
           fontFamily: "Montserrat, sans-serif",
           fontWeight: 700,
           fontSize: 22,
-          color: "#E8A020",
+          color: "var(--accent)",
         }}
       >
         Ksh {form.plotPrice.toLocaleString()}

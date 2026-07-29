@@ -43,34 +43,34 @@ function PrivacyPage() {
     {
       id: "controller",
       icon: UserCheck,
-      color: "#0B7FC7",
+      color: "var(--primary)",
       title: "1. Data Controller Identity",
       content: (
-        <div className="space-y-3 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            <strong className="text-[#1C1C1C]">Gatepath Realtors Limited</strong> (hereinafter "Gatepath Realtors",
+            <strong className="text-foreground">Gatepath Realtors Limited</strong> (hereinafter "Gatepath Realtors",
             "we", "us", or "our") is the registered Data Controller for all personal data processed through this
             website and associated services. Our registration details are:
           </p>
           <ul className="list-none space-y-2 pl-0">
             <li className="flex items-center gap-3">
-              <Globe size={14} className="text-[#0B7FC7] shrink-0" />
+              <Globe size={14} className="text-primary shrink-0" />
               <span><strong>Website:</strong> www.gatepathrealtors.com</span>
             </li>
             <li className="flex items-center gap-3">
-              <Mail size={14} className="text-[#0B7FC7] shrink-0" />
+              <Mail size={14} className="text-primary shrink-0" />
               <span><strong>Data Protection Email:</strong> info@gatepathrealtors.com</span>
             </li>
             <li className="flex items-center gap-3">
-              <Phone size={14} className="text-[#0B7FC7] shrink-0" />
+              <Phone size={14} className="text-primary shrink-0" />
               <span><strong>Phone:</strong> +254 700 000 000</span>
             </li>
           </ul>
           <p>
             We are committed to compliance with the{" "}
-            <strong className="text-[#1C1C1C]">Kenya Data Protection Act No. 24 of 2019</strong> and the
+            <strong className="text-foreground">Kenya Data Protection Act No. 24 of 2019</strong> and the
             regulations published by the{" "}
-            <strong className="text-[#1C1C1C]">Office of the Data Protection Commissioner (ODPC)</strong> of Kenya.
+            <strong className="text-foreground">Office of the Data Protection Commissioner (ODPC)</strong> of Kenya.
             This Privacy Notice is issued pursuant to Section 25 of that Act.
           </p>
         </div>
@@ -79,10 +79,10 @@ function PrivacyPage() {
     {
       id: "collection",
       icon: Database,
-      color: "#0B7FC7",
+      color: "var(--primary)",
       title: "2. Personal Data We Collect",
       content: (
-        <div className="space-y-4 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             We collect personal data only to the extent necessary to deliver our real estate services and comply with
             applicable law. The categories of personal data we process include:
@@ -124,8 +124,8 @@ function PrivacyPage() {
                 ],
               },
             ].map((cat) => (
-              <div key={cat.label} className="bg-[#F8F4EE] rounded-xl px-5 py-4 border border-[#EAE4DC]">
-                <h4 className="font-semibold text-[#1C1C1C] text-[14px] mb-2">{cat.label}</h4>
+              <div key={cat.label} className="bg-ivory rounded-xl px-5 py-4 border border-[#EAE4DC]">
+                <h4 className="font-semibold text-foreground text-[14px] mb-2">{cat.label}</h4>
                 <ul className="list-disc pl-5 space-y-1 text-[14px]">
                   {cat.items.map((item) => (
                     <li key={item}>{item}</li>
@@ -145,20 +145,20 @@ function PrivacyPage() {
     {
       id: "purpose",
       icon: FileText,
-      color: "#E8A020",
+      color: "var(--accent)",
       title: "3. Purpose & Lawful Basis for Processing",
       content: (
-        <div className="space-y-4 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             Under Section 30 of the Kenya Data Protection Act, we process your personal data only where a lawful
             basis exists. The table below maps each purpose to its corresponding legal ground:
           </p>
           <div className="overflow-x-auto rounded-xl border border-[#E5E0D8]">
             <table className="w-full text-[13px]">
-              <thead className="bg-[#F0F4F8]">
+              <thead className="bg-stone">
                 <tr>
-                  <th className="text-left px-4 py-3 font-bold text-[#1C1C1C]">Purpose</th>
-                  <th className="text-left px-4 py-3 font-bold text-[#1C1C1C]">Lawful Basis (KDPA S.30)</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">Purpose</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">Lawful Basis (KDPA S.30)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EBE3]">
@@ -173,14 +173,14 @@ function PrivacyPage() {
                   ["Succession planning for next-of-kin registration", "Consent + Legal obligation (S.30(a)/(c))"],
                 ].map(([purpose, basis]) => (
                   <tr key={purpose} className="hover:bg-[#FAFAF8]">
-                    <td className="px-4 py-3 text-[#5A5A5A]">{purpose}</td>
-                    <td className="px-4 py-3 font-semibold text-[#0B7FC7] whitespace-nowrap">{basis}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{purpose}</td>
+                    <td className="px-4 py-3 font-semibold text-primary whitespace-nowrap">{basis}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="text-[14px] font-medium text-[#1C1C1C]">
+          <p className="text-[14px] font-medium text-foreground">
             We will never sell, rent, or lease your personal information to third parties for their commercial use.
           </p>
         </div>
@@ -189,10 +189,10 @@ function PrivacyPage() {
     {
       id: "sharing",
       icon: Globe,
-      color: "#0B7FC7",
+      color: "var(--primary)",
       title: "4. Data Sharing & Third-Party Disclosure",
       content: (
-        <div className="space-y-4 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             We only share your data with third parties to the extent strictly necessary, and always within the
             framework of Section 38 of the Kenya Data Protection Act:
@@ -226,8 +226,8 @@ function PrivacyPage() {
               },
             ].map((r) => (
               <div key={r.party} className="rounded-xl border border-[#E5E0D8] p-5 bg-white">
-                <h4 className="font-semibold text-[#1C1C1C] text-[14px]">{r.party}</h4>
-                <p className="text-[13px] mt-1 text-[#5A5A5A]">
+                <h4 className="font-semibold text-foreground text-[14px]">{r.party}</h4>
+                <p className="text-[13px] mt-1 text-muted-foreground">
                   <strong>Purpose:</strong> {r.purpose}
                 </p>
                 <p className="text-[12px] mt-1 text-[#8A8179] italic">
@@ -242,21 +242,21 @@ function PrivacyPage() {
     {
       id: "retention",
       icon: Lock,
-      color: "#E8A020",
+      color: "var(--accent)",
       title: "5. Data Retention",
       content: (
-        <div className="space-y-3 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             We retain personal data only for as long as necessary to fulfil the purpose for which it was collected,
             or as required by applicable law (Section 39 of the Kenya Data Protection Act):
           </p>
           <div className="overflow-x-auto rounded-xl border border-[#E5E0D8]">
             <table className="w-full text-[13px]">
-              <thead className="bg-[#F0F4F8]">
+              <thead className="bg-stone">
                 <tr>
-                  <th className="text-left px-4 py-3 font-bold text-[#1C1C1C]">Data Category</th>
-                  <th className="text-left px-4 py-3 font-bold text-[#1C1C1C]">Retention Period</th>
-                  <th className="text-left px-4 py-3 font-bold text-[#1C1C1C]">Basis</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">Data Category</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">Retention Period</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">Basis</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EBE3]">
@@ -269,9 +269,9 @@ function PrivacyPage() {
                   ["Website usage / analytics data", "24 months (anonymised after 12 months)", "Legitimate interest"],
                 ].map(([cat, period, basis]) => (
                   <tr key={cat} className="hover:bg-[#FAFAF8]">
-                    <td className="px-4 py-3 text-[#5A5A5A]">{cat}</td>
-                    <td className="px-4 py-3 font-semibold text-[#1C1C1C]">{period}</td>
-                    <td className="px-4 py-3 text-[#0B7FC7] text-[12px]">{basis}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{cat}</td>
+                    <td className="px-4 py-3 font-semibold text-foreground">{period}</td>
+                    <td className="px-4 py-3 text-primary text-[12px]">{basis}</td>
                   </tr>
                 ))}
               </tbody>
@@ -283,10 +283,10 @@ function PrivacyPage() {
     {
       id: "rights",
       icon: Scale,
-      color: "#0B7FC7",
+      color: "var(--primary)",
       title: "6. Your Rights Under the Kenya Data Protection Act",
       content: (
-        <div className="space-y-4 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             Pursuant to Part IV of the Kenya Data Protection Act No. 24 of 2019, you have the following enforceable
             rights as a data subject:
@@ -300,9 +300,9 @@ function PrivacyPage() {
               { right: "Right to Data Portability (S.31)", desc: "Receive your personal data in a structured, machine-readable format to transfer to another service provider." },
               { right: "Right to Withdraw Consent (S.30)", desc: "Where processing is based on consent, withdraw it at any time without affecting the lawfulness of prior processing." },
             ].map((r) => (
-              <div key={r.right} className="bg-[#F8F4EE] rounded-xl p-4 border border-[#EAE4DC]">
-                <h4 className="font-bold text-[13px] text-[#0B7FC7] mb-1">{r.right}</h4>
-                <p className="text-[13px] text-[#5A5A5A] leading-relaxed">{r.desc}</p>
+              <div key={r.right} className="bg-ivory rounded-xl p-4 border border-[#EAE4DC]">
+                <h4 className="font-bold text-[13px] text-primary mb-1">{r.right}</h4>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">{r.desc}</p>
               </div>
             ))}
           </div>
@@ -310,19 +310,19 @@ function PrivacyPage() {
             To exercise any of these rights, contact our Data Protection Officer at{" "}
             <a
               href="mailto:info@gatepathrealtors.com"
-              className="text-[#0B7FC7] hover:underline font-medium"
+              className="text-primary hover:underline font-medium"
             >
               info@gatepathrealtors.com
             </a>{" "}
             with subject line <em>"Data Rights Request"</em>. We will respond within{" "}
-            <strong className="text-[#1C1C1C]">21 calendar days</strong> as required by the Act.
+            <strong className="text-foreground">21 calendar days</strong> as required by the Act.
           </p>
-          <div className="bg-[#FFF8EC] border border-[#E8A020]/30 rounded-xl p-4 flex gap-3">
-            <AlertTriangle size={18} className="text-[#E8A020] shrink-0 mt-0.5" />
-            <p className="text-[13px] text-[#5A5A5A]">
+          <div className="bg-[#FFF8EC] border border-accent/30 rounded-xl p-4 flex gap-3">
+            <AlertTriangle size={18} className="text-accent shrink-0 mt-0.5" />
+            <p className="text-[13px] text-muted-foreground">
               If you believe your rights have been violated, you have the right to lodge a complaint with the{" "}
-              <strong className="text-[#1C1C1C]">Office of the Data Protection Commissioner (ODPC)</strong> of Kenya at{" "}
-              <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-[#0B7FC7] hover:underline">
+              <strong className="text-foreground">Office of the Data Protection Commissioner (ODPC)</strong> of Kenya at{" "}
+              <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 www.odpc.go.ke
               </a>{" "}
               or call <strong>+254 20 222 2222</strong>.
@@ -334,10 +334,10 @@ function PrivacyPage() {
     {
       id: "security",
       icon: ShieldCheck,
-      color: "#22C55E",
+      color: "var(--available)",
       title: "7. Security Measures",
       content: (
-        <div className="space-y-3 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             We implement appropriate technical and organisational measures under Section 41 of the Kenya Data
             Protection Act to protect your personal data against loss, unauthorised access, disclosure, or
@@ -367,17 +367,17 @@ function PrivacyPage() {
       color: "#8B5CF6",
       title: "8. Cookies & Tracking Technologies",
       content: (
-        <div className="space-y-3 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             Our website uses minimal, privacy-respecting cookies and similar technologies:
           </p>
           <div className="overflow-x-auto rounded-xl border border-[#E5E0D8]">
             <table className="w-full text-[13px]">
-              <thead className="bg-[#F0F4F8]">
+              <thead className="bg-stone">
                 <tr>
-                  <th className="text-left px-4 py-3 font-bold text-[#1C1C1C]">Cookie Name / Type</th>
-                  <th className="text-left px-4 py-3 font-bold text-[#1C1C1C]">Purpose</th>
-                  <th className="text-left px-4 py-3 font-bold text-[#1C1C1C]">Duration</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">Cookie Name / Type</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">Purpose</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">Duration</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EBE3]">
@@ -388,9 +388,9 @@ function PrivacyPage() {
                   ["Paystack Payment Cookie", "Tracks payment flow integrity during checkout. Set by Paystack, not Gatepath.", "Session"],
                 ].map(([name, purpose, duration]) => (
                   <tr key={name} className="hover:bg-[#FAFAF8]">
-                    <td className="px-4 py-3 font-medium text-[#1C1C1C]">{name}</td>
-                    <td className="px-4 py-3 text-[#5A5A5A]">{purpose}</td>
-                    <td className="px-4 py-3 text-[#0B7FC7]">{duration}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{purpose}</td>
+                    <td className="px-4 py-3 text-primary">{duration}</td>
                   </tr>
                 ))}
               </tbody>
@@ -406,10 +406,10 @@ function PrivacyPage() {
     {
       id: "international",
       icon: Globe,
-      color: "#0B7FC7",
+      color: "var(--primary)",
       title: "9. International Data Transfers",
       content: (
-        <div className="space-y-3 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             Gatepath Realtors uses cloud infrastructure (Supabase, Paystack) that may process data in data centres
             outside Kenya, including within the EU and United States. Any such transfer is conducted in strict
@@ -435,15 +435,15 @@ function PrivacyPage() {
     {
       id: "children",
       icon: UserCheck,
-      color: "#E8A020",
+      color: "var(--accent)",
       title: "10. Children's Privacy",
       content: (
-        <div className="space-y-3 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             Our real estate services are directed exclusively to adults aged 18 years and above. We do not
             knowingly collect personal data from persons under 18. If you believe a minor has submitted data
             through our platform, please contact us immediately at{" "}
-            <a href="mailto:info@gatepathrealtors.com" className="text-[#0B7FC7] hover:underline">
+            <a href="mailto:info@gatepathrealtors.com" className="text-primary hover:underline">
               info@gatepathrealtors.com
             </a>{" "}
             and we will delete that data promptly. Property ownership by minors may only be facilitated through
@@ -455,16 +455,16 @@ function PrivacyPage() {
     {
       id: "changes",
       icon: FileText,
-      color: "#0B7FC7",
+      color: "var(--primary)",
       title: "11. Changes to This Privacy Notice",
       content: (
-        <div className="space-y-3 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             We reserve the right to update this Privacy Notice from time to time to reflect changes in our data
             practices, legal requirements, or business operations. When we make material changes, we will:
           </p>
           <ul className="list-disc pl-5 space-y-2">
-            <li>Update the <strong className="text-[#1C1C1C]">Effective Date</strong> at the top of this notice</li>
+            <li>Update the <strong className="text-foreground">Effective Date</strong> at the top of this notice</li>
             <li>Display a prominent notice on our homepage for at least 30 days</li>
             <li>
               Email registered clients who have opted into communications with a summary of what has changed
@@ -480,46 +480,46 @@ function PrivacyPage() {
     {
       id: "contact",
       icon: Mail,
-      color: "#0B7FC7",
+      color: "var(--primary)",
       title: "12. Contact & Complaints",
       content: (
-        <div className="space-y-4 text-[#5A5A5A] text-[15px] leading-[1.9]">
+        <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
             For all data protection inquiries, rights requests, or complaints about how we handle your personal
             data, please contact our designated Data Protection Officer:
           </p>
-          <div className="bg-[#F0F8FF] rounded-xl border border-[#0B7FC7]/20 p-6 space-y-3">
+          <div className="bg-[#F0F8FF] rounded-xl border border-primary/20 p-6 space-y-3">
             <div className="flex items-center gap-3">
-              <UserCheck size={18} className="text-[#0B7FC7]" />
+              <UserCheck size={18} className="text-primary" />
               <div>
                 <div className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Data Protection Officer</div>
-                <div className="font-semibold text-[#1C1C1C]">Gatepath Realtors — DPO Desk</div>
+                <div className="font-semibold text-foreground">Gatepath Realtors — DPO Desk</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Mail size={16} className="text-[#0B7FC7] shrink-0" />
-              <a href="mailto:info@gatepathrealtors.com" className="text-[#0B7FC7] hover:underline font-medium">
+              <Mail size={16} className="text-primary shrink-0" />
+              <a href="mailto:info@gatepathrealtors.com" className="text-primary hover:underline font-medium">
                 info@gatepathrealtors.com
               </a>
             </div>
             <div className="flex items-center gap-3">
-              <Phone size={16} className="text-[#0B7FC7] shrink-0" />
+              <Phone size={16} className="text-primary shrink-0" />
               <span>+254 700 000 000</span>
             </div>
             <div className="flex items-center gap-3">
-              <Globe size={16} className="text-[#0B7FC7] shrink-0" />
+              <Globe size={16} className="text-primary shrink-0" />
               <span>Nairobi, Kenya (East Africa Standard Time, GMT+3)</span>
             </div>
           </div>
           <p className="text-[14px]">
             If you are not satisfied with our response, you may file a complaint with the{" "}
-            <strong className="text-[#1C1C1C]">Office of the Data Protection Commissioner (ODPC)</strong>:
+            <strong className="text-foreground">Office of the Data Protection Commissioner (ODPC)</strong>:
           </p>
-          <div className="bg-[#FFF8EC] border border-[#E8A020]/30 rounded-xl p-5 space-y-2">
-            <p className="font-bold text-[#1C1C1C] text-[14px]">Office of the Data Protection Commissioner</p>
+          <div className="bg-[#FFF8EC] border border-accent/30 rounded-xl p-5 space-y-2">
+            <p className="font-bold text-foreground text-[14px]">Office of the Data Protection Commissioner</p>
             <p className="text-[13px]">
               Website:{" "}
-              <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-[#0B7FC7] hover:underline">
+              <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 www.odpc.go.ke
               </a>
             </p>
@@ -533,7 +533,7 @@ function PrivacyPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8F4EE]">
+    <div className="min-h-screen bg-ivory">
       <Navbar />
 
       <div className="pt-20">
@@ -541,10 +541,10 @@ function PrivacyPage() {
         <section className="bg-primary text-white py-20 px-6 text-center relative overflow-hidden">
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#E8A020] rounded-full translate-y-1/2 -translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-accent rounded-full translate-y-1/2 -translate-x-1/2" />
           </div>
           <div className="mx-auto max-w-4xl relative">
-            <span className="inline-flex items-center gap-2 bg-[#E8A020]/20 text-[#E8A020] border border-[#E8A020]/30 font-semibold tracking-wider uppercase text-[12px] px-3.5 py-1.5 rounded-full mb-5">
+            <span className="inline-flex items-center gap-2 bg-accent/20 text-accent border border-accent/30 font-semibold tracking-wider uppercase text-[12px] px-3.5 py-1.5 rounded-full mb-5">
               <ShieldCheck size={14} /> Kenya Data Protection Act Compliant
             </span>
             <h1 className="font-serif font-bold text-[36px] md:text-[52px] leading-tight">
@@ -556,7 +556,7 @@ function PrivacyPage() {
               of the Office of the Data Protection Commissioner (ODPC).
             </p>
             <div className="mt-8 inline-flex items-center gap-3 bg-white/10 border border-white/20 rounded-xl px-6 py-3 text-[13px]">
-              <Scale size={16} className="text-[#E8A020]" />
+              <Scale size={16} className="text-accent" />
               <span>
                 <strong>Effective Date:</strong> July 14, 2026 &nbsp;|&nbsp;{" "}
                 <strong>Version:</strong> 1.0
@@ -569,15 +569,15 @@ function PrivacyPage() {
         <section className="py-10 px-6">
           <div className="mx-auto max-w-4xl">
             <div className="bg-white rounded-2xl border border-[#E5E0D8] shadow-sm p-6">
-              <h2 className="font-serif font-semibold text-[16px] text-[#1C1C1C] mb-4">Table of Contents</h2>
+              <h2 className="font-serif font-semibold text-[16px] text-foreground mb-4">Table of Contents</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {sections.map((s, i) => (
                   <a
                     key={s.id}
                     href={`#${s.id}`}
-                    className="flex items-center gap-2 text-[13px] text-[#0B7FC7] hover:underline py-0.5"
+                    className="flex items-center gap-2 text-[13px] text-primary hover:underline py-0.5"
                   >
-                    <span className="w-5 h-5 rounded-full bg-[#0B7FC7]/10 text-[#0B7FC7] flex items-center justify-center text-[10px] font-bold shrink-0">
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
                       {i + 1}
                     </span>
                     {s.title.replace(/^\d+\.\s/, "")}
@@ -609,7 +609,7 @@ function PrivacyPage() {
                     >
                       <Icon size={18} style={{ color: s.color }} />
                     </div>
-                    <h2 className="font-serif font-bold text-[18px] text-[#1C1C1C]">{s.title}</h2>
+                    <h2 className="font-serif font-bold text-[18px] text-foreground">{s.title}</h2>
                   </div>
                   <div className="px-8 py-7">{s.content}</div>
                 </div>
@@ -648,7 +648,7 @@ function PrivacyPage() {
             <div className="text-center pt-4">
               <Link
                 to="/"
-                className="inline-flex items-center justify-center bg-[#0B7FC7] text-white font-semibold text-[14px] px-10 py-4 rounded-xl hover:bg-[#09669E] transition-all shadow-md"
+                className="inline-flex items-center justify-center bg-primary text-white font-semibold text-[14px] px-10 py-4 rounded-xl hover:bg-[#09669E] transition-all shadow-md"
               >
                 Return to Homepage
               </Link>

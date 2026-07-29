@@ -341,7 +341,7 @@ function ClientPortalPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F4EE] font-sans">
+    <div className="min-h-screen bg-ivory font-sans">
       <Navbar />
 
       <div className="pt-20">
@@ -349,15 +349,15 @@ function ClientPortalPage() {
           /* LOGIN & OTP VERIFICATION SCREENS */
           <section className="py-24 px-6 flex justify-center items-center">
             <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 p-8 md:p-10 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#074B7D] via-[#E8A020] to-[#0B7FC7]" />
+              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-primary-deep via-accent to-primary" />
 
               {!otpSent ? (
                 <div>
                   <div className="text-center mb-8">
-                    <div className="w-14 h-14 bg-[#074B7D]/10 text-[#074B7D] rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Lock size={26} className="text-[#E8A020]" />
+                    <div className="w-14 h-14 bg-primary-deep/10 text-primary-deep rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Lock size={26} className="text-accent" />
                     </div>
-                    <h1 className="font-serif font-bold text-3xl text-[#074B7D] tracking-tight">
+                    <h1 className="font-serif font-bold text-3xl text-primary-deep tracking-tight">
                       Client Hub Access
                     </h1>
                     <p className="text-slate-500 text-xs font-light mt-2 leading-relaxed">
@@ -374,7 +374,7 @@ function ClientPortalPage() {
 
                   <form onSubmit={handleLoginRequest} className="space-y-4">
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#074B7D] mb-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-primary-deep mb-1">
                         Registered Email *
                       </label>
                       <input
@@ -383,12 +383,12 @@ function ClientPortalPage() {
                         value={emailInput}
                         onChange={(e) => setEmailInput(e.target.value)}
                         placeholder="e.g. client@example.com"
-                        className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-[#0B7FC7] bg-white"
+                        className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-primary bg-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#074B7D] mb-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-primary-deep mb-1">
                         Registered Phone *
                       </label>
                       <input
@@ -397,14 +397,14 @@ function ClientPortalPage() {
                         value={phoneInput}
                         onChange={(e) => setPhoneInput(e.target.value)}
                         placeholder="e.g. 07XXXXXXXX"
-                        className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-[#0B7FC7] bg-white"
+                        className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-primary bg-white"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#0B7FC7] text-white font-bold text-xs py-3.5 rounded-xl hover:bg-[#074B7D] transition-all flex items-center justify-center gap-2 shadow-md"
+                      className="w-full bg-primary text-white font-bold text-xs py-3.5 rounded-xl hover:bg-primary-deep transition-all flex items-center justify-center gap-2 shadow-md"
                     >
                       {loading ? <Loader2 className="animate-spin" size={16} /> : "Request WhatsApp OTP →"}
                     </button>
@@ -416,7 +416,7 @@ function ClientPortalPage() {
                     <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
                       <MessageSquare size={24} />
                     </div>
-                    <h1 className="font-serif font-bold text-2xl text-[#074B7D]">Enter OTP Code</h1>
+                    <h1 className="font-serif font-bold text-2xl text-primary-deep">Enter OTP Code</h1>
                     <p className="text-xs text-slate-500 mt-1">
                       Code dispatched to <strong className="text-slate-800">{phoneInput}</strong>
                     </p>
@@ -438,13 +438,13 @@ function ClientPortalPage() {
                       value={otpInput}
                       onChange={(e) => setOtpInput(e.target.value)}
                       placeholder="Enter 6-digit OTP"
-                      className="w-full border border-slate-200 rounded-xl p-3 text-center font-mono font-bold tracking-widest text-lg outline-none focus:border-[#0B7FC7]"
+                      className="w-full border border-slate-200 rounded-xl p-3 text-center font-mono font-bold tracking-widest text-lg outline-none focus:border-primary"
                     />
 
                     <button
                       type="submit"
                       disabled={otpVerifying}
-                      className="w-full bg-[#074B7D] text-white font-bold text-xs py-3.5 rounded-xl hover:opacity-90 transition-opacity"
+                      className="w-full bg-primary-deep text-white font-bold text-xs py-3.5 rounded-xl hover:opacity-90 transition-opacity"
                     >
                       {otpVerifying ? "Authorizing..." : "Verify & Log In →"}
                     </button>
@@ -467,8 +467,8 @@ function ClientPortalPage() {
             {/* Header Block */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-200">
               <div>
-                <span className="text-xs font-bold text-[#E8A020] uppercase tracking-wider">CLIENT HUB & TITLE TRACKER</span>
-                <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[#074B7D] mt-1">
+                <span className="text-xs font-bold text-accent uppercase tracking-wider">CLIENT HUB & TITLE TRACKER</span>
+                <h1 className="font-serif font-bold text-3xl sm:text-4xl text-primary-deep mt-1">
                   Welcome Back, {inquiries[0]?.client_full_name}
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">Logged in as <strong className="text-slate-800">{sessionEmail}</strong></p>
@@ -483,15 +483,15 @@ function ClientPortalPage() {
 
             {fetchingData ? (
               <div className="py-24 text-center">
-                <Loader2 className="animate-spin text-[#0B7FC7] mx-auto mb-4" size={44} />
+                <Loader2 className="animate-spin text-primary mx-auto mb-4" size={44} />
                 <p className="text-xs text-slate-500 font-semibold">Synchronizing title deed & payment records...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Left Column (Purchased Plots & 5-Stage Title Deed Conveyancing Tracker) */}
                 <div className="lg:col-span-8 space-y-8">
-                  <h2 className="font-serif font-bold text-2xl text-[#074B7D] flex items-center gap-2">
-                    <TrendingUp className="text-[#E8A020]" size={24} /> My Purchased Plots & Conveyancing Status
+                  <h2 className="font-serif font-bold text-2xl text-primary-deep flex items-center gap-2">
+                    <TrendingUp className="text-accent" size={24} /> My Purchased Plots & Conveyancing Status
                   </h2>
 
                   {inquiries.map((inq) => {
@@ -510,12 +510,12 @@ function ClientPortalPage() {
                       <div key={inq.id} className="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-6">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                           <div>
-                            <span className="text-[10px] font-bold text-[#E8A020] uppercase tracking-wider">Purchased Unit</span>
-                            <h3 className="font-serif font-bold text-2xl text-[#074B7D]">
+                            <span className="text-[10px] font-bold text-accent uppercase tracking-wider">Purchased Unit</span>
+                            <h3 className="font-serif font-bold text-2xl text-primary-deep">
                               Plot #{inq.plot_number_ref} · {inq.phase_name}
                             </h3>
                             <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                              <MapPin size={13} className="text-[#E8A020]" /> {inq.plot_size}
+                              <MapPin size={13} className="text-accent" /> {inq.plot_size}
                             </p>
                           </div>
 
@@ -530,21 +530,21 @@ function ClientPortalPage() {
                         <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
                           <div>
                             <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Plot Price</span>
-                            <span className="font-stat-lg text-lg font-extrabold text-[#074B7D]">Ksh {inq.price.toLocaleString()}</span>
+                            <span className="font-stat-lg text-lg font-extrabold text-primary-deep">Ksh {inq.price.toLocaleString()}</span>
                           </div>
                           <div>
                             <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Paid So Far</span>
-                            <span className="font-stat-lg text-lg font-extrabold text-[#22C55E]">Ksh {totalPaid.toLocaleString()}</span>
+                            <span className="font-stat-lg text-lg font-extrabold text-available">Ksh {totalPaid.toLocaleString()}</span>
                           </div>
                           <div>
                             <span className="text-[10px] uppercase font-bold text-slate-400 block">Remaining Balance</span>
-                            <span className="font-stat-lg text-lg font-extrabold text-[#E8A020]">Ksh {remainingBalance.toLocaleString()}</span>
+                            <span className="font-stat-lg text-lg font-extrabold text-accent">Ksh {remainingBalance.toLocaleString()}</span>
                           </div>
                         </div>
 
                         {/* 5-STAGE TITLE DEED CONVEYANCING PROGRESS RAIL */}
                         <div className="space-y-3 pt-2">
-                          <span className="text-xs font-bold text-[#074B7D] uppercase tracking-wider block">
+                          <span className="text-xs font-bold text-primary-deep uppercase tracking-wider block">
                             5-Stage Title Deed Conveyancing Pipeline
                           </span>
 
@@ -591,7 +591,7 @@ function ClientPortalPage() {
                           <div className="pt-2 flex justify-end">
                             <button
                               onClick={() => openInstallmentModal(inq, remainingBalance)}
-                              className="px-6 py-3 bg-[#0B7FC7] hover:bg-[#074B7D] text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-md"
+                              className="px-6 py-3 bg-primary hover:bg-primary-deep text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-md"
                             >
                               <CreditCard size={16} /> Pay Next Installment (Ksh {Math.min(26667, remainingBalance).toLocaleString()})
                             </button>
@@ -606,8 +606,8 @@ function ClientPortalPage() {
                 <div className="lg:col-span-4 space-y-8">
                   {/* Document Vault */}
                   <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-                    <h3 className="font-serif font-bold text-xl text-[#074B7D] flex items-center gap-2">
-                      <FolderOpen size={20} className="text-[#E8A020]" /> Document Vault
+                    <h3 className="font-serif font-bold text-xl text-primary-deep flex items-center gap-2">
+                      <FolderOpen size={20} className="text-accent" /> Document Vault
                     </h3>
 
                     <div className="space-y-3">
@@ -619,7 +619,7 @@ function ClientPortalPage() {
                             params={{ id: inq.id }}
                             className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
                           >
-                            <span className="flex items-center gap-2"><FileText size={16} className="text-[#0B7FC7]" /> Purchase Agreement PDF</span>
+                            <span className="flex items-center gap-2"><FileText size={16} className="text-primary" /> Purchase Agreement PDF</span>
                             <ArrowRight size={14} />
                           </Link>
                           <Link
@@ -627,7 +627,7 @@ function ClientPortalPage() {
                             params={{ id: inq.id }}
                             className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
                           >
-                            <span className="flex items-center gap-2"><FileText size={16} className="text-[#22C55E]" /> Official Payment Receipt</span>
+                            <span className="flex items-center gap-2"><FileText size={16} className="text-available" /> Official Payment Receipt</span>
                             <ArrowRight size={14} />
                           </Link>
                         </div>
@@ -637,8 +637,8 @@ function ClientPortalPage() {
 
                   {/* Scheduled Site Visits */}
                   <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-                    <h3 className="font-serif font-bold text-xl text-[#074B7D] flex items-center gap-2">
-                      <Calendar size={20} className="text-[#E8A020]" /> Scheduled Visits
+                    <h3 className="font-serif font-bold text-xl text-primary-deep flex items-center gap-2">
+                      <Calendar size={20} className="text-accent" /> Scheduled Visits
                     </h3>
 
                     {bookings.length === 0 ? (
@@ -647,7 +647,7 @@ function ClientPortalPage() {
                       bookings.map((b) => (
                         <div key={b.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1">
                           <div className="flex justify-between font-bold">
-                            <span className="text-[#074B7D]">Site Visit Scheduled</span>
+                            <span className="text-primary-deep">Site Visit Scheduled</span>
                             <span className="text-green-600 uppercase">{b.status}</span>
                           </div>
                           <p className="text-slate-600">Date: <strong>{b.visit_date || "Confirmed"}</strong> at {b.visit_time || "Morning"}</p>
@@ -674,8 +674,8 @@ function ClientPortalPage() {
             </button>
 
             <div>
-              <span className="text-[10px] font-bold text-[#E8A020] uppercase tracking-wider block">IN-PORTAL PAYSTACK CHECKOUT</span>
-              <h3 className="font-serif font-bold text-2xl text-[#074B7D]">Pay Installment</h3>
+              <span className="text-[10px] font-bold text-accent uppercase tracking-wider block">IN-PORTAL PAYSTACK CHECKOUT</span>
+              <h3 className="font-serif font-bold text-2xl text-primary-deep">Pay Installment</h3>
               <p className="text-xs text-slate-500 mt-1">Plot #{payingInquiry.plot_number_ref} · {payingInquiry.phase_name}</p>
             </div>
 
@@ -685,7 +685,7 @@ function ClientPortalPage() {
                 type="number"
                 value={payAmount}
                 onChange={(e) => setPayAmount(Number(e.target.value))}
-                className="w-full p-3.5 border border-slate-200 rounded-xl text-lg font-bold text-[#0B7FC7] outline-none focus:border-[#0B7FC7]"
+                className="w-full p-3.5 border border-slate-200 rounded-xl text-lg font-bold text-primary outline-none focus:border-primary"
               />
               <p className="text-[11px] text-slate-400">
                 Suggested installment: <strong>Ksh 26,667</strong>
@@ -702,7 +702,7 @@ function ClientPortalPage() {
               <button
                 onClick={executeInPortalPayment}
                 disabled={payProcessing || payAmount <= 0}
-                className="px-6 py-3 bg-[#0B7FC7] hover:bg-[#074B7D] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-md"
+                className="px-6 py-3 bg-primary hover:bg-primary-deep text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-md"
               >
                 {payProcessing ? <Loader2 className="animate-spin" size={16} /> : `Pay Ksh ${payAmount.toLocaleString()} via Paystack →`}
               </button>

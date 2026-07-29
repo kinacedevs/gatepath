@@ -44,11 +44,11 @@ export function BarakaPlainsMap({ plots, selectedPlotId, onSelectPlot }: BarakaP
   const getStatusColor = (status?: string) => {
     switch (status) {
       case "available":
-        return { fill: "#DCFCE7", stroke: "#22C55E", text: "#15803D" };
+        return { fill: "#DCFCE7", stroke: "var(--available)", text: "#15803D" };
       case "booked":
         return { fill: "#FEF3C7", stroke: "#F59E0B", text: "#B45309" };
       case "sold":
-        return { fill: "#FEE2E2", stroke: "#EF4444", text: "#B91C1C" };
+        return { fill: "#FEE2E2", stroke: "var(--destructive)", text: "#B91C1C" };
       default:
         return { fill: "#E2E8F0", stroke: "#94A3B8", text: "#475569" };
     }
@@ -59,15 +59,15 @@ export function BarakaPlainsMap({ plots, selectedPlotId, onSelectPlot }: BarakaP
       {/* Header & Map Title */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
-          <h3 className="font-headline-md text-lg text-[#074B7D] font-bold">Baraka Plains Phase 6 — Masterplan Map</h3>
+          <h3 className="font-headline-md text-lg text-primary-deep font-bold">Baraka Plains Phase 6 — Masterplan Map</h3>
           <p className="text-xs text-slate-500">Matuu, Machakos County • Exact Physical Survey Replica</p>
         </div>
 
         {/* Legend */}
         <div className="flex items-center gap-4 text-xs font-semibold">
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#22C55E]"></span> Available</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-available"></span> Available</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#F59E0B]"></span> Booked</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#EF4444]"></span> Sold</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-destructive"></span> Sold</span>
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export function BarakaPlainsMap({ plots, selectedPlotId, onSelectPlot }: BarakaP
                   width={layout.width}
                   height={layout.height}
                   fill={colors.fill}
-                  stroke={isSelected ? "#E8A020" : colors.stroke}
+                  stroke={isSelected ? "var(--accent)" : colors.stroke}
                   strokeWidth={isSelected ? "4" : "2"}
                   rx="6"
                 />

@@ -70,15 +70,15 @@ type Tab =
 
 // ─── Stitch Design Tokens ─────────────────────────────────────────────────────
 const NAVY = "#0C1A30";
-const GOLD = "#E8A020";
-const GOLD_DARK = "#C8861A";
+const GOLD = "var(--accent)";
+const GOLD_DARK = "var(--accent-dark)";
 const SIDEBAR_HOVER = "rgba(255,255,255,0.06)";
-const CANVAS = "#F0F4F8";
+const CANVAS = "var(--stone)";
 const CARD_BORDER = "#E5E0D8";
 
 // ─── Avatar color palette ─────────────────────────────────────────────────────
 const avatarColors = [
-  "#E8A020", "#0B7FC7", "#22C55E", "#A855F7", "#EC4899", "#14B8A6", "#F97316",
+  "var(--accent)", "var(--primary)", "var(--available)", "#A855F7", "#EC4899", "#14B8A6", "#F97316",
 ];
 
 function getInitials(name: string) {
@@ -2059,7 +2059,7 @@ function AdminPage() {
                       <tr key={inq.id} style={{ borderBottom: "1px solid " + CARD_BORDER, background: "#fff" }}>
                         <td style={{ padding: "16px 24px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EFF6FF", color: "#0B7FC7", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EFF6FF", color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
                               {inq.client_full_name.charAt(0).toUpperCase()}
                             </div>
                             <div>
@@ -2128,7 +2128,7 @@ function AdminPage() {
                           <td style={{ padding: "16px 24px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                               <div style={{ flex: 1, height: 8, background: CANVAS, borderRadius: 4, overflow: "hidden" }}>
-                                <div style={{ width: `${progress}%`, height: "100%", background: progress === 100 ? "#059669" : "#0B7FC7", borderRadius: 4 }} />
+                                <div style={{ width: `${progress}%`, height: "100%", background: progress === 100 ? "#059669" : "var(--primary)", borderRadius: 4 }} />
                               </div>
                               <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600, color: NAVY }}>{progress}%</span>
                             </div>
@@ -2236,7 +2236,7 @@ function AdminPage() {
                             {new Date(agr.ceo_signed_at || "").toLocaleDateString()}
                           </td>
                           <td style={{ padding: "16px 24px" }}>
-                            <a href={agr.pdf_agreement_url || "#"} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#EFF6FF", color: "#0B7FC7", borderRadius: 6, fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+                            <a href={agr.pdf_agreement_url || "#"} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#EFF6FF", color: "var(--primary)", borderRadius: 6, fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
                               <FileText size={14} /> View PDF
                             </a>
                           </td>

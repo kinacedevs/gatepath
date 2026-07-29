@@ -74,6 +74,10 @@ Commit security changes separately from design changes so they can be reviewed i
 
 ---
 
+## Photography
+
+The public site currently runs on 13 recycled Unsplash stock photos across 38 references — no `public/` image directory exists. See CRITIQUE.md P2-5. **Never add another `images.unsplash.com` reference.** Real site/location photography is pending from the user; until it exists, flag any new image need rather than reaching for more stock.
+
 ## Conventions
 
 - Reuse existing section components in [src/components/sections/](src/components/sections/) rather than creating parallels.

@@ -90,10 +90,10 @@ function AgreementDocumentPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F4EE]">
+      <div className="min-h-screen flex items-center justify-center bg-ivory">
         <div className="text-center">
-          <Loader2 className="animate-spin text-[#0B7FC7] mx-auto mb-4" size={40} />
-          <p className="text-[#5A5A5A] font-medium">Generating legal agreement...</p>
+          <Loader2 className="animate-spin text-primary mx-auto mb-4" size={40} />
+          <p className="text-muted-foreground font-medium">Generating legal agreement...</p>
         </div>
       </div>
     );
@@ -101,16 +101,16 @@ function AgreementDocumentPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F4EE] px-6">
+      <div className="min-h-screen flex items-center justify-center bg-ivory px-6">
         <div className="bg-white max-w-md w-full p-8 rounded-xl border border-[#E5E0D8] text-center shadow-xl">
           <span className="text-4xl">⚠️</span>
           <h2 className="font-serif font-bold text-2xl text-red-600 mt-4">Document Error</h2>
-          <p className="text-[#5A5A5A] mt-2 text-[14px]">
+          <p className="text-muted-foreground mt-2 text-[14px]">
             {error || "Unable to display purchase agreement details."}
           </p>
           <Link
             to="/"
-            className="mt-6 inline-block w-full py-2.5 bg-[#0B7FC7] text-white rounded-lg font-semibold text-[13px]"
+            className="mt-6 inline-block w-full py-2.5 bg-primary text-white rounded-lg font-semibold text-[13px]"
           >
             Back to Safety
           </Link>
@@ -134,18 +134,18 @@ function AgreementDocumentPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#F3EFE9] py-12 px-4 md:px-8 font-sans antialiased text-[#1C1C1C] print:bg-white print:py-0 print:px-0">
+    <div className="min-h-screen bg-[#F3EFE9] py-12 px-4 md:px-8 font-sans antialiased text-foreground print:bg-white print:py-0 print:px-0">
       {/* Print Controls (Hidden on Print) */}
       <div className="max-w-3xl mx-auto mb-6 flex justify-between items-center no-print">
         <button
           onClick={() => window.history.back()}
-          className="flex items-center gap-2 text-[13px] font-semibold text-[#0B7FC7] hover:text-[#06243A]"
+          className="flex items-center gap-2 text-[13px] font-semibold text-primary hover:text-[#06243A]"
         >
           <ArrowLeft size={16} /> Back
         </button>
         <button
           onClick={handlePrint}
-          className="flex items-center gap-2 bg-[#0B7FC7] text-white py-2 px-5 rounded-lg font-semibold text-[13px] hover:bg-[#06243A] shadow-md transition-all"
+          className="flex items-center gap-2 bg-primary text-white py-2 px-5 rounded-lg font-semibold text-[13px] hover:bg-[#06243A] shadow-md transition-all"
         >
           <Printer size={16} /> Print or Save as PDF
         </button>
@@ -156,10 +156,10 @@ function AgreementDocumentPage() {
         {/* Header */}
         <div className="text-center pb-8 border-b border-[#E5E0D8] mb-10">
           <img src={brandingLogo} alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" />
-          <h1 className="font-serif font-bold text-2xl text-[#0B7FC7] tracking-tight uppercase">
+          <h1 className="font-serif font-bold text-2xl text-primary tracking-tight uppercase">
             Agreement for Sale of Land
           </h1>
-          <p className="text-[11px] uppercase tracking-wider text-[#E8A020] font-semibold mt-1">
+          <p className="text-[11px] uppercase tracking-wider text-accent font-semibold mt-1">
             {companyBrandingName}
           </p>
         </div>
@@ -173,7 +173,7 @@ function AgreementDocumentPage() {
           <p>
             <strong>BETWEEN:</strong>
           </p>
-          <div className="pl-6 border-l-2 border-[#E8A020]">
+          <div className="pl-6 border-l-2 border-accent">
             <p>
               <strong>{companyBrandingName.toUpperCase()}</strong>, a company incorporated in the Republic of
               Kenya with its registered office at 1st Floor, CNM Centre, Ruiru Eastern Bypass,
@@ -186,7 +186,7 @@ function AgreementDocumentPage() {
           <p>
             <strong>AND:</strong>
           </p>
-          <div className="pl-6 border-l-2 border-[#0B7FC7]">
+          <div className="pl-6 border-l-2 border-primary">
             <p>
               <strong>{inquiry.client_full_name}</strong> of ID/Passport number{" "}
               <span className="font-semibold font-mono">{inquiry.client_id_passport}</span>, of
@@ -311,8 +311,8 @@ function AgreementDocumentPage() {
               {isCeoSigned ? (
                 <div className="relative mb-4">
                   {/* Digital Signature Badge */}
-                  <div className="border-2 border-dashed border-[#E8A020] text-[#E8A020] px-6 py-3 rounded-xl bg-white rotate-[-2deg] flex flex-col items-center max-w-xs shadow-md">
-                    <Award className="text-[#E8A020] mb-1" size={24} />
+                  <div className="border-2 border-dashed border-accent text-accent px-6 py-3 rounded-xl bg-white rotate-[-2deg] flex flex-col items-center max-w-xs shadow-md">
+                    <Award className="text-accent mb-1" size={24} />
                     <span className="font-bold text-[13px]">Joe Muchiri</span>
                     <span className="text-[10px] text-muted-foreground mt-0.5">
                       Managing Director, Gatepath
@@ -339,7 +339,7 @@ function AgreementDocumentPage() {
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-4">
                 SIGNED BY THE PURCHASER:
               </p>
-              <div className="h-28 border border-dashed border-[#22C55E]/30 bg-[#22C55E]/5 rounded-xl flex flex-col items-center justify-center w-48 text-[#22C55E] text-[12px] font-semibold mb-4 px-3">
+              <div className="h-28 border border-dashed border-available/30 bg-available/5 rounded-xl flex flex-col items-center justify-center w-48 text-available text-[12px] font-semibold mb-4 px-3">
                 <ShieldCheck size={28} className="mb-1" />
                 <span>Authorized Online</span>
                 <span className="text-[9px] font-mono text-muted-foreground mt-0.5 font-normal">

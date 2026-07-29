@@ -86,7 +86,7 @@ export const Route = createFileRoute("/blog/$slug")({
         </p>
         <Link
           to="/blog"
-          className="mt-8 inline-flex items-center gap-2 bg-accent text-white px-6 py-3 rounded font-semibold text-sm uppercase tracking-wider hover:bg-[#C8861A] transition-all"
+          className="mt-8 inline-flex items-center gap-2 bg-accent text-white px-6 py-3 rounded font-semibold text-sm uppercase tracking-wider hover:bg-accent-dark transition-all"
         >
           <ArrowLeft size={16} /> Back to Blog
         </Link>
@@ -161,7 +161,7 @@ function BlogPostPage() {
                 <div>
                   <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
                     {post.author_name}
-                    <ShieldCheck size={14} className="text-[#E8A020]" />
+                    <ShieldCheck size={14} className="text-accent" />
                   </div>
                   <div className="text-xs text-gray-400 font-sans flex items-center gap-3">
                     <span className="flex items-center gap-1">
@@ -250,7 +250,7 @@ function BlogPostPage() {
             <div className="text-center sm:text-left">
               <h4 className="font-serif font-bold text-gray-900 text-lg flex items-center justify-center sm:justify-start gap-1.5">
                 Written by {post.author_name}
-                <Award size={16} className="text-[#E8A020]" />
+                <Award size={16} className="text-accent" />
               </h4>
               <p className="mt-2 text-sm text-gray-500 leading-relaxed">
                 Joe Muchiri is the CEO & Managing Director of Gatepath Realtors. With over a decade

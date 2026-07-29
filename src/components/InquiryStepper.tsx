@@ -27,7 +27,7 @@ export function InquiryStepper({ currentStep }: StepperProps) {
                     style={{
                       width: 40,
                       height: 40,
-                      background: done ? "#22C55E" : active ? "#0B7FC7" : "#FFFFFF",
+                      background: done ? "var(--available)" : active ? "var(--primary)" : "#FFFFFF",
                       border: done || active ? "none" : "1.5px solid #D0CCC5",
                       color: "#FFFFFF",
                     }}
@@ -53,7 +53,7 @@ export function InquiryStepper({ currentStep }: StepperProps) {
                       fontFamily: "Inter, sans-serif",
                       fontWeight: active ? 600 : 400,
                       fontSize: active ? 14 : 13,
-                      color: active ? "#0B7FC7" : done ? "#5A5A5A" : "#9A9A9A",
+                      color: active ? "var(--primary)" : done ? "var(--muted-foreground)" : "#9A9A9A",
                     }}
                   >
                     <span className="hidden sm:inline">{step.label}</span>
@@ -64,7 +64,7 @@ export function InquiryStepper({ currentStep }: StepperProps) {
                   <div
                     className="flex-1 h-[2px] mx-3 md:mx-5 rounded"
                     style={{
-                      background: done ? "#22C55E" : "#E5E0D8",
+                      background: done ? "var(--available)" : "#E5E0D8",
                     }}
                   />
                 )}

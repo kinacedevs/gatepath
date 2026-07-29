@@ -298,11 +298,11 @@ function ThankYouPage() {
     : `Hello Gatepath Realtors,%0D%0AI have completed the reservation deposit for Plot %23${plotNum} at ${phaseName}. Please find my details attached.`;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8F4EE" }}>
+    <div style={{ minHeight: "100vh", background: "var(--ivory)" }}>
       <Navbar />
       <div className="pt-20">
         {/* Success hero */}
-        <section style={{ background: "#0B7FC7", padding: "80px 24px", textAlign: "center" }}>
+        <section style={{ background: "var(--primary)", padding: "80px 24px", textAlign: "center" }}>
           <div
             style={{
               width: 80,
@@ -317,7 +317,7 @@ function ThankYouPage() {
               background: "rgba(34,197,94,0.1)",
             }}
           >
-            <Check size={40} style={{ color: "#22C55E" }} />
+            <Check size={40} style={{ color: "var(--available)" }} />
           </div>
           <h1
             style={{
@@ -362,7 +362,7 @@ function ThankYouPage() {
                 fontFamily: "Montserrat, sans-serif",
                 fontWeight: 500,
                 fontSize: 13,
-                color: "#E8A020",
+                color: "var(--accent)",
               }}
             >
               Transaction Ref: {ref}
@@ -378,7 +378,7 @@ function ThankYouPage() {
                 fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 600,
                 fontSize: 40,
-                color: "#0B7FC7",
+                color: "var(--primary)",
                 textAlign: "center",
                 marginBottom: 48,
               }}
@@ -393,7 +393,7 @@ function ThankYouPage() {
                       width: 36,
                       height: 36,
                       borderRadius: "50%",
-                      background: "#E8A020",
+                      background: "var(--accent)",
                       color: "#FFFFFF",
                       display: "flex",
                       alignItems: "center",
@@ -412,7 +412,7 @@ function ThankYouPage() {
                         fontFamily: "Inter, sans-serif",
                         fontWeight: 600,
                         fontSize: 17,
-                        color: "#0B7FC7",
+                        color: "var(--primary)",
                       }}
                     >
                       {title}
@@ -423,7 +423,7 @@ function ThankYouPage() {
                         fontWeight: 500,
                         fontStyle: "italic",
                         fontSize: 12,
-                        color: "#E8A020",
+                        color: "var(--accent)",
                         marginTop: 2,
                       }}
                     >
@@ -433,7 +433,7 @@ function ThankYouPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 15,
-                        color: "#5A5A5A",
+                        color: "var(--muted-foreground)",
                         lineHeight: 1.7,
                         marginTop: 6,
                       }}
@@ -465,7 +465,7 @@ function ThankYouPage() {
                   fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 600,
                   fontSize: 26,
-                  color: "#0B7FC7",
+                  color: "var(--primary)",
                 }}
               >
                 Your Documents
@@ -474,7 +474,7 @@ function ThankYouPage() {
                 style={{
                   fontFamily: "Inter, sans-serif",
                   fontSize: 14,
-                  color: "#5A5A5A",
+                  color: "var(--muted-foreground)",
                   marginTop: 8,
                 }}
               >
@@ -487,13 +487,13 @@ function ThankYouPage() {
                 style={{ padding: "12px 16px", border: "1px solid #E5E0D8", borderRadius: 8 }}
               >
                 <div className="flex items-center gap-3">
-                  <Receipt size={24} style={{ color: "#E8A020" }} />
+                  <Receipt size={24} style={{ color: "var(--accent)" }} />
                   <span
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontWeight: 500,
                       fontSize: 14,
-                      color: "#1C1C1C",
+                      color: "var(--foreground)",
                     }}
                   >
                     Payment Receipt — Plot #{plotNum}
@@ -505,7 +505,7 @@ function ThankYouPage() {
                     params={{ id: paymentRecord.id }}
                     style={{
                       background: "rgba(34,197,94,0.1)",
-                      color: "#22C55E",
+                      color: "var(--available)",
                       fontFamily: "Inter, sans-serif",
                       fontSize: 12,
                       fontWeight: 600,
@@ -540,13 +540,13 @@ function ThankYouPage() {
                 style={{ padding: "12px 16px", border: "1px solid #E5E0D8", borderRadius: 8 }}
               >
                 <div className="flex items-center gap-3">
-                  <FileText size={24} style={{ color: "#E8A020" }} />
+                  <FileText size={24} style={{ color: "var(--accent)" }} />
                   <span
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontWeight: 500,
                       fontSize: 14,
-                      color: "#1C1C1C",
+                      color: "var(--foreground)",
                     }}
                   >
                     Purchase Agreement
@@ -559,7 +559,7 @@ function ThankYouPage() {
                       params={{ id: agreementRecord.inquiry_id }}
                       style={{
                         background: "rgba(34,197,94,0.1)",
-                        color: "#22C55E",
+                        color: "var(--available)",
                         fontFamily: "Inter, sans-serif",
                         fontSize: 12,
                         fontWeight: 600,
@@ -611,7 +611,7 @@ function ThankYouPage() {
                   fontFamily: "Inter, sans-serif",
                   fontStyle: "italic",
                   fontSize: 13,
-                  color: "#5A5A5A",
+                  color: "var(--muted-foreground)",
                   marginTop: 16,
                 }}
               >
@@ -626,7 +626,7 @@ function ThankYouPage() {
           <Link
             to="/properties"
             style={{
-              background: "#0B7FC7",
+              background: "var(--primary)",
               color: "#FFFFFF",
               fontFamily: "Inter, sans-serif",
               fontWeight: 600,
@@ -646,7 +646,7 @@ function ThankYouPage() {
                 inquiry_id: inquiryRecord?.id || paymentRecord?.inquiry_id || form.inquiryId || "",
               }}
               style={{
-                background: "#E8A020",
+                background: "var(--accent)",
                 color: "#FFFFFF",
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 600,
@@ -655,7 +655,7 @@ function ThankYouPage() {
                 borderRadius: 8,
                 textDecoration: "none",
               }}
-              className="hover:bg-[#C8861A] transition-all"
+              className="hover:bg-accent-dark transition-all"
             >
               📅 Schedule Site Visit for Plot #{plotNum}
             </Link>
@@ -698,7 +698,7 @@ function ThankYouPage() {
             to="/"
             style={{
               background: "transparent",
-              color: "#0B7FC7",
+              color: "var(--primary)",
               border: "1.5px solid #0B7FC7",
               fontFamily: "Inter, sans-serif",
               fontWeight: 600,

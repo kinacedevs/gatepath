@@ -163,18 +163,18 @@ export function Navbar() {
                   const content = (
                     <div
                       key={pl.label}
-                      className="flex items-start gap-3 px-4 py-3.5 hover:bg-[#F8F4EE] transition-colors group/item cursor-pointer"
+                      className="flex items-start gap-3 px-4 py-3.5 hover:bg-ivory transition-colors group/item cursor-pointer"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-[#0B7FC7]/10 flex items-center justify-center shrink-0 mt-0.5 group-hover/item:bg-[#0B7FC7]/20 transition-colors">
-                        <Icon size={15} className="text-[#0B7FC7]" />
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5 group-hover/item:bg-primary/20 transition-colors">
+                        <Icon size={15} className="text-primary" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[14px] font-semibold text-[#1C1C1C] group-hover/item:text-[#0B7FC7] transition-colors">
+                          <span className="text-[14px] font-semibold text-foreground group-hover/item:text-primary transition-colors">
                             {pl.label}
                           </span>
                           {pl.soon && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider bg-[#E8A020]/15 text-[#E8A020] px-1.5 py-0.5 rounded">
+                            <span className="text-[9px] font-bold uppercase tracking-wider bg-accent/15 text-accent px-1.5 py-0.5 rounded">
                               Soon
                             </span>
                           )}
@@ -205,11 +205,11 @@ export function Navbar() {
                   );
                 })}
 
-                <div className="px-4 py-3 bg-[#F8F4EE] border-t border-[#EEEBE4] text-center">
+                <div className="px-4 py-3 bg-ivory border-t border-[#EEEBE4] text-center">
                   <Link
                     to="/privacy"
                     onClick={() => setPortalsOpen(false)}
-                    className="text-[12px] text-[#0B7FC7] hover:underline font-medium"
+                    className="text-[12px] text-primary hover:underline font-medium"
                   >
                     Privacy Policy &amp; Data Rights →
                   </Link>
@@ -221,7 +221,7 @@ export function Navbar() {
 
         <Link
           to="/properties"
-          className="hidden lg:inline-flex items-center justify-center bg-gradient-to-r from-accent to-[#D4AF37] text-white px-6 py-3 text-sm font-bold rounded-lg hover:from-accent-dark hover:to-[#B3922D] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-[0_4px_12px_rgba(212,175,55,0.25)]"
+          className="hidden lg:inline-flex items-center justify-center bg-gradient-to-r from-accent to-accent-dark text-white px-6 py-3 text-sm font-bold rounded-lg hover:from-accent-dark hover:to-accent hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-[0_4px_12px_rgba(232,160,32,0.25)]"
         >
           Book Site Visit
         </Link>
@@ -369,7 +369,7 @@ export function Navbar() {
           <Link
             to="/properties"
             onClick={() => setOpen(false)}
-            className="mt-4 inline-flex items-center justify-center bg-gradient-to-r from-accent to-[#D4AF37] text-white px-5 py-3.5 text-sm font-bold rounded-lg shadow-[0_4px_12px_rgba(212,175,55,0.25)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="mt-4 inline-flex items-center justify-center bg-gradient-to-r from-accent to-accent-dark text-white px-5 py-3.5 text-sm font-bold rounded-lg shadow-[0_4px_12px_rgba(232,160,32,0.25)] hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             Book Site Visit
           </Link>

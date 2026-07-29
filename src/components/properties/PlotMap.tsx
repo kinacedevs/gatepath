@@ -11,9 +11,9 @@ const RIGHT_PAD = 50;
 const BOTTOM_PAD = 50;
 
 const COLORS = {
-  available: { fill: "#22C55E", stroke: "#16A34A" },
+  available: { fill: "var(--available)", stroke: "#16A34A" },
   booked: { fill: "#F59E0B", stroke: "#D97706" },
-  sold: { fill: "#EF4444", stroke: "#DC2626" },
+  sold: { fill: "var(--destructive)", stroke: "#DC2626" },
 };
 
 function darken(hex: string, amt = 0.15) {
@@ -55,10 +55,10 @@ export function PlotMap({
         aria-label="Phase plot map"
       >
         {/* Background */}
-        <rect width={width} height={height} fill="#F8F4EE" rx="8" />
+        <rect width={width} height={height} fill="var(--ivory)" rx="8" />
 
         {/* Compass rose top-right */}
-        <g transform={`translate(${width - 35}, 28)`} stroke="#5A5A5A" strokeWidth="1" fill="none">
+        <g transform={`translate(${width - 35}, 28)`} stroke="var(--muted-foreground)" strokeWidth="1" fill="none">
           <line x1="0" y1="-12" x2="0" y2="12" />
           <line x1="-12" y1="0" x2="12" y2="0" />
           <text
@@ -66,7 +66,7 @@ export function PlotMap({
             y="-15"
             textAnchor="middle"
             fontSize="9"
-            fill="#0B7FC7"
+            fill="var(--primary)"
             fontFamily="Montserrat"
             fontWeight="600"
             stroke="none"
@@ -78,7 +78,7 @@ export function PlotMap({
             y="22"
             textAnchor="middle"
             fontSize="8"
-            fill="#5A5A5A"
+            fill="var(--muted-foreground)"
             fontFamily="Montserrat"
             stroke="none"
           >
@@ -89,7 +89,7 @@ export function PlotMap({
             y="3"
             textAnchor="middle"
             fontSize="8"
-            fill="#5A5A5A"
+            fill="var(--muted-foreground)"
             fontFamily="Montserrat"
             stroke="none"
           >
@@ -100,7 +100,7 @@ export function PlotMap({
             y="3"
             textAnchor="middle"
             fontSize="8"
-            fill="#5A5A5A"
+            fill="var(--muted-foreground)"
             fontFamily="Montserrat"
             stroke="none"
           >
@@ -117,7 +117,7 @@ export function PlotMap({
           fontSize="10"
           fontFamily="Montserrat"
           fontWeight="500"
-          fill="#5A5A5A"
+          fill="var(--muted-foreground)"
           letterSpacing="2"
         >
           ACCESS ROAD
@@ -141,7 +141,7 @@ export function PlotMap({
               fontSize="10"
               fontFamily="Montserrat"
               fontWeight="500"
-              fill="#5A5A5A"
+              fill="var(--muted-foreground)"
               letterSpacing="2"
             >
               INTERNAL ROAD
@@ -165,7 +165,7 @@ export function PlotMap({
           fontSize="10"
           fontFamily="Montserrat"
           fontWeight="500"
-          fill="#F8F4EE"
+          fill="var(--ivory)"
           letterSpacing="2"
         >
           MAIN TARMAC ROAD
@@ -226,7 +226,7 @@ export function PlotMap({
                 width={PLOT_W}
                 height={PLOT_H}
                 fill={fill}
-                stroke={isSelected ? "#0B7FC7" : c.stroke}
+                stroke={isSelected ? "var(--primary)" : c.stroke}
                 strokeWidth={isSelected ? 3 : 1.5}
                 rx="3"
                 style={

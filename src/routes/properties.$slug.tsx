@@ -365,9 +365,9 @@ function PhaseDetailPage() {
           <div className="flex flex-wrap items-center gap-8 divide-x divide-[#E5E0D8]">
             {[
               { v: phase.totalPlots, l: "Total Plots", c: "text-primary" },
-              { v: phase.available, l: "Available", c: "text-[#22C55E]" },
+              { v: phase.available, l: "Available", c: "text-available" },
               { v: phase.booked, l: "Booked", c: "text-[#F59E0B]" },
-              { v: phase.sold, l: "Sold", c: "text-[#EF4444]" },
+              { v: phase.sold, l: "Sold", c: "text-destructive" },
               {
                 v: isDiaspora
                   ? `$ ${Math.round(phase.startingPrice / 130).toLocaleString()}`
@@ -403,14 +403,14 @@ function PhaseDetailPage() {
               </div>
               <div className="flex flex-wrap items-center gap-4 text-[12px] text-foreground">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E]" /> Available (
+                  <span className="w-2.5 h-2.5 rounded-full bg-available" /> Available (
                   {phase.available})
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" /> Booked ({phase.booked})
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" /> Sold ({phase.sold})
+                  <span className="w-2.5 h-2.5 rounded-full bg-destructive" /> Sold ({phase.sold})
                 </span>
               </div>
             </div>
@@ -433,7 +433,7 @@ function PhaseDetailPage() {
                 onClick={() => setAvailOnly((v) => !v)}
                 className={`text-[13px] font-medium px-3.5 py-2 rounded-md border transition-colors ${
                   availOnly
-                    ? "bg-[#D1FAE5] border-[#22C55E] text-[#065F46]"
+                    ? "bg-[#D1FAE5] border-available text-[#065F46]"
                     : "border-[#D0CCC5] text-foreground hover:border-primary"
                 }`}
               >
@@ -527,7 +527,7 @@ function PhaseDetailPage() {
                     className="flex items-center gap-3 text-[14px] text-foreground"
                   >
                     {done ? (
-                      <CheckCircle2 size={20} className="text-[#22C55E] shrink-0" />
+                      <CheckCircle2 size={20} className="text-available shrink-0" />
                     ) : (
                       <Clock size={20} className="text-[#F59E0B] shrink-0" />
                     )}

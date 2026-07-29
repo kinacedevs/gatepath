@@ -19,7 +19,7 @@ const locations = [
 
 export function Footer() {
   return (
-    <footer id="contact" className="bg-[#063A61] text-white">
+    <footer id="contact" className="bg-footer-deep text-white">
       <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-20 pb-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
         {/* Brand */}
         <div>

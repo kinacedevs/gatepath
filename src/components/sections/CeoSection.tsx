@@ -49,7 +49,7 @@ export function CeoSection() {
                   fontFamily: "Inter, sans-serif",
                   fontWeight: 400,
                   fontSize: 12,
-                  color: "#E8A020",
+                  color: "var(--accent)",
                   marginTop: 2,
                 }}
               >
@@ -99,7 +99,7 @@ export function CeoSection() {
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 400,
                 fontSize: 14,
-                color: "#E8A020",
+                color: "var(--accent)",
                 marginTop: 2,
               }}
             >

@@ -127,8 +127,14 @@ No weekly hot picks, no scarcity signals, no "3 plots left in Phase 2", no price
 ### P2-4 · Mobile is tolerated, not designed for
 Most Kenyan and diaspora traffic is mobile. The layouts use responsive Tailwind classes but were composed desktop-first: the diaspora hero is `min-h-screen` with a 12-column grid collapsing to a tall stack, and the admin console is effectively desktop-only. Needs a 360px-first pass.
 
-### P2-5 · Unsplash stock photography on the diaspora hero
-[diaspora.tsx:65](../src/routes/diaspora.tsx#L65) loads a generic Unsplash image for "Kenya Coastal Landscape". Buyers are choosing land; generic stock undermines the verification story the same page is selling. Use real site photography.
+### P2-5 · The entire public site runs on 13 recycled stock photos
+There is no `public/` image directory at all — every visual across the marketing site is a hotlinked `images.unsplash.com` URL. Verified count: **38 references, only 13 distinct photo IDs**, across every marketing surface (`Hero`, `CTABanner`, `FeaturedLocations`, `PropertyPreview`, `blog.index`, `blog.$slug`, `locations`, `properties.$slug`, `diaspora`).
+
+The single most-used photo (`photo-1500382017468-9049fed747ef`) appears on **8 different pages**, including the landing page hero — the very first thing a visitor sees — and a second photo repeats across 6 more. A visitor who looks at the hero, a blog post, the locations page and a property detail page is statistically likely to see **the same stock photo twice or three times** in one session.
+
+This directly undercuts the "billion-dollar investment project" ambition and the verification story the diaspora page is trying to tell (buyers are choosing specific, real land — generic recycled stock reads as exactly the opposite of "we verified this specific plot for you"). It also means image delivery depends on an unowned third-party CDN with no fallback if Unsplash rate-limits or the URLs rot.
+
+**Fix:** commission or source real site/drone photography per phase/location (this is the highest-leverage, non-mechanical fix in this critique — no amount of code change substitutes for actual photos of actual land), store it in Cloudflare Images or R2, and never let the same photo appear on two different pages in one session.
 
 ### P2-6 · Trust claims are asserted, not evidenced
 "100% verified titles", "Zero Double Allocation" appear as copy with nothing behind them — no registry search sample, no title numbers, no third-party verification, no named testimonials with plot references. Claims without evidence read as marketing to exactly the sceptical diaspora buyer being targeted.

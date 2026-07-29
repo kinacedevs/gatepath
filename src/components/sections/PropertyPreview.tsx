@@ -48,21 +48,21 @@ const featuredProjects: ProjectPreviewCard[] = [
 
 export function PropertyPreview() {
   return (
-    <section className="bg-[#F8F4EE] py-20 lg:py-28">
+    <section className="bg-ivory py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-10 space-y-12">
         {/* Header matching Screenshot 4 */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-2">
-            <span className="text-xs font-extrabold uppercase tracking-[0.25em] text-[#E8A020] block">
+            <span className="text-xs font-extrabold uppercase tracking-[0.25em] text-accent block">
               ACTIVE PROJECTS
             </span>
-            <h2 className="font-serif font-bold text-4xl sm:text-5xl text-[#074B7D]">
+            <h2 className="font-serif font-bold text-4xl sm:text-5xl text-primary-deep">
               Land worth investing in.
             </h2>
           </div>
           <Link
             to="/properties"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0B7FC7] hover:text-[#074B7D] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-deep transition-colors"
           >
             View all 9 projects <ArrowRight size={14} />
           </Link>
@@ -84,7 +84,7 @@ export function PropertyPreview() {
                     className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
                   />
                   {/* Status Pill Badge */}
-                  <span className="absolute top-4 left-4 bg-[#22C55E] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                  <span className="absolute top-4 left-4 bg-available text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
                     {project.status}
                   </span>
                 </div>
@@ -92,23 +92,23 @@ export function PropertyPreview() {
                 {/* Card Content Body */}
                 <div className="p-6 space-y-4">
                   <div>
-                    <h3 className="font-serif font-bold text-2xl text-[#074B7D] hover:text-[#0B7FC7] transition-colors">
+                    <h3 className="font-serif font-bold text-2xl text-primary-deep hover:text-primary transition-colors">
                       <Link to="/properties/$slug" params={{ slug: project.slug }}>{project.name}</Link>
                     </h3>
                     <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                      <MapPin size={14} className="text-[#E8A020]" /> {project.location}
+                      <MapPin size={14} className="text-accent" /> {project.location}
                     </p>
                   </div>
 
                   {/* Availability Progress Rail */}
                   <div className="space-y-1.5 pt-2 border-t border-slate-100">
                     <div className="flex justify-between text-[11px] font-semibold text-slate-600">
-                      <span>Plots Available: <strong className="text-[#22C55E]">{project.availableCount}</strong></span>
+                      <span>Plots Available: <strong className="text-available">{project.availableCount}</strong></span>
                       <span>Total: {project.totalPlots}</span>
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex">
                       <div
-                        className="bg-[#22C55E] h-full"
+                        className="bg-available h-full"
                         style={{ width: `${(project.availableCount / project.totalPlots) * 100}%` }}
                       />
                       <div
@@ -116,7 +116,7 @@ export function PropertyPreview() {
                         style={{ width: `${((project.totalPlots - project.availableCount) / 2 / project.totalPlots) * 100}%` }}
                       />
                       <div
-                        className="bg-[#EF4444] h-full"
+                        className="bg-destructive h-full"
                         style={{ width: `${((project.totalPlots - project.availableCount) / 2 / project.totalPlots) * 100}%` }}
                       />
                     </div>
@@ -128,7 +128,7 @@ export function PropertyPreview() {
               <div className="p-6 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Starting Price</span>
-                  <span className="font-stat-lg text-xl font-extrabold text-[#0B7FC7]">
+                  <span className="font-stat-lg text-xl font-extrabold text-primary">
                     Ksh {project.startingPrice.toLocaleString()}
                   </span>
                 </div>
@@ -136,7 +136,7 @@ export function PropertyPreview() {
                 <Link
                   to="/properties/$slug"
                   params={{ slug: project.slug }}
-                  className="px-4 py-2.5 bg-[#074B7D] hover:bg-[#063A61] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-md"
+                  className="px-4 py-2.5 bg-primary-deep hover:bg-footer-deep text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-md"
                 >
                   Explore Map <ArrowRight size={14} />
                 </Link>

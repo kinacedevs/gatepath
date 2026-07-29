@@ -3,7 +3,7 @@ import type { Phase, Plot } from "@/lib/phases";
 
 function PaymentPill({ icon, label }: { icon: string; label: string }) {
   return (
-    <span className="bg-[#F0F4F8] text-primary font-medium text-[12px] px-3 py-1.5 rounded-full">
+    <span className="bg-stone text-primary font-medium text-[12px] px-3 py-1.5 rounded-full">
       {icon} {label}
     </span>
   );
@@ -32,13 +32,13 @@ export function PlotPanel({
         </p>
         <div className="mt-6 flex flex-col gap-2 text-[13px]">
           <span className="flex items-center justify-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E]" /> {phase.available} Available
+            <span className="w-2.5 h-2.5 rounded-full bg-available" /> {phase.available} Available
           </span>
           <span className="flex items-center justify-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" /> {phase.booked} Booked
           </span>
           <span className="flex items-center justify-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" /> {phase.sold} Sold
+            <span className="w-2.5 h-2.5 rounded-full bg-destructive" /> {phase.sold} Sold
           </span>
         </div>
       </div>
@@ -64,7 +64,7 @@ export function PlotPanel({
           <button className="mt-5 w-full border-2 border-[#F59E0B] text-[#92400E] font-semibold text-[14px] py-3 rounded-lg hover:bg-[#FEF3C7] transition-colors">
             Join Waitlist for This Plot
           </button>
-          <div className="my-5 h-px bg-[#F0F4F8]" />
+          <div className="my-5 h-px bg-stone" />
           <p className="text-[13px] text-muted-foreground mb-3">
             Or explore other available plots in this phase:
           </p>
@@ -87,7 +87,7 @@ export function PlotPanel({
   if (plot.status === "sold") {
     return (
       <div className="bg-white rounded-[12px] overflow-hidden shadow-[var(--shadow-card)] border border-[#E5E0D8] animate-in fade-in duration-300">
-        <div className="bg-[#EF4444] px-6 py-5">
+        <div className="bg-destructive px-6 py-5">
           <span className="bg-white text-[#991B1B] font-numbers font-semibold text-[10px] px-3 py-1 rounded-full">
             SOLD
           </span>
@@ -101,7 +101,7 @@ export function PlotPanel({
           </p>
           <button
             onClick={onClear}
-            className="mt-5 w-full bg-[#22C55E] text-white font-semibold text-[14px] py-3 rounded-lg hover:bg-[#16A34A] transition-colors"
+            className="mt-5 w-full bg-available text-white font-semibold text-[14px] py-3 rounded-lg hover:bg-[#16A34A] transition-colors"
           >
             View Available Plots
           </button>
@@ -121,7 +121,7 @@ export function PlotPanel({
   return (
     <div className="bg-white rounded-[12px] overflow-hidden shadow-[var(--shadow-card)] border border-[#E5E0D8] animate-in fade-in duration-300">
       <div className="bg-primary px-6 py-5">
-        <span className="bg-[#22C55E] text-[#065F46] font-numbers font-semibold text-[10px] px-3 py-1 rounded-full">
+        <span className="bg-available text-[#065F46] font-numbers font-semibold text-[10px] px-3 py-1 rounded-full">
           AVAILABLE
         </span>
         <h3 className="mt-3 font-serif font-bold text-[32px] text-white leading-none">
@@ -161,7 +161,7 @@ export function PlotPanel({
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-[#F0F4F8]">
+        <div className="mt-4 pt-4 border-t border-stone">
           <div className="font-numbers font-medium text-[11px] text-muted-foreground tracking-[0.1em] uppercase">
             Listed Price
           </div>
@@ -182,7 +182,7 @@ export function PlotPanel({
 
         <a
           href={reserveHref}
-          className="mt-6 block w-full text-center bg-accent text-white font-bold text-[15px] py-4 rounded-lg hover:bg-[#C8861A] hover:scale-[1.02] transition-all"
+          className="mt-6 block w-full text-center bg-accent text-white font-bold text-[15px] py-4 rounded-lg hover:bg-accent-dark hover:scale-[1.02] transition-all"
         >
           {currency === "USD"
             ? "🌟 Reserve Plot ($77 USD Hold)"

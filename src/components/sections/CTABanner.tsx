@@ -25,7 +25,7 @@ export function CTABanner() {
           <div className="mt-10 flex flex-wrap gap-5 justify-center">
             <Link
               to="/properties"
-              className="inline-flex items-center justify-center bg-accent text-white px-11 py-4 text-base font-semibold rounded-md hover:bg-[#C8861A] hover:scale-[1.02] transition-all duration-300"
+              className="inline-flex items-center justify-center bg-accent text-white px-11 py-4 text-base font-semibold rounded-md hover:bg-accent-dark hover:scale-[1.02] transition-all duration-300"
             >
               Browse Available Plots →
             </Link>

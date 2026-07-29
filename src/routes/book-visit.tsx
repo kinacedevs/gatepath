@@ -206,28 +206,28 @@ function BookVisitPage() {
     fontFamily: "Inter, sans-serif",
     fontSize: 13,
     fontWeight: 500,
-    color: "#1C1C1C",
+    color: "var(--foreground)",
     marginBottom: 6,
   };
   const inputStyle = (key: string): React.CSSProperties => ({
     width: "100%",
     padding: "12px 14px",
-    border: `1.5px solid ${showErr(key) ? "#EF4444" : touched[key] && !errors[key] ? "#22C55E" : "#E5E0D8"}`,
+    border: `1.5px solid ${showErr(key) ? "var(--destructive)" : touched[key] && !errors[key] ? "var(--available)" : "#E5E0D8"}`,
     borderRadius: 8,
     fontFamily: "Inter, sans-serif",
     fontSize: 14,
-    color: "#1C1C1C",
+    color: "var(--foreground)",
     background: "#FFFFFF",
     outline: "none",
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8F4EE" }}>
+    <div style={{ minHeight: "100vh", background: "var(--ivory)" }}>
       <Navbar />
       <div className="pt-20">
         <InquiryStepper currentStep={2} />
 
-        <div style={{ background: "#0B7FC7", padding: "32px 24px" }}>
+        <div style={{ background: "var(--primary)", padding: "32px 24px" }}>
           <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-center">
             <div>
               <div
@@ -235,7 +235,7 @@ function BookVisitPage() {
                   fontFamily: "Montserrat, sans-serif",
                   fontWeight: 500,
                   fontSize: 11,
-                  color: "#E8A020",
+                  color: "var(--accent)",
                   letterSpacing: "0.25em",
                 }}
               >
@@ -306,7 +306,7 @@ function BookVisitPage() {
                   fontFamily: "Montserrat, sans-serif",
                   fontWeight: 600,
                   fontSize: 11,
-                  color: "#E8A020",
+                  color: "var(--accent)",
                   letterSpacing: "0.2em",
                   marginBottom: 16,
                 }}
@@ -323,7 +323,7 @@ function BookVisitPage() {
                   <div
                     key={l}
                     style={{
-                      background: "#F8F4EE",
+                      background: "var(--ivory)",
                       border: "1px solid #E5E0D8",
                       borderRadius: 6,
                       padding: "12px 14px",
@@ -333,7 +333,7 @@ function BookVisitPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 11,
-                        color: "#5A5A5A",
+                        color: "var(--muted-foreground)",
                         textTransform: "uppercase",
                         letterSpacing: "0.08em",
                         marginBottom: 3,
@@ -346,7 +346,7 @@ function BookVisitPage() {
                         fontFamily: "Inter, sans-serif",
                         fontWeight: 600,
                         fontSize: 15,
-                        color: "#0B7FC7",
+                        color: "var(--primary)",
                       }}
                     >
                       {v}
@@ -362,7 +362,7 @@ function BookVisitPage() {
                   fontFamily: "Montserrat, sans-serif",
                   fontWeight: 600,
                   fontSize: 11,
-                  color: "#E8A020",
+                  color: "var(--accent)",
                   letterSpacing: "0.2em",
                   marginBottom: 16,
                 }}
@@ -372,7 +372,7 @@ function BookVisitPage() {
 
               {/* Toggle to skip site visit for reserved plots */}
               {form.reservePlot && (
-                <div className="mb-6 p-4 rounded-xl border border-[#D5D0C8] bg-[#F8F4EE] flex items-center gap-3">
+                <div className="mb-6 p-4 rounded-xl border border-[#D5D0C8] bg-ivory flex items-center gap-3">
                   <input
                     type="checkbox"
                     id="skipVisitCheck"
@@ -389,7 +389,7 @@ function BookVisitPage() {
                         });
                       }
                     }}
-                    style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#0B7FC7" }}
+                    style={{ width: 18, height: 18, cursor: "pointer", accentColor: "var(--primary)" }}
                   />
                   <label
                     htmlFor="skipVisitCheck"
@@ -397,7 +397,7 @@ function BookVisitPage() {
                       fontFamily: "Inter, sans-serif",
                       fontSize: 13,
                       fontWeight: 600,
-                      color: "#0B7FC7",
+                      color: "var(--primary)",
                       cursor: "pointer",
                     }}
                   >
@@ -407,8 +407,8 @@ function BookVisitPage() {
               )}
 
               {skipSiteVisit ? (
-                <div className="mb-6 p-5 bg-[#F0F4F8] border-l-4 border-[#0B7FC7] rounded-r-lg font-sans text-[14px] text-[#5A5A5A] leading-relaxed">
-                  <p className="font-semibold text-[#0B7FC7] text-[15px] mb-2">
+                <div className="mb-6 p-5 bg-stone border-l-4 border-primary rounded-r-lg font-sans text-[14px] text-muted-foreground leading-relaxed">
+                  <p className="font-semibold text-primary text-[15px] mb-2">
                     Direct Reservation Mode
                   </p>
                   You have chosen to reserve this plot directly. No site visit will be scheduled at
@@ -445,11 +445,11 @@ function BookVisitPage() {
                           onClick={() => setForm({ visitMode: opt.id })}
                           style={{
                             textAlign: "left",
-                            border: `1.5px solid ${isSelected ? "#0B7FC7" : "#D5D0C8"}`,
+                            border: `1.5px solid ${isSelected ? "var(--primary)" : "#D5D0C8"}`,
                             borderLeft: isSelected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
                             borderRadius: 8,
                             padding: "14px 16px",
-                            background: isSelected ? "#F0F4F8" : "#FFFFFF",
+                            background: isSelected ? "var(--stone)" : "#FFFFFF",
                             cursor: isLocked ? "not-allowed" : "pointer",
                             opacity: isLocked ? 0.5 : 1,
                             position: "relative",
@@ -461,7 +461,7 @@ function BookVisitPage() {
                               fontFamily: "Inter, sans-serif",
                               fontWeight: 600,
                               fontSize: 14,
-                              color: "#0B7FC7",
+                              color: "var(--primary)",
                             }}
                           >
                             {opt.title}
@@ -470,7 +470,7 @@ function BookVisitPage() {
                             style={{
                               fontFamily: "Inter, sans-serif",
                               fontSize: 12,
-                              color: "#5A5A5A",
+                              color: "var(--muted-foreground)",
                               marginTop: 2,
                             }}
                           >
@@ -482,7 +482,7 @@ function BookVisitPage() {
                                 position: "absolute",
                                 top: 8,
                                 right: 8,
-                                background: "#EF4444",
+                                background: "var(--destructive)",
                                 color: "#FFF",
                                 fontSize: 9,
                                 fontWeight: 700,
@@ -499,12 +499,12 @@ function BookVisitPage() {
                   </div>
 
                   {form.visitMode === "virtual" && (
-                    <div className="mb-6 p-4 bg-[#EFF6FF] border border-[#0B7FC7]/20 rounded-xl">
+                    <div className="mb-6 p-4 bg-[#EFF6FF] border border-primary/20 rounded-xl">
                       <p
                         style={{
                           fontFamily: "Inter, sans-serif",
                           fontSize: 13,
-                          color: "#0B7FC7",
+                          color: "var(--primary)",
                           margin: 0,
                           lineHeight: 1.5,
                         }}
@@ -541,7 +541,7 @@ function BookVisitPage() {
                         style={{
                           fontFamily: "Inter, sans-serif",
                           fontSize: 12,
-                          color: "#EF4444",
+                          color: "var(--destructive)",
                           marginTop: 4,
                         }}
                       >
@@ -575,11 +575,11 @@ function BookVisitPage() {
                           onClick={() => setForm({ visitTime: opt.id })}
                           style={{
                             textAlign: "left",
-                            border: `1.5px solid ${selected ? "#0B7FC7" : "#D5D0C8"}`,
+                            border: `1.5px solid ${selected ? "var(--primary)" : "#D5D0C8"}`,
                             borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
                             borderRadius: 8,
                             padding: "14px 16px",
-                            background: selected ? "#F0F4F8" : "#FFFFFF",
+                            background: selected ? "var(--stone)" : "#FFFFFF",
                             cursor: "pointer",
                           }}
                         >
@@ -589,7 +589,7 @@ function BookVisitPage() {
                               fontFamily: "Inter, sans-serif",
                               fontWeight: 600,
                               fontSize: 14,
-                              color: "#0B7FC7",
+                              color: "var(--primary)",
                             }}
                           >
                             {opt.title}
@@ -598,7 +598,7 @@ function BookVisitPage() {
                             style={{
                               fontFamily: "Inter, sans-serif",
                               fontSize: 12,
-                              color: "#5A5A5A",
+                              color: "var(--muted-foreground)",
                               marginTop: 2,
                             }}
                           >
@@ -634,11 +634,11 @@ function BookVisitPage() {
                               }
                               style={{
                                 textAlign: "left",
-                                border: `1.5px solid ${selected ? "#0B7FC7" : "#D5D0C8"}`,
+                                border: `1.5px solid ${selected ? "var(--primary)" : "#D5D0C8"}`,
                                 borderLeft: selected ? "3px solid #E8A020" : "1.5px solid #D5D0C8",
                                 borderRadius: 8,
                                 padding: "12px 10px",
-                                background: selected ? "#F0F4F8" : "#FFFFFF",
+                                background: selected ? "var(--stone)" : "#FFFFFF",
                                 cursor: "pointer",
                               }}
                             >
@@ -648,7 +648,7 @@ function BookVisitPage() {
                                   fontFamily: "Inter, sans-serif",
                                   fontWeight: 600,
                                   fontSize: 12,
-                                  color: "#0B7FC7",
+                                  color: "var(--primary)",
                                 }}
                               >
                                 {opt.title}
@@ -657,7 +657,7 @@ function BookVisitPage() {
                                 style={{
                                   fontFamily: "Inter, sans-serif",
                                   fontSize: 10,
-                                  color: "#5A5A5A",
+                                  color: "var(--muted-foreground)",
                                   marginTop: 2,
                                 }}
                               >
@@ -672,7 +672,7 @@ function BookVisitPage() {
                           style={{
                             fontFamily: "Inter, sans-serif",
                             fontSize: 12,
-                            color: "#EF4444",
+                            color: "var(--destructive)",
                             marginTop: -2,
                             marginBottom: 12,
                           }}
@@ -713,7 +713,7 @@ function BookVisitPage() {
                               style={{
                                 fontFamily: "Inter, sans-serif",
                                 fontSize: 12,
-                                color: "#EF4444",
+                                color: "var(--destructive)",
                                 marginTop: 4,
                               }}
                             >
@@ -746,7 +746,7 @@ function BookVisitPage() {
                         background: "none",
                         border: "none",
                         cursor: "pointer",
-                        color: "#5A5A5A",
+                        color: "var(--muted-foreground)",
                       }}
                     >
                       <Minus size={20} />
@@ -756,7 +756,7 @@ function BookVisitPage() {
                         fontFamily: "Montserrat, sans-serif",
                         fontWeight: 700,
                         fontSize: 20,
-                        color: "#0B7FC7",
+                        color: "var(--primary)",
                         minWidth: 48,
                         textAlign: "center",
                       }}
@@ -770,7 +770,7 @@ function BookVisitPage() {
                         background: "none",
                         border: "none",
                         cursor: "pointer",
-                        color: "#5A5A5A",
+                        color: "var(--muted-foreground)",
                       }}
                     >
                       <Plus size={20} />
@@ -794,17 +794,17 @@ function BookVisitPage() {
                   {/* Info box */}
                   <div
                     style={{
-                      background: "#F0F4F8",
+                      background: "var(--stone)",
                       borderLeft: "3px solid #E8A020",
                       borderRadius: "0 8px 8px 0",
                       padding: "16px 20px",
                       fontFamily: "Inter, sans-serif",
                       fontSize: 13,
-                      color: "#5A5A5A",
+                      color: "var(--muted-foreground)",
                       lineHeight: 1.8,
                     }}
                   >
-                    <div style={{ fontWeight: 600, color: "#0B7FC7", marginBottom: 8 }}>
+                    <div style={{ fontWeight: 600, color: "var(--primary)", marginBottom: 8 }}>
                       ℹ️ About Your Site Visit
                     </div>
                     • Site visits are 100% free — no commitment required
@@ -823,7 +823,7 @@ function BookVisitPage() {
                 style={{
                   marginTop: 28,
                   width: "100%",
-                  background: loading ? "#C8C3BB" : "#E8A020",
+                  background: loading ? "#C8C3BB" : "var(--accent)",
                   color: "#FFFFFF",
                   fontFamily: "Inter, sans-serif",
                   fontWeight: 700,
@@ -847,7 +847,7 @@ function BookVisitPage() {
                   marginTop: 10,
                   width: "100%",
                   background: "transparent",
-                  color: "#0B7FC7",
+                  color: "var(--primary)",
                   fontFamily: "Inter, sans-serif",
                   fontWeight: 500,
                   fontSize: 14,
@@ -875,7 +875,7 @@ function BookVisitPage() {
                     fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 600,
                     fontSize: 22,
-                    color: "#0B7FC7",
+                    color: "var(--primary)",
                     marginBottom: 20,
                   }}
                 >
@@ -891,10 +891,10 @@ function BookVisitPage() {
                   <div key={item} className="flex items-start gap-3 mb-3">
                     <CheckCircle
                       size={18}
-                      style={{ color: "#22C55E", marginTop: 2, flexShrink: 0 }}
+                      style={{ color: "var(--available)", marginTop: 2, flexShrink: 0 }}
                     />
                     <div
-                      style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "#1C1C1C" }}
+                      style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "var(--foreground)" }}
                     >
                       {item}
                     </div>
@@ -903,7 +903,7 @@ function BookVisitPage() {
                 <div className="my-5" style={{ height: 1, background: "#E5E0D8" }} />
                 <div
                   style={{
-                    background: "#F8F4EE",
+                    background: "var(--ivory)",
                     border: "1px solid #E5E0D8",
                     borderRadius: 8,
                     padding: 16,
@@ -913,7 +913,7 @@ function BookVisitPage() {
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: 11,
-                      color: "#5A5A5A",
+                      color: "var(--muted-foreground)",
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                     }}
@@ -925,7 +925,7 @@ function BookVisitPage() {
                       fontFamily: "Inter, sans-serif",
                       fontWeight: 600,
                       fontSize: 14,
-                      color: "#0B7FC7",
+                      color: "var(--primary)",
                       marginTop: 4,
                     }}
                   >
@@ -936,7 +936,7 @@ function BookVisitPage() {
                       fontFamily: "'Cormorant Garamond', serif",
                       fontWeight: 600,
                       fontSize: 20,
-                      color: "#0B7FC7",
+                      color: "var(--primary)",
                     }}
                   >
                     Plot #{form.plotNumber}
@@ -946,7 +946,7 @@ function BookVisitPage() {
                       fontFamily: "Montserrat, sans-serif",
                       fontWeight: 700,
                       fontSize: 16,
-                      color: "#E8A020",
+                      color: "var(--accent)",
                       marginTop: 4,
                     }}
                   >
@@ -956,7 +956,7 @@ function BookVisitPage() {
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: 12,
-                      color: "#5A5A5A",
+                      color: "var(--muted-foreground)",
                       marginTop: 2,
                     }}
                   >

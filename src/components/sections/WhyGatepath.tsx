@@ -56,7 +56,7 @@ export function WhyGatepath() {
           </blockquote>
           <a
             href="#properties"
-            className="mt-8 inline-flex items-center justify-center bg-accent text-white px-7 py-3.5 text-sm font-semibold rounded-md hover:bg-[#C8861A] hover:scale-[1.02] transition-all duration-300"
+            className="mt-8 inline-flex items-center justify-center bg-accent text-white px-7 py-3.5 text-sm font-semibold rounded-md hover:bg-accent-dark hover:scale-[1.02] transition-all duration-300"
           >
             Explore Our Properties →
           </a>

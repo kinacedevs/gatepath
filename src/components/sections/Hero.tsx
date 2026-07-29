@@ -46,7 +46,7 @@ export function Hero() {
   ];
 
   return (
-    <section className="relative min-h-screen w-full flex flex-col justify-between pt-28 pb-0 bg-[#074B7D] overflow-hidden text-white">
+    <section className="relative min-h-screen w-full flex flex-col justify-between pt-28 pb-0 bg-primary-deep overflow-hidden text-white">
       {/* Background Image Carousel with Non-Distorting Cover Fit & Deep Gradient Overlay */}
       {images.length > 0 && (
         <div className="absolute inset-0 w-full h-full z-0">
@@ -56,8 +56,8 @@ export function Hero() {
             className="w-full h-full object-cover object-center transition-opacity duration-1000"
           />
           {/* Deep Navy Gradient Mask matching Figma Exact DNA */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#074B7D]/95 via-[#074B7D]/80 to-[#074B7D]/60" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#074B7D] via-transparent to-[#074B7D]/50" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-deep/95 via-primary-deep/80 to-primary-deep/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-deep via-transparent to-primary-deep/50" />
         </div>
       )}
 
@@ -66,8 +66,8 @@ export function Hero() {
         <div className="max-w-3xl space-y-6">
           {/* Top Gold Eyebrow */}
           <div className="inline-flex items-center gap-2">
-            <span className="h-[2px] w-8 bg-[#E8A020]"></span>
-            <span className="text-xs font-extrabold uppercase tracking-[0.25em] text-[#E8A020] font-sans">
+            <span className="h-[2px] w-8 bg-accent"></span>
+            <span className="text-xs font-extrabold uppercase tracking-[0.25em] text-accent font-sans">
               GATEPATH REALTORS • KENYA
             </span>
           </div>
@@ -75,7 +75,7 @@ export function Hero() {
           {/* Main Headline (Cormorant Garamond 700 with Gold Accent) */}
           <h1 className="font-serif font-bold text-5xl sm:text-6xl lg:text-7xl tracking-tight leading-[1.08] text-white">
             This is <span className="italic font-normal">real land.</span><br />
-            <span className="text-[#E8A020]">Real title deeds.</span><br />
+            <span className="text-accent">Real title deeds.</span><br />
             Real futures.
           </h1>
 
@@ -88,7 +88,7 @@ export function Hero() {
           <div className="flex flex-wrap items-center gap-4 pt-4">
             <Link
               to="/properties"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-[#E8A020] hover:bg-[#C8861A] text-white font-bold text-sm rounded-xl transition-all duration-300 shadow-xl hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-accent hover:bg-accent-dark text-white font-bold text-sm rounded-xl transition-all duration-300 shadow-xl hover:-translate-y-0.5"
             >
               Explore Our Land <ArrowRight size={18} />
             </Link>
@@ -106,36 +106,36 @@ export function Hero() {
       </div>
 
       {/* Bottom Floating Stats & Marquee Strip */}
-      <div className="relative z-10 w-full bg-[#063A61]/90 backdrop-blur-lg border-t border-white/10">
+      <div className="relative z-10 w-full bg-footer-deep/90 backdrop-blur-lg border-t border-white/10">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 py-6 grid grid-cols-2 md:grid-cols-5 gap-6 text-center md:text-left border-b border-white/10">
           <div>
-            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">500+</span>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-accent block">500+</span>
             <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Plots Sold</span>
           </div>
           <div>
-            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">12+</span>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-accent block">12+</span>
             <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Locations</span>
           </div>
           <div>
-            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">100%</span>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-accent block">100%</span>
             <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Title Verified</span>
           </div>
           <div>
-            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">5★</span>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-accent block">5★</span>
             <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Rated</span>
           </div>
           <div>
-            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-[#E8A020] block">Est. 2018</span>
+            <span className="font-sans font-extrabold text-2xl lg:text-3xl text-accent block">Est. 2018</span>
             <span className="text-xs text-slate-300 font-medium uppercase tracking-wider">Registered</span>
           </div>
         </div>
 
         {/* Continuous Auto-scrolling Location Marquee */}
-        <div className="py-3 px-6 overflow-hidden flex items-center bg-[#074B7D]">
+        <div className="py-3 px-6 overflow-hidden flex items-center bg-primary-deep">
           <div className="flex items-center gap-6 whitespace-nowrap text-xs font-semibold text-slate-200 animate-marquee">
             {locationsList.concat(locationsList).map((loc, idx) => (
               <span key={idx} className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E8A020]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                 <span className="hover:text-white transition-colors cursor-pointer">{loc}</span>
               </span>
             ))}

@@ -17,12 +17,21 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  /* Exposed so components can use bg-primary-dark / text-primary-deep / bg-nav /
+     bg-footer-deep / text-accent-dark instead of hardcoded hex — these existed
+     in :root but were never wired into the theme, which is why components
+     fell back to bg-[#074B7D] etc. literals. */
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-deep: var(--primary-deep);
+  --color-nav: var(--nav);
+  --color-footer-deep: var(--footer-deep);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-dark: var(--accent-dark);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -45,22 +54,27 @@
 :root {
   --radius: 0.5rem;
 
-  /* Brand — Gatepath Midnight Blue & Metallic Gold */
-  --background: #FAF7F2; /* soft luxury cream */
-  --ivory: #FAF7F2;
-  --stone: #F8F9FA; /* secondary soft cream/off-white */
+  /* Brand — Gatepath Cerulean Blue & Warm Gold.
+     Cerulean is the dominant blue; Deep Navy is depth/accents only — see
+     CLAUDE.md. Gold is #E8A020, never the Stitch-imported #D4AF37. */
+  --background: #F8F4EE; /* warm ivory */
+  --ivory: #F8F4EE;
+  --stone: #F0F4F8; /* light blue-tinted stone */
   --foreground: #1C1C1C; /* charcoal */
 
-  --primary: #0B7FC7; /* Vibrant Brand Cerulean Blue */
+  --primary: #0B7FC7; /* Gatepath cerulean blue — dominant */
   --primary-foreground: #FFFFFF;
   --primary-dark: #0960A0;
-  --primary-deep: #074B7D;
+  --primary-deep: #074B7D; /* depth/accents only, never the dominant surface */
+  --primary-tint: #F0F4F8; /* light cerulean wash, same as --stone */
+  --primary-tint-dim: #DCEBF5; /* dimmer cerulean wash */
   --nav: #0B7FC7;
   --footer-deep: #063A61;
 
-  --accent: #D4AF37; /* Premium Metallic Gold */
+  --accent: #E8A020; /* Gatepath warm gold */
   --accent-foreground: #1C1C1C;
-  --accent-dark: #AA8C2C;
+  --accent-dark: #C8861A;
+  --accent-tint: #FBEEDA; /* light warm-gold wash */
 
   --secondary: #f0f4f8;
   --secondary-foreground: #1c1c1c;
@@ -195,56 +209,33 @@
 }
 
 
-/* Stitch CRM Design DNA */
+/* CRM chrome tokens — re-derived from Gatepath brand colors.
+   Previously a "Stitch CRM Design DNA" block importing an unrelated Material-3
+   palette (#0d1c32 near-black navy, #fed65b bright yellow-gold, etc.) — that
+   palette is the source of the dark-navy drift away from the brand. admin.tsx
+   references these exact token names as Tailwind utility classes
+   (bg-primary-container, text-on-primary-fixed, etc.); only the values below
+   changed, so no admin.tsx edits were needed to fix its colors. The full
+   admin.tsx restructure (splitting the file, removing remaining inline
+   styles) is a separate pass — see CRITIQUE.md P3. */
 @theme inline {
-  /* Colors */
-  --color-on-tertiary: #ffffff;
-  --color-on-primary: #ffffff;
-  --color-tertiary-container: #2b1701;
-  --color-on-primary-fixed: #0d1c32;
-  --color-error-container: #ffdad6;
-  --color-inverse-on-surface: #ebf1ff;
-  --color-on-surface-variant: #44474d;
-  --color-surface-bright: #f9f9ff;
-  --color-inverse-primary: #b9c7e4;
-  --color-primary-container: #0d1c32;
-  --color-on-tertiary-container: #9f7d5b;
-  --color-on-error: #ffffff;
-  --color-on-secondary-fixed-variant: #574500;
-  --color-surface-container-highest: #d8e3fa;
-  --color-on-tertiary-fixed: #2b1701;
-  --color-error: #ba1a1a;
-  --color-secondary-fixed-dim: #e9c349;
-  --color-surface-container-high: #dee8ff;
-  --color-outline: #75777e;
-  --color-on-background: #111c2c;
-  --color-on-primary-fixed-variant: #39475f;
-  --color-tertiary-fixed-dim: #e7bf99;
-  --color-primary-fixed-dim: #b9c7e4;
-  --color-surface-tint: #515f78;
-  --color-primary-fixed: #d6e3ff;
-  --color-on-secondary: #ffffff;
-  --color-tertiary: #000000;
-  --color-on-secondary-fixed: #241a00;
-  --color-surface-variant: #d8e3fa;
-  --color-tertiary-fixed: #ffdcbd;
-  --color-outline-variant: #c5c6cd;
-  --color-primary: #000000;
-  --color-on-surface: #111c2c;
-  --color-background: #f9f9ff;
-  --color-surface-container: #e7eeff;
-  --color-on-primary-container: #76849f;
-  --color-secondary-container: #fed65b;
-  --color-on-tertiary-fixed-variant: #5d4124;
-  --color-surface: #f9f9ff;
-  --color-secondary: #735c00;
-  --color-surface-container-low: #f0f3ff;
-  --color-secondary-fixed: #ffe088;
-  --color-on-secondary-container: #745c00;
-  --color-surface-dim: #cfdaf1;
-  --color-inverse-surface: #263142;
-  --color-surface-container-lowest: #ffffff;
-  --color-on-error-container: #93000a;
+  --color-primary-container: var(--primary-deep); /* dark CRM surfaces */
+  --color-on-primary-container: #ffffff; /* text on primary-container */
+  --color-on-primary: var(--primary-foreground); /* text/icon on vivid primary */
+  --color-primary-fixed: var(--primary-tint); /* light cerulean surface */
+  --color-primary-fixed-dim: var(--primary-tint-dim);
+  --color-on-primary-fixed: var(--primary-deep); /* text on primary-fixed */
+  --color-on-primary-fixed-variant: var(--primary-dark); /* border/bg accent */
+  --color-secondary-container: var(--accent); /* gold highlight surfaces */
+  --color-on-secondary-container: var(--accent-foreground);
+  --color-secondary-fixed: var(--accent-tint); /* light gold surface */
+  --color-surface: var(--background); /* base CRM surface */
+  --color-on-surface: var(--foreground); /* primary body text */
+  --color-on-surface-variant: var(--muted-foreground); /* secondary body text */
+  --color-surface-container-low: var(--stone); /* low-emphasis panel bg */
+  --color-surface-container-high: var(--primary-tint-dim); /* higher-emphasis panel bg */
+  --color-outline-variant: var(--border); /* subtle borders/dividers */
+  --color-error: var(--destructive); /* alias so bg-error/text-error resolve */
 
   /* Typography */
   --font-body-md: "Inter", sans-serif;
@@ -287,10 +278,6 @@
 
   /* Spacing */
   --spacing-gutter: 16px;
-  --spacing-container-padding: 24px;
-  --spacing-section-gap: 40px;
-  --spacing-sidebar-width: 280px;
-  --spacing-base: 8px;
 }
 
 
@@ -299,12 +286,12 @@
     box-shadow: inset 4px 0 0 0 var(--color-secondary-container);
   }
   .luxury-card {
-    background: #ffffff;
-    border: 1px solid #E2E8F0;
+    background: var(--card);
+    border: 1px solid var(--border);
     transition: all 0.2s ease;
   }
   .luxury-card:hover {
-    box-shadow: 0px 4px 12px rgba(10, 25, 47, 0.05);
+    box-shadow: 0px 4px 12px rgba(7, 75, 125, 0.05);
   }
   .gradient-line {
     height: 3px;

@@ -125,12 +125,12 @@ function PaymentPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8F4EE" }}>
+    <div style={{ minHeight: "100vh", background: "var(--ivory)" }}>
       <Navbar />
       <div className="pt-20">
         <InquiryStepper currentStep={3} />
 
-        <div style={{ background: "#0B7FC7", padding: "32px 24px" }}>
+        <div style={{ background: "var(--primary)", padding: "32px 24px" }}>
           <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-center">
             <div>
               <div
@@ -138,7 +138,7 @@ function PaymentPage() {
                   fontFamily: "Montserrat, sans-serif",
                   fontWeight: 500,
                   fontSize: 11,
-                  color: "#E8A020",
+                  color: "var(--accent)",
                   letterSpacing: "0.25em",
                 }}
               >
@@ -189,7 +189,7 @@ function PaymentPage() {
                   fontFamily: "Montserrat, sans-serif",
                   fontWeight: 600,
                   fontSize: 11,
-                  color: "#E8A020",
+                  color: "var(--accent)",
                   letterSpacing: "0.2em",
                 }}
               >
@@ -199,7 +199,7 @@ function PaymentPage() {
                 style={{
                   fontFamily: "Inter, sans-serif",
                   fontSize: 14,
-                  color: "#5A5A5A",
+                  color: "var(--muted-foreground)",
                   marginTop: 6,
                 }}
               >
@@ -215,7 +215,7 @@ function PaymentPage() {
                     fontFamily: "Inter, sans-serif",
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "#1C1C1C",
+                    color: "var(--foreground)",
                     marginBottom: 6,
                   }}
                 >
@@ -223,14 +223,14 @@ function PaymentPage() {
                 </div>
                 <div
                   style={{
-                    background: "#F8F4EE",
+                    background: "var(--ivory)",
                     border: "1px solid #E5E0D8",
                     borderRadius: 8,
                     padding: "14px 16px",
                     fontFamily: "Montserrat, sans-serif",
                     fontWeight: 700,
                     fontSize: 20,
-                    color: "#0B7FC7",
+                    color: "var(--primary)",
                   }}
                 >
                   Ksh {totalPrice.toLocaleString()}
@@ -239,7 +239,7 @@ function PaymentPage() {
                   style={{
                     fontFamily: "Inter, sans-serif",
                     fontSize: 12,
-                    color: "#5A5A5A",
+                    color: "var(--muted-foreground)",
                     marginTop: 4,
                   }}
                 >
@@ -255,7 +255,7 @@ function PaymentPage() {
                       fontFamily: "Inter, sans-serif",
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#1C1C1C",
+                      color: "var(--foreground)",
                     }}
                   >
                     {form.reservePlot
@@ -264,7 +264,7 @@ function PaymentPage() {
                   </div>
                   <span
                     style={{
-                      background: "#E8A020",
+                      background: "var(--accent)",
                       color: "#FFFFFF",
                       fontFamily: "Inter, sans-serif",
                       fontWeight: 600,
@@ -283,11 +283,11 @@ function PaymentPage() {
                   step={5000}
                   value={deposit}
                   onChange={(e) => setDeposit(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#0B7FC7" }}
+                  style={{ width: "100%", accentColor: "var(--primary)" }}
                 />
                 <div
                   className="flex justify-between mt-1"
-                  style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "#5A5A5A" }}
+                  style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "var(--muted-foreground)" }}
                 >
                   <span>
                     {form.reservePlot
@@ -314,7 +314,7 @@ function PaymentPage() {
                     fontFamily: "Montserrat, sans-serif",
                     fontWeight: 600,
                     fontSize: 16,
-                    color: "#0B7FC7",
+                    color: "var(--primary)",
                     background: "#FFFFFF",
                   }}
                 />
@@ -328,7 +328,7 @@ function PaymentPage() {
                       fontFamily: "Inter, sans-serif",
                       fontSize: 13,
                       fontWeight: 500,
-                      color: "#1C1C1C",
+                      color: "var(--foreground)",
                       marginBottom: 8,
                     }}
                   >
@@ -343,9 +343,9 @@ function PaymentPage() {
                           type="button"
                           onClick={() => setPeriod(p)}
                           style={{
-                            border: `1.5px solid ${sel ? "#0B7FC7" : "#E5E0D8"}`,
-                            background: sel ? "#0B7FC7" : "#FFFFFF",
-                            color: sel ? "#FFFFFF" : "#5A5A5A",
+                            border: `1.5px solid ${sel ? "var(--primary)" : "#E5E0D8"}`,
+                            background: sel ? "var(--primary)" : "#FFFFFF",
+                            color: sel ? "#FFFFFF" : "var(--muted-foreground)",
                             fontFamily: "Inter, sans-serif",
                             fontWeight: sel ? 600 : 500,
                             fontSize: 14,
@@ -369,7 +369,7 @@ function PaymentPage() {
                     fontFamily: "Inter, sans-serif",
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "#1C1C1C",
+                    color: "var(--foreground)",
                     marginBottom: 6,
                   }}
                 >
@@ -392,7 +392,7 @@ function PaymentPage() {
                   style={{
                     fontFamily: "Inter, sans-serif",
                     fontSize: 12,
-                    color: "#5A5A5A",
+                    color: "var(--muted-foreground)",
                     marginTop: 6,
                   }}
                 >
@@ -405,7 +405,7 @@ function PaymentPage() {
               <div
                 className="mt-7"
                 style={{
-                  background: "#F0F4F8",
+                  background: "var(--stone)",
                   border: "1px solid #E5E0D8",
                   borderRadius: 10,
                   padding: 24,
@@ -417,7 +417,7 @@ function PaymentPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 11,
-                        color: "#5A5A5A",
+                        color: "var(--muted-foreground)",
                         textTransform: "uppercase",
                         letterSpacing: "0.08em",
                       }}
@@ -429,14 +429,14 @@ function PaymentPage() {
                         fontFamily: "Montserrat, sans-serif",
                         fontWeight: 700,
                         fontSize: 22,
-                        color: "#0B7FC7",
+                        color: "var(--primary)",
                         marginTop: 4,
                       }}
                     >
                       Ksh {deposit.toLocaleString()}
                     </div>
                     <div
-                      style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#5A5A5A" }}
+                      style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--muted-foreground)" }}
                     >
                       ({pct}% of total)
                     </div>
@@ -446,7 +446,7 @@ function PaymentPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 11,
-                        color: "#5A5A5A",
+                        color: "var(--muted-foreground)",
                         textTransform: "uppercase",
                         letterSpacing: "0.08em",
                       }}
@@ -459,7 +459,7 @@ function PaymentPage() {
                           fontFamily: "Montserrat, sans-serif",
                           fontWeight: 700,
                           fontSize: 16,
-                          color: "#22C55E",
+                          color: "var(--available)",
                           marginTop: 4,
                         }}
                       >
@@ -472,7 +472,7 @@ function PaymentPage() {
                             fontFamily: "Montserrat, sans-serif",
                             fontWeight: 700,
                             fontSize: 18,
-                            color: "#22C55E",
+                            color: "var(--available)",
                             marginTop: 4,
                           }}
                         >
@@ -482,7 +482,7 @@ function PaymentPage() {
                           style={{
                             fontFamily: "Inter, sans-serif",
                             fontSize: 12,
-                            color: "#5A5A5A",
+                            color: "var(--muted-foreground)",
                           }}
                         >
                           Cleared within 30 days
@@ -495,7 +495,7 @@ function PaymentPage() {
                             fontFamily: "Montserrat, sans-serif",
                             fontWeight: 700,
                             fontSize: 22,
-                            color: "#0B7FC7",
+                            color: "var(--primary)",
                             marginTop: 4,
                           }}
                         >
@@ -505,7 +505,7 @@ function PaymentPage() {
                           style={{
                             fontFamily: "Inter, sans-serif",
                             fontSize: 12,
-                            color: "#5A5A5A",
+                            color: "var(--muted-foreground)",
                           }}
                         >
                           over {period} months
@@ -518,7 +518,7 @@ function PaymentPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 11,
-                        color: "#5A5A5A",
+                        color: "var(--muted-foreground)",
                         textTransform: "uppercase",
                         letterSpacing: "0.08em",
                       }}
@@ -530,7 +530,7 @@ function PaymentPage() {
                         fontFamily: "Montserrat, sans-serif",
                         fontWeight: 700,
                         fontSize: 22,
-                        color: "#0B7FC7",
+                        color: "var(--primary)",
                         marginTop: 4,
                       }}
                     >
@@ -542,7 +542,7 @@ function PaymentPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 11,
-                        color: "#5A5A5A",
+                        color: "var(--muted-foreground)",
                         textTransform: "uppercase",
                         letterSpacing: "0.08em",
                       }}
@@ -554,7 +554,7 @@ function PaymentPage() {
                         fontFamily: "Montserrat, sans-serif",
                         fontWeight: 700,
                         fontSize: 22,
-                        color: "#0B7FC7",
+                        color: "var(--primary)",
                         marginTop: 4,
                       }}
                     >
@@ -564,7 +564,7 @@ function PaymentPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 12,
-                        color: period === 0 || isFullPayment ? "#22C55E" : "#E8A020",
+                        color: period === 0 || isFullPayment ? "var(--available)" : "var(--accent)",
                         fontWeight: 500,
                       }}
                     >
@@ -584,7 +584,7 @@ function PaymentPage() {
                   fontFamily: "Inter, sans-serif",
                   fontStyle: "italic",
                   fontSize: 12,
-                  color: "#5A5A5A",
+                  color: "var(--muted-foreground)",
                   marginTop: 12,
                 }}
               >
@@ -604,7 +604,7 @@ function PaymentPage() {
                   border: "1px solid #E5E0D8",
                 }}
               >
-                <div style={{ background: "#0B7FC7", padding: 24 }}>
+                <div style={{ background: "var(--primary)", padding: 24 }}>
                   <div
                     style={{
                       fontFamily: "Inter, sans-serif",
@@ -620,7 +620,7 @@ function PaymentPage() {
                       fontFamily: "Montserrat, sans-serif",
                       fontWeight: 500,
                       fontSize: 11,
-                      color: "#E8A020",
+                      color: "var(--accent)",
                       letterSpacing: "0.15em",
                       textTransform: "uppercase",
                       marginTop: 12,
@@ -657,14 +657,14 @@ function PaymentPage() {
                       fontFamily: "Montserrat, sans-serif",
                       fontWeight: 500,
                       fontSize: 10,
-                      color: "#5A5A5A",
+                      color: "var(--muted-foreground)",
                       letterSpacing: "0.2em",
                       marginBottom: 10,
                     }}
                   >
                     ORDER SUMMARY
                   </div>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#5A5A5A" }}>
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "var(--muted-foreground)" }}>
                     <div className="flex justify-between mb-1.5">
                       <span>Plot #{form.plotNumber}</span>
                       <span>Ksh {totalPrice.toLocaleString()}</span>
@@ -698,7 +698,7 @@ function PaymentPage() {
                         fontFamily: "Inter, sans-serif",
                         fontWeight: 700,
                         fontSize: 15,
-                        color: "#0B7FC7",
+                        color: "var(--primary)",
                       }}
                     >
                       <span>TOTAL PAYABLE</span>
@@ -713,7 +713,7 @@ function PaymentPage() {
                       fontFamily: "Montserrat, sans-serif",
                       fontWeight: 500,
                       fontSize: 11,
-                      color: "#5A5A5A",
+                      color: "var(--muted-foreground)",
                       letterSpacing: "0.15em",
                       marginBottom: 10,
                     }}
@@ -729,8 +729,8 @@ function PaymentPage() {
                           type="button"
                           onClick={() => setMethod(m.id)}
                           style={{
-                            border: `1.5px solid ${sel ? "#0B7FC7" : "#E5E0D8"}`,
-                            background: sel ? "#F0F4F8" : "#FFFFFF",
+                            border: `1.5px solid ${sel ? "var(--primary)" : "#E5E0D8"}`,
+                            background: sel ? "var(--stone)" : "#FFFFFF",
                             borderRadius: 8,
                             padding: "12px 6px",
                             textAlign: "center",
@@ -738,7 +738,7 @@ function PaymentPage() {
                             fontFamily: "Inter, sans-serif",
                             fontWeight: sel ? 600 : 500,
                             fontSize: 12,
-                            color: "#0B7FC7",
+                            color: "var(--primary)",
                           }}
                         >
                           <div style={{ fontSize: 18, marginBottom: 4 }}>{m.icon}</div>
@@ -753,7 +753,7 @@ function PaymentPage() {
                     className="mt-5"
                     style={{
                       width: "100%",
-                      background: "#E8A020",
+                      background: "var(--accent)",
                       color: "#FFFFFF",
                       fontFamily: "Inter, sans-serif",
                       fontWeight: 700,
@@ -770,7 +770,7 @@ function PaymentPage() {
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: 12,
-                      color: "#5A5A5A",
+                      color: "var(--muted-foreground)",
                       textAlign: "center",
                       marginTop: 8,
                     }}
@@ -779,7 +779,7 @@ function PaymentPage() {
                   </div>
                   <div
                     className="mt-3 flex flex-wrap items-center justify-center gap-3"
-                    style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "#5A5A5A" }}
+                    style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "var(--muted-foreground)" }}
                   >
                     <span>🔒 SSL Encrypted</span>
                     <span>✅ Paystack Secured</span>
@@ -795,7 +795,7 @@ function PaymentPage() {
                       border: "none",
                       fontFamily: "Inter, sans-serif",
                       fontSize: 13,
-                      color: "#E8A020",
+                      color: "var(--accent)",
                       cursor: "pointer",
                     }}
                   >

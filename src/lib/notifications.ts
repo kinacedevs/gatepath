@@ -223,7 +223,7 @@ export function getReservationEmailHtml(params: {
 
           <!-- Footer Address (Ruiru Eastern Bypass) -->
           <tr>
-            <td bgcolor="#0A3D62" style="padding: 30px; text-align: center; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 12px; line-height: 20px;">
+            <td bgcolor="#074B7D" style="padding: 30px; text-align: center; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 12px; line-height: 20px;">
               <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 13px; color: #E8A020;">
                 GATEPATH REALTORS LIMITED
               </p>
@@ -320,7 +320,7 @@ export function getAgreementSignedEmailHtml(params: {
 
           <!-- Footer Address (Ruiru Eastern Bypass) -->
           <tr>
-            <td bgcolor="#0A3D62" style="padding: 30px; text-align: center; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 12px; line-height: 20px;">
+            <td bgcolor="#074B7D" style="padding: 30px; text-align: center; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 12px; line-height: 20px;">
               <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 13px; color: #E8A020;">
                 GATEPATH REALTORS LIMITED
               </p>
@@ -485,7 +485,7 @@ export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
       <td style="padding: 40px 0 30px 0;">
         <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; border: 1px solid #E5E0D8; background-color: #FFFFFF; border-radius: 12px; overflow: hidden;">
           <tr>
-            <td align="center" bgcolor="#0A3D62" style="padding: 40px 0 30px 0; color: #FFFFFF; font-size: 24px; font-weight: bold; font-family: Arial, sans-serif;">
+            <td align="center" bgcolor="#074B7D" style="padding: 40px 0 30px 0; color: #FFFFFF; font-size: 24px; font-weight: bold; font-family: Arial, sans-serif;">
               GATEPATH REALTORS
             </td>
           </tr>
@@ -512,7 +512,7 @@ export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
             </td>
           </tr>
           <tr>
-            <td bgcolor="#0A3D62" style="padding: 30px; text-align: center; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 12px;">
+            <td bgcolor="#074B7D" style="padding: 30px; text-align: center; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 12px;">
               🏢 1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi, Kenya<br/>
               📞 +254 799 488 488 | ✉️ info@gatepathrealtors.com
             </td>

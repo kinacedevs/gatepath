@@ -128,18 +128,18 @@ function LocationsPage() {
     : locationsData.filter((loc) => loc.region.toLowerCase().includes(selectedRegion.toLowerCase()));
 
   return (
-    <div className="min-h-screen bg-[#F8F4EE] text-foreground font-sans">
+    <div className="min-h-screen bg-ivory text-foreground font-sans">
       <Navbar />
 
       {/* Hero Header */}
-      <section className="relative pt-32 pb-20 bg-[#074B7D] text-white overflow-hidden">
+      <section className="relative pt-32 pb-20 bg-primary-deep text-white overflow-hidden">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 relative z-10">
           <div className="max-w-3xl space-y-4">
-            <span className="px-3 py-1 bg-[#E8A020]/20 text-[#E8A020] border border-[#E8A020]/30 text-xs font-bold rounded-full uppercase tracking-wider">
+            <span className="px-3 py-1 bg-accent/20 text-accent border border-accent/30 text-xs font-bold rounded-full uppercase tracking-wider">
               REGIONAL DISCOVERY ENGINE
             </span>
             <h1 className="font-serif font-bold text-4xl sm:text-5xl lg:text-6xl leading-tight">
-              Explore Land Across <span className="text-[#E8A020]">12 Prime Kenyan Locations</span>
+              Explore Land Across <span className="text-accent">12 Prime Kenyan Locations</span>
             </h1>
             <p className="text-base text-slate-300 max-w-2xl leading-relaxed">
               From the white sands of Malindi to the agricultural valleys of Sagana and the high-growth corridors of Juja & Matuu — discover verified land backed by ready title deeds.
@@ -154,7 +154,7 @@ function LocationsPage() {
                 onClick={() => setSelectedRegion(reg)}
                 className={`px-5 py-2.5 rounded-xl font-semibold text-xs capitalize transition-all ${
                   selectedRegion === reg
-                    ? "bg-[#E8A020] text-white shadow-md font-bold"
+                    ? "bg-accent text-white shadow-md font-bold"
                     : "bg-white/10 text-slate-200 hover:bg-white/20 border border-white/10"
                 }`}
               >
@@ -182,7 +182,7 @@ function LocationsPage() {
                     className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <span className="absolute top-4 left-4 bg-[#074B7D] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  <span className="absolute top-4 left-4 bg-primary-deep text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                     {loc.county}
                   </span>
                   <span className="absolute top-4 right-4 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
@@ -192,7 +192,7 @@ function LocationsPage() {
                   <div className="absolute bottom-4 left-4 right-4 text-white">
                     <h3 className="font-serif font-bold text-2xl drop-shadow-md">{loc.name}</h3>
                     <p className="text-xs text-slate-200 flex items-center gap-1 mt-0.5">
-                      <MapPin size={12} className="text-[#E8A020]" /> {loc.distanceFromTown}
+                      <MapPin size={12} className="text-accent" /> {loc.distanceFromTown}
                     </p>
                   </div>
                 </div>
@@ -208,7 +208,7 @@ function LocationsPage() {
                     <div className="grid grid-cols-1 gap-1.5 text-xs text-slate-700">
                       {loc.highlights.map((h, i) => (
                         <div key={i} className="flex items-center gap-2">
-                          <CheckCircle2 size={14} className="text-[#22C55E] shrink-0" />
+                          <CheckCircle2 size={14} className="text-available shrink-0" />
                           <span>{h}</span>
                         </div>
                       ))}
@@ -221,14 +221,14 @@ function LocationsPage() {
               <div className="p-6 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Starting Price</span>
-                  <span className="font-stat-lg text-lg font-extrabold text-[#0B7FC7]">
+                  <span className="font-stat-lg text-lg font-extrabold text-primary">
                     Ksh {loc.startingPrice.toLocaleString()}
                   </span>
                 </div>
 
                 <Link
                   to="/properties"
-                  className="px-4 py-2.5 bg-[#074B7D] hover:bg-[#063A61] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
+                  className="px-4 py-2.5 bg-primary-deep hover:bg-footer-deep text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
                 >
                   View Plots <ArrowRight size={14} />
                 </Link>
@@ -239,7 +239,7 @@ function LocationsPage() {
       </section>
 
       {/* Office & Site Visit Banner */}
-      <section className="bg-[#074B7D] text-white py-16 border-t border-white/10">
+      <section className="bg-primary-deep text-white py-16 border-t border-white/10">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 text-center space-y-6">
           <h2 className="font-serif font-bold text-3xl sm:text-4xl max-w-2xl mx-auto">
             Ready to Visit Your Desired Location?
@@ -250,7 +250,7 @@ function LocationsPage() {
           <div className="flex justify-center gap-4 pt-2">
             <Link
               to="/book-visit"
-              className="px-8 py-3.5 bg-[#E8A020] hover:bg-[#C8861A] text-white font-bold text-xs rounded-xl shadow-lg transition-all"
+              className="px-8 py-3.5 bg-accent hover:bg-accent-dark text-white font-bold text-xs rounded-xl shadow-lg transition-all"
             >
               Book Free Site Visit Now →
             </Link>

@@ -121,7 +121,7 @@ export function FeaturedLocations() {
                 <Link
                   to="/properties/$slug"
                   params={{ slug: locationToSlug[l.name] ?? "malindi-acres-phase-5" }}
-                  className="group relative block h-[420px] rounded-[16px] overflow-hidden shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] transition-all duration-400 hover:scale-[1.02] cursor-pointer bg-[#0A192F] border border-[#E5E0D8]"
+                  className="group relative block h-[420px] rounded-[16px] overflow-hidden shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] transition-all duration-400 hover:scale-[1.02] cursor-pointer bg-primary-deep border border-[#E5E0D8]"
                 >
                   <img
                     src={displayImg}
@@ -135,32 +135,32 @@ export function FeaturedLocations() {
                     className="absolute inset-0"
                     style={{
                       background: hasCustomImg
-                        ? "linear-gradient(to top, rgba(10,25,47,0.7) 0%, rgba(0,0,0,0) 40%, rgba(10,25,47,0.5) 100%)"
+                        ? "linear-gradient(to top, rgba(7,75,125,0.7) 0%, rgba(0,0,0,0) 40%, rgba(7,75,125,0.5) 100%)"
                         : "linear-gradient(to top, rgba(11,127,199,0.92) 0%, rgba(11,127,199,0.35) 55%, transparent 100%)",
                     }}
                   />
 
                   {/* Top Floating Glassmorphism Badge Bar — keeps poster visual completely clear */}
                   <div className="absolute top-4 inset-x-4 flex items-center justify-between z-10">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#0A192F]/80 backdrop-blur-md border border-white/20 text-[#E8A020]">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-primary-deep/80 backdrop-blur-md border border-white/20 text-accent">
                       <MapPin size={12} strokeWidth={2} />
                       {l.name}
                     </span>
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#22C55E]/90 text-white backdrop-blur-md shadow-sm">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-available/90 text-white backdrop-blur-md shadow-sm">
                       {l.plots} plots available
                     </span>
                   </div>
 
                   {/* Bottom Info Bar — compact translucent bar */}
-                  <div className="absolute inset-x-0 bottom-0 p-5 text-white z-10" style={{ background: "linear-gradient(to top, rgba(10,25,47,0.92) 0%, rgba(10,25,47,0.4) 80%, transparent 100%)" }}>
+                  <div className="absolute inset-x-0 bottom-0 p-5 text-white z-10" style={{ background: "linear-gradient(to top, rgba(7,75,125,0.92) 0%, rgba(7,75,125,0.4) 80%, transparent 100%)" }}>
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-[11px] text-white/70 font-medium">{l.region}</div>
-                        <div className="font-numbers font-bold text-[14px] text-[#E8A020] mt-0.5">
+                        <div className="font-numbers font-bold text-[14px] text-accent mt-0.5">
                           {l.price}
                         </div>
                       </div>
-                      <div className="inline-flex items-center gap-1 bg-[#E8A020] text-[#0A192F] text-[11px] font-extrabold px-3 py-1.5 rounded-lg group-hover:bg-[#D4AF37] transition-all shadow-md">
+                      <div className="inline-flex items-center gap-1 bg-accent text-primary-deep text-[11px] font-extrabold px-3 py-1.5 rounded-lg group-hover:bg-accent-dark transition-all shadow-md">
                         Explore <ArrowRight size={12} />
                       </div>
                     </div>

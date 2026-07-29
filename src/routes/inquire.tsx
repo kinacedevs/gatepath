@@ -219,11 +219,11 @@ function InquiryPage() {
   const inp = (key: string): React.CSSProperties => ({
     width: "100%",
     padding: "11px 14px",
-    border: `1.5px solid ${showErr(key) ? "#EF4444" : touched[key] && !errors[key] ? "#22C55E" : "#D5D0C8"}`,
+    border: `1.5px solid ${showErr(key) ? "var(--destructive)" : touched[key] && !errors[key] ? "var(--available)" : "#D5D0C8"}`,
     borderRadius: 8,
     fontFamily: "Inter, sans-serif",
     fontSize: 14,
-    color: "#1C1C1C",
+    color: "var(--foreground)",
     background: "#FFFFFF",
     outline: "none",
     transition: "border-color 0.2s ease",
@@ -235,7 +235,7 @@ function InquiryPage() {
     fontFamily: "Inter, sans-serif",
     fontSize: 13,
     fontWeight: 500,
-    color: "#1C1C1C",
+    color: "var(--foreground)",
     marginBottom: 5,
   };
 
@@ -247,7 +247,7 @@ function InquiryPage() {
         fontSize: 11,
         color: "#FFFFFF",
         letterSpacing: "0.22em",
-        background: "#0B7FC7",
+        background: "var(--primary)",
         padding: "8px 16px",
         borderRadius: 4,
         marginBottom: 18,
@@ -393,13 +393,13 @@ function InquiryPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8F4EE" }}>
+    <div style={{ minHeight: "100vh", background: "var(--ivory)" }}>
       <Navbar />
       <div className="pt-20">
         <InquiryStepper currentStep={1} />
 
         {/* Blue hero strip */}
-        <div style={{ background: "#0B7FC7", padding: "32px 24px" }}>
+        <div style={{ background: "var(--primary)", padding: "32px 24px" }}>
           <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-center">
             <div>
               <div
@@ -407,7 +407,7 @@ function InquiryPage() {
                   fontFamily: "Montserrat, sans-serif",
                   fontWeight: 600,
                   fontSize: 11,
-                  color: "#E8A020",
+                  color: "var(--accent)",
                   letterSpacing: "0.25em",
                 }}
               >
@@ -517,7 +517,7 @@ function InquiryPage() {
               )}
 
               {/* Intent Toggle Banner */}
-              <div className="mb-8 p-5 bg-[#EFF6FF] border border-[#0B7FC7]/20 rounded-xl flex items-start gap-3.5">
+              <div className="mb-8 p-5 bg-[#EFF6FF] border border-primary/20 rounded-xl flex items-start gap-3.5">
                 <input
                   type="checkbox"
                   id="reservePlotToggle"
@@ -534,7 +534,7 @@ function InquiryPage() {
                     height: 20,
                     cursor: "pointer",
                     marginTop: 2,
-                    accentColor: "#0B7FC7",
+                    accentColor: "var(--primary)",
                   }}
                 />
                 <div>
@@ -544,7 +544,7 @@ function InquiryPage() {
                       fontFamily: "Inter, sans-serif",
                       fontWeight: 700,
                       fontSize: 14,
-                      color: "#0B7FC7",
+                      color: "var(--primary)",
                       cursor: "pointer",
                     }}
                   >
@@ -554,7 +554,7 @@ function InquiryPage() {
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: 12,
-                      color: "#5A5A5A",
+                      color: "var(--muted-foreground)",
                       margin: "4px 0 0 0",
                       lineHeight: 1.5,
                     }}
@@ -604,7 +604,7 @@ function InquiryPage() {
                         fontFamily: "Inter, sans-serif",
                         fontWeight: 600,
                         fontSize: 14,
-                        color: l === "Status" ? "#22C55E" : "#0B7FC7",
+                        color: l === "Status" ? "var(--available)" : "var(--primary)",
                       }}
                     >
                       {v}
@@ -621,7 +621,7 @@ function InquiryPage() {
                     month: "long",
                     year: "numeric",
                   })}
-                  style={{ ...inp("bookingDate"), background: "#F5F2EE", color: "#5A5A5A" }}
+                  style={{ ...inp("bookingDate"), background: "#F5F2EE", color: "var(--muted-foreground)" }}
                 />
               </div>
               <button
@@ -633,7 +633,7 @@ function InquiryPage() {
                   padding: 0,
                   fontFamily: "Inter, sans-serif",
                   fontSize: 13,
-                  color: "#E8A020",
+                  color: "var(--accent)",
                   cursor: "pointer",
                   textDecoration: "underline",
                   marginBottom: 24,
@@ -679,7 +679,7 @@ function InquiryPage() {
                             }}
                             style={{
                               textAlign: "left",
-                              border: `1.5px solid ${sel ? "#0B7FC7" : "#D5D0C8"}`,
+                              border: `1.5px solid ${sel ? "var(--primary)" : "#D5D0C8"}`,
                               borderLeft: sel ? "4px solid #E8A020" : "1.5px solid #D5D0C8",
                               borderRadius: 8,
                               padding: "14px 14px",
@@ -693,7 +693,7 @@ function InquiryPage() {
                                 fontFamily: "Inter, sans-serif",
                                 fontWeight: 600,
                                 fontSize: 13,
-                                color: "#0B7FC7",
+                                color: "var(--primary)",
                               }}
                             >
                               {opt.label}
@@ -702,7 +702,7 @@ function InquiryPage() {
                               style={{
                                 fontFamily: "Inter, sans-serif",
                                 fontSize: 12,
-                                color: "#5A5A5A",
+                                color: "var(--muted-foreground)",
                                 marginTop: 2,
                               }}
                             >
@@ -717,7 +717,7 @@ function InquiryPage() {
                         style={{
                           fontFamily: "Inter, sans-serif",
                           fontSize: 12,
-                          color: "#EF4444",
+                          color: "var(--destructive)",
                           marginTop: 6,
                         }}
                       >
@@ -783,7 +783,7 @@ function InquiryPage() {
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: 12,
-                      color: "#EF4444",
+                      color: "var(--destructive)",
                       marginTop: 4,
                     }}
                   >
@@ -837,7 +837,7 @@ function InquiryPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 12,
-                        color: "#EF4444",
+                        color: "var(--destructive)",
                         marginTop: 4,
                       }}
                     >
@@ -879,7 +879,7 @@ function InquiryPage() {
                   style={{
                     fontFamily: "Inter, sans-serif",
                     fontSize: 12,
-                    color: "#5A5A5A",
+                    color: "var(--muted-foreground)",
                     marginTop: 4,
                   }}
                 >
@@ -890,7 +890,7 @@ function InquiryPage() {
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: 12,
-                      color: "#EF4444",
+                      color: "var(--destructive)",
                       marginTop: 4,
                     }}
                   >
@@ -943,7 +943,7 @@ function InquiryPage() {
                       style={{
                         fontFamily: "Inter, sans-serif",
                         fontSize: 12,
-                        color: "#EF4444",
+                        color: "var(--destructive)",
                         marginTop: 4,
                       }}
                     >
@@ -1073,7 +1073,7 @@ function InquiryPage() {
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontSize: 12,
-                      color: "#EF4444",
+                      color: "var(--destructive)",
                       marginTop: 4,
                     }}
                   >
@@ -1124,12 +1124,12 @@ function InquiryPage() {
                   style={{
                     fontFamily: "Inter, sans-serif",
                     fontSize: 12,
-                    color: "#5A5A5A",
+                    color: "var(--muted-foreground)",
                     lineHeight: 1.75,
                     margin: 0,
                   }}
                 >
-                  <strong style={{ color: "#0B7FC7" }}>N.B:</strong> Please note that all details on
+                  <strong style={{ color: "var(--primary)" }}>N.B:</strong> Please note that all details on
                   this form are important. Therefore, when filling this form, ensure that you
                   accurately capture all information. After filling this form, it shall be forwarded
                   to the legal department either physically or digitally.
@@ -1146,15 +1146,15 @@ function InquiryPage() {
                     setConsentChecked(e.target.checked);
                     if (e.target.checked) setConsentError(false);
                   }}
-                  className="mt-1 shrink-0 w-4 h-4 rounded border-gray-300 text-[#0B7FC7] focus:ring-[#0B7FC7]"
-                  style={{ accentColor: "#0B7FC7", cursor: "pointer" }}
+                  className="mt-1 shrink-0 w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  style={{ accentColor: "var(--primary)", cursor: "pointer" }}
                 />
                 <label
                   htmlFor="privacy-consent"
                   style={{
                     fontFamily: "Inter, sans-serif",
                     fontSize: 13,
-                    color: "#5A5A5A",
+                    color: "var(--muted-foreground)",
                     lineHeight: 1.5,
                     cursor: "pointer",
                   }}
@@ -1164,7 +1164,7 @@ function InquiryPage() {
                   <Link
                     to="/privacy"
                     target="_blank"
-                    className="text-[#0B7FC7] font-semibold underline hover:text-[#09669E]"
+                    className="text-primary font-semibold underline hover:text-[#09669E]"
                   >
                     Privacy Policy
                   </Link>{" "}
@@ -1176,7 +1176,7 @@ function InquiryPage() {
                   style={{
                     fontFamily: "Inter, sans-serif",
                     fontSize: 12,
-                    color: "#EF4444",
+                    color: "var(--destructive)",
                     marginTop: -16,
                     marginBottom: 20,
                   }}
@@ -1192,7 +1192,7 @@ function InquiryPage() {
                 disabled={loading}
                 style={{
                   width: "100%",
-                  background: loading ? "#C8C3BB" : "#E8A020",
+                  background: loading ? "#C8C3BB" : "var(--accent)",
                   color: "#FFFFFF",
                   fontFamily: "Inter, sans-serif",
                   fontWeight: 700,
@@ -1224,7 +1224,7 @@ function InquiryPage() {
                     fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 700,
                     fontSize: 22,
-                    color: "#0B7FC7",
+                    color: "var(--primary)",
                     marginBottom: 18,
                   }}
                 >
@@ -1242,7 +1242,7 @@ function InquiryPage() {
                         width: 28,
                         height: 28,
                         borderRadius: "50%",
-                        background: "#E8A020",
+                        background: "var(--accent)",
                         color: "#FFFFFF",
                         display: "flex",
                         alignItems: "center",
@@ -1261,7 +1261,7 @@ function InquiryPage() {
                           fontFamily: "Inter, sans-serif",
                           fontWeight: 600,
                           fontSize: 14,
-                          color: "#1C1C1C",
+                          color: "var(--foreground)",
                         }}
                       >
                         {title}
@@ -1270,7 +1270,7 @@ function InquiryPage() {
                         style={{
                           fontFamily: "Inter, sans-serif",
                           fontSize: 13,
-                          color: "#5A5A5A",
+                          color: "var(--muted-foreground)",
                           marginTop: 2,
                         }}
                       >
@@ -1295,7 +1295,7 @@ function InquiryPage() {
                       fontFamily: "'Cormorant Garamond', serif",
                       fontStyle: "italic",
                       fontSize: 18,
-                      color: "#0B7FC7",
+                      color: "var(--primary)",
                       lineHeight: 1.4,
                     }}
                   >

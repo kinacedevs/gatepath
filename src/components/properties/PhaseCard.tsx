@@ -3,7 +3,7 @@ import { MapPin } from "lucide-react";
 import type { Phase } from "@/lib/phases";
 
 const statusStyles: Record<Phase["status"], string> = {
-  ACTIVE: "bg-[#D1FAE5] text-[#065F46] border border-[#22C55E]",
+  ACTIVE: "bg-[#D1FAE5] text-[#065F46] border border-available",
   "COMING SOON": "bg-[#FEF3C7] text-[#92400E]",
   "SOLD OUT": "bg-[#FEE2E2] text-[#991B1B]",
 };
@@ -25,7 +25,7 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
       to="/properties/$slug"
       params={{ slug: phase.slug }}
       search={currency === "USD" ? { from: "diaspora" } : undefined}
-      className="group block bg-white rounded-2xl overflow-hidden border border-[#EBE8E0] shadow-[0_10px_30px_rgba(10,25,47,0.04)] hover:shadow-[0_20px_45px_rgba(10,25,47,0.08)] hover:-translate-y-1.5 transition-all duration-400 cursor-pointer"
+      className="group block bg-white rounded-2xl overflow-hidden border border-[#EBE8E0] shadow-[0_10px_30px_rgba(7,75,125,0.04)] hover:shadow-[0_20px_45px_rgba(7,75,125,0.08)] hover:-translate-y-1.5 transition-all duration-400 cursor-pointer"
     >
       <div className="relative h-[220px] overflow-hidden">
         <img
@@ -37,7 +37,7 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
         <div
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(to top, rgba(10,25,47,0.7) 0%, transparent 60%)",
+            background: "linear-gradient(to top, rgba(7,75,125,0.7) 0%, transparent 60%)",
           }}
         />
         <span className="absolute top-4 left-4 bg-white text-primary font-numbers font-bold text-[11px] px-3.5 py-[6px] rounded-full shadow-md">
@@ -54,7 +54,7 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
               key={i}
               className="w-[14px] h-[14px] rounded-[3px]"
               style={{
-                background: t === "a" ? "#22C55E" : t === "b" ? "#F59E0B" : "#EF4444",
+                background: t === "a" ? "var(--available)" : t === "b" ? "#F59E0B" : "var(--destructive)",
               }}
             />
           ))}
@@ -86,7 +86,7 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
             <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Total Plots</div>
           </div>
           <div>
-            <div className="font-numbers font-bold text-[18px] text-[#22C55E]">
+            <div className="font-numbers font-bold text-[18px] text-available">
               {phase.available}
             </div>
             <div className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Available</div>
@@ -104,7 +104,7 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
           </div>
         </div>
 
-        <div className="mt-5 w-full bg-primary text-white font-bold text-[14px] py-3 rounded-lg text-center group-hover:bg-gradient-to-r group-hover:from-accent group-hover:to-[#D4AF37] group-hover:text-white transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
+        <div className="mt-5 w-full bg-primary text-white font-bold text-[14px] py-3 rounded-lg text-center group-hover:bg-gradient-to-r group-hover:from-accent group-hover:to-accent-dark group-hover:text-white transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
           Explore Phase Map →
         </div>
       </div>
