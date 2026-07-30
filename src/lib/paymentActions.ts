@@ -119,6 +119,17 @@ async function recordVerifiedPayment(params: { reference: string; inquiryId: str
       .insert({ inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false });
   }
 
+  // Only the FIRST payment against an inquiry should flip its plot to
+  // booked — installment payments (from the client portal) come after the
+  // plot is already booked, and would otherwise always report a false
+  // "plot conflict" against their own prior payment.
+  const { count: priorPaymentsCount } = await (service as any)
+    .from("payments")
+    .select("id", { count: "exact", head: true })
+    .eq("inquiry_id", inquiry.id)
+    .neq("id", payment.id);
+  const isFirstPayment = !priorPaymentsCount;
+
   // Atomic, conditional plot update — only flips a plot that's still
   // available, so two simultaneous buyers can't both "win" the same plot
   // (CRITIQUE P1-1). If it matches zero rows, the plot was taken by someone
@@ -126,7 +137,7 @@ async function recordVerifiedPayment(params: { reference: string; inquiryId: str
   // succeeded, so this is flagged for manual reconciliation rather than
   // silently dropped.
   let plotWarning: string | null = null;
-  if (inquiry.phase_slug && inquiry.plot_number_ref) {
+  if (isFirstPayment && inquiry.phase_slug && inquiry.plot_number_ref) {
     const { data: phase } = await service
       .from("phases")
       .select("id")

@@ -3,8 +3,14 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { supabase } from "@/lib/supabase";
 import { useInquiry } from "@/context/InquiryContext";
+import {
+  requestPortalOtpFn,
+  verifyPortalOtpFn,
+  getPortalDataFn,
+  assertPortalOwnsInquiryFn,
+} from "@/lib/portalActions";
+import { verifyPaymentFn } from "@/lib/paymentActions";
 import {
   ShieldCheck,
   User,
@@ -78,12 +84,37 @@ interface BookingData {
 
 // 5-Stage Title Deed Conveyancing Pipeline Stages
 const CONVEYANCING_STAGES = [
-  { stage: 1, label: "Payment Verification & Receipt Issued", desc: "Down payment confirmed & legal file opened" },
-  { stage: 2, label: "Cadastral Survey & Beaconing", desc: "Physical survey beacons placed on site" },
-  { stage: 3, label: "Sales Agreement Executed", desc: "Bilateral agreement signed by CEO & buyer" },
-  { stage: 4, label: "Ministry of Lands Stamp Duty & Search", desc: "Land registry stamp duty and search filing" },
-  { stage: 5, label: "Title Deed Issued & Dispatched", desc: "Official title deed ready & delivered" },
+  {
+    stage: 1,
+    label: "Payment Verification & Receipt Issued",
+    desc: "Down payment confirmed & legal file opened",
+  },
+  {
+    stage: 2,
+    label: "Cadastral Survey & Beaconing",
+    desc: "Physical survey beacons placed on site",
+  },
+  {
+    stage: 3,
+    label: "Sales Agreement Executed",
+    desc: "Bilateral agreement signed by CEO & buyer",
+  },
+  {
+    stage: 4,
+    label: "Ministry of Lands Stamp Duty & Search",
+    desc: "Land registry stamp duty and search filing",
+  },
+  {
+    stage: 5,
+    label: "Title Deed Issued & Dispatched",
+    desc: "Official title deed ready & delivered",
+  },
 ];
+
+const PORTAL_SESSION_KEY = "gatepath_portal_session";
+
+const PAYSTACK_KEY = (import.meta.env?.VITE_PAYSTACK_PUBLIC_KEY ||
+  "pk_test_b0065a39ea3c50c3b60c0ab7a84832b0ea31080a") as string;
 
 function ClientPortalPage() {
   const navigate = useNavigate();
@@ -91,6 +122,12 @@ function ClientPortalPage() {
   const [emailInput, setEmailInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
   const [otpInput, setOtpInput] = useState("");
+  // sessionToken is the actual credential (opaque, server-issued, stored in
+  // sessionStorage). sessionEmail is display-only, set after a successful
+  // verify — never trusted as proof of identity by itself. See
+  // CRITIQUE.md P0-3: the old "session" was just the email in
+  // sessionStorage, settable to any value in devtools.
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
@@ -98,8 +135,7 @@ function ClientPortalPage() {
 
   // OTP Authentication States
   const [otpSent, setOtpSent] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState("");
-  const [otpCountdown, setOtpCountdown] = useState(60);
+  const [otpCountdown, setOtpCountdown] = useState(300);
   const [otpVerifying, setOtpVerifying] = useState(false);
 
   // Dashboard Data
@@ -112,13 +148,13 @@ function ClientPortalPage() {
   const [payAmount, setPayAmount] = useState<number>(0);
   const [payProcessing, setPayProcessing] = useState(false);
   const [paySuccessMsg, setPaySuccessMsg] = useState<string | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedEmail = sessionStorage.getItem("gatepath_portal_email");
-      if (savedEmail) {
-        setSessionEmail(savedEmail);
-        fetchClientData(savedEmail);
+      const savedToken = sessionStorage.getItem(PORTAL_SESSION_KEY);
+      if (savedToken) {
+        fetchClientData(savedToken);
       }
     }
   }, []);
@@ -132,39 +168,34 @@ function ClientPortalPage() {
     return () => clearTimeout(timer);
   }, [otpSent, otpCountdown]);
 
-  const fetchClientData = async (email: string) => {
+  // Read-only dashboard fetch — server verifies the session token itself
+  // (see portalActions.ts) rather than trusting anything the client asserts.
+  const fetchClientData = async (token: string) => {
     setFetchingData(true);
     setError(null);
     try {
-      // 1. Fetch inquiries
-      const { data: inqs, error: inqsErr } = await (supabase as any)
-        .from("inquiries")
-        .select("*")
-        .eq("client_email", email.toLowerCase().trim());
+      const result = await (getPortalDataFn as any)({ data: { sessionToken: token } });
 
-      if (inqsErr) throw inqsErr;
-
-      if (!inqs || inqs.length === 0) {
-        setError("No client profile found matching this email. Please verify and try again.");
+      if (!result?.success) {
+        setError(result?.error || "Your session expired. Please sign in again.");
+        if (typeof window !== "undefined") sessionStorage.removeItem(PORTAL_SESSION_KEY);
+        setSessionToken(null);
         setSessionEmail(null);
-        if (typeof window !== "undefined") {
-          sessionStorage.removeItem("gatepath_portal_email");
-        }
         setFetchingData(false);
         return;
       }
 
-      setInquiries(inqs);
+      if (!result.inquiries || result.inquiries.length === 0) {
+        setError("No client profile found matching this account.");
+        setFetchingData(false);
+        return;
+      }
 
-      const inqIds = inqs.map((i: any) => i.id);
-
-      // 2. Fetch payments
-      const { data: pmts } = await (supabase as any).from("payments").select("*").in("inquiry_id", inqIds);
-      setPayments(pmts || []);
-
-      // 3. Fetch bookings
-      const { data: bks } = await (supabase as any).from("bookings").select("*").in("inquiry_id", inqIds);
-      setBookings(bks || []);
+      setInquiries(result.inquiries);
+      setPayments(result.payments || []);
+      setBookings(result.bookings || []);
+      setSessionToken(token);
+      setSessionEmail(result.inquiries[0]?.client_email || null);
     } catch (err: any) {
       console.error("[Portal Fetch Error]", err.message);
       setError("Failed to synchronize dashboard metrics. Please check your network.");
@@ -178,45 +209,25 @@ function ClientPortalPage() {
     setLoading(true);
     setError(null);
 
-    const targetEmail = emailInput.toLowerCase().trim();
-    const targetPhone = phoneInput.replace(/[\s-]/g, "").trim();
+    try {
+      const result = await (requestPortalOtpFn as any)({
+        data: { email: emailInput, phone: phoneInput },
+      });
 
-    const { data: inqs, error: lookupErr } = await (supabase as any)
-      .from("inquiries")
-      .select("id, client_email, client_phone, terms_of_payment, status")
-      .eq("client_email", targetEmail);
+      setLoading(false);
 
-    if (lookupErr) {
+      if (!result?.success) {
+        setError("❌ " + (result?.error || "Could not send a verification code."));
+        return;
+      }
+
+      setOtpSent(true);
+      setOtpCountdown(300);
+    } catch (err: any) {
       setLoading(false);
       setError("Connection failure. Please try again.");
-      return;
+      console.error("[Portal] OTP request failed:", err);
     }
-
-    const matchedInq = inqs?.find((i: any) => {
-      const dbPhone = (i.client_phone || "").replace(/[\s-]/g, "");
-      return dbPhone.includes(targetPhone) || targetPhone.includes(dbPhone);
-    });
-
-    if (!matchedInq) {
-      setLoading(false);
-      setError("❌ Access Denied. The email and phone number combination do not match any client profile.");
-      return;
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 60 * 1000).toISOString();
-
-    await (supabase as any).from("client_otps").insert({
-      email: targetEmail,
-      phone: targetPhone,
-      otp_code: otp,
-      expires_at: expiresAt,
-    });
-
-    setLoading(false);
-    setGeneratedOtp(otp);
-    setOtpSent(true);
-    setOtpCountdown(60);
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -230,33 +241,36 @@ function ClientPortalPage() {
       return;
     }
 
-    const { data: otpRows, error: verifyErr } = await (supabase as any)
-      .from("client_otps")
-      .select("*")
-      .eq("email", emailInput.toLowerCase().trim())
-      .eq("otp_code", otpInput.trim())
-      .order("created_at", { ascending: false });
+    try {
+      const result = await (verifyPortalOtpFn as any)({
+        data: { email: emailInput, otp: otpInput },
+      });
 
-    if (verifyErr || !otpRows || otpRows.length === 0) {
-      setError("❌ Invalid verification code. Please check and try again.");
+      if (!result?.success) {
+        setError("❌ " + (result?.error || "Invalid verification code."));
+        setOtpVerifying(false);
+        return;
+      }
+
+      const token = result.sessionToken as string;
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(PORTAL_SESSION_KEY, token);
+      }
+      setOtpSent(false);
+      await fetchClientData(token);
+    } catch (err: any) {
+      setError("❌ Verification failed. Please try again.");
+      console.error("[Portal] OTP verify failed:", err);
+    } finally {
       setOtpVerifying(false);
-      return;
     }
-
-    const targetEmail = emailInput.toLowerCase().trim();
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("gatepath_portal_email", targetEmail);
-    }
-    setSessionEmail(targetEmail);
-    setOtpSent(false);
-    fetchClientData(targetEmail);
-    setOtpVerifying(false);
   };
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
-      sessionStorage.removeItem("gatepath_portal_email");
+      sessionStorage.removeItem(PORTAL_SESSION_KEY);
     }
+    setSessionToken(null);
     setSessionEmail(null);
     setInquiries([]);
     setPayments([]);
@@ -273,71 +287,76 @@ function ClientPortalPage() {
     const suggestedInstallment = Math.min(26667, remainingBalance);
     setPayAmount(suggestedInstallment > 0 ? suggestedInstallment : remainingBalance);
     setPaySuccessMsg(null);
+    setPayError(null);
   };
 
-  // Execute In-Portal Installment Payment via Paystack
+  // Execute In-Portal Installment Payment via Paystack. Reuses the same
+  // verifyPaymentFn as the main buy flow (payment.tsx) — nothing is written
+  // to payments until the server re-verifies the reference against
+  // Paystack's own API. Previously this inserted a "success" payment
+  // directly from the browser, and — if the Paystack SDK simply hadn't
+  // loaded for any reason — did so WITHOUT ever opening a payment popup at
+  // all (CRITIQUE P0-3 / the same class of bug as P0-2).
   const executeInPortalPayment = async () => {
-    if (!payingInquiry || payAmount <= 0) return;
+    if (!payingInquiry || payAmount <= 0 || !sessionToken) return;
     setPayProcessing(true);
+    setPayError(null);
 
-    try {
-      const paystackKey = "pk_test_b867c29373d5ff645e90212f866bd2f4b46c0d8d";
-      const reference = `INST-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-      if (typeof window !== "undefined" && (window as any).PaystackPop) {
-        const handler = (window as any).PaystackPop.setup({
-          key: paystackKey,
-          email: payingInquiry.client_email,
-          amount: payAmount * 100, // convert to Kobo/Cents
-          currency: "KES",
-          ref: reference,
-          callback: async function (response: any) {
-            // Record payment in Supabase
-            await (supabase as any).from("payments").insert({
-              inquiry_id: payingInquiry.id,
-              paystack_reference: response.reference || reference,
-              amount: payAmount,
-              deposit_amount: payAmount,
-              payment_method: "card_mpesa",
-              status: "success",
-            });
-
-            setPaySuccessMsg(`Payment of Ksh ${payAmount.toLocaleString()} received successfully! Transaction Ref: ${reference}`);
-            setPayProcessing(false);
-            setPayingInquiry(null);
-
-            if (sessionEmail) {
-              fetchClientData(sessionEmail);
-            }
-          },
-          onClose: function () {
-            setPayProcessing(false);
-          },
-        });
-        handler.openIframe();
-      } else {
-        // Fallback for environment without inline SDK: insert payment directly
-        await (supabase as any).from("payments").insert({
-          inquiry_id: payingInquiry.id,
-          paystack_reference: reference,
-          amount: payAmount,
-          deposit_amount: payAmount,
-          payment_method: "card_mpesa",
-          status: "success",
-        });
-
-        setPaySuccessMsg(`Installment of Ksh ${payAmount.toLocaleString()} logged successfully! Reference: ${reference}`);
-        setPayProcessing(false);
-        setPayingInquiry(null);
-
-        if (sessionEmail) {
-          fetchClientData(sessionEmail);
-        }
-      }
-    } catch (err: any) {
-      console.error("[InPortal Payment Error]", err);
+    const ownership = await (assertPortalOwnsInquiryFn as any)({
+      data: { sessionToken, inquiryId: payingInquiry.id },
+    });
+    if (!ownership?.success) {
+      setPayError(ownership?.error || "You don't have permission to pay against this inquiry.");
       setPayProcessing(false);
+      return;
     }
+
+    if (typeof window === "undefined" || !(window as any).PaystackPop) {
+      setPayError("Payment system is still loading. Please try again in a moment.");
+      setPayProcessing(false);
+      return;
+    }
+
+    const handler = (window as any).PaystackPop.setup({
+      key: PAYSTACK_KEY,
+      email: payingInquiry.client_email,
+      amount: payAmount * 100,
+      currency: "KES",
+      ref: `INST-${payingInquiry.id.slice(0, 8)}-${Date.now()}`,
+      callback: async (response: any) => {
+        try {
+          const result = await (verifyPaymentFn as any)({
+            data: { reference: response.reference, inquiryId: payingInquiry.id },
+          });
+
+          if (!result?.success) {
+            setPayError(
+              result?.error ||
+                `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
+            );
+            setPayProcessing(false);
+            return;
+          }
+
+          setPaySuccessMsg(
+            `Payment of Ksh ${payAmount.toLocaleString()} confirmed! Reference: ${response.reference}`,
+          );
+          setPayProcessing(false);
+          setPayingInquiry(null);
+          await fetchClientData(sessionToken);
+        } catch (err: any) {
+          console.error("[Portal] Installment verify failed:", err);
+          setPayError(
+            `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
+          );
+          setPayProcessing(false);
+        }
+      },
+      onClose: () => {
+        setPayProcessing(false);
+      },
+    });
+    handler.openIframe();
   };
 
   return (
@@ -345,7 +364,7 @@ function ClientPortalPage() {
       <Navbar />
 
       <div className="pt-20">
-        {!sessionEmail ? (
+        {!sessionToken ? (
           /* LOGIN & OTP VERIFICATION SCREENS */
           <section className="py-24 px-6 flex justify-center items-center">
             <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 p-8 md:p-10 shadow-xl relative overflow-hidden">
@@ -361,7 +380,8 @@ function ClientPortalPage() {
                       Client Hub Access
                     </h1>
                     <p className="text-slate-500 text-xs font-light mt-2 leading-relaxed">
-                      Enter your registered email and phone number to access your title deed conveyancing status and installment ledger.
+                      Enter your registered email and phone number to access your title deed
+                      conveyancing status and installment ledger.
                     </p>
                   </div>
 
@@ -406,7 +426,11 @@ function ClientPortalPage() {
                       disabled={loading}
                       className="w-full bg-primary text-white font-bold text-xs py-3.5 rounded-xl hover:bg-primary-deep transition-all flex items-center justify-center gap-2 shadow-md"
                     >
-                      {loading ? <Loader2 className="animate-spin" size={16} /> : "Request WhatsApp OTP →"}
+                      {loading ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : (
+                        "Request WhatsApp OTP →"
+                      )}
                     </button>
                   </form>
                 </div>
@@ -416,19 +440,21 @@ function ClientPortalPage() {
                     <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
                       <MessageSquare size={24} />
                     </div>
-                    <h1 className="font-serif font-bold text-2xl text-primary-deep">Enter OTP Code</h1>
+                    <h1 className="font-serif font-bold text-2xl text-primary-deep">
+                      Enter OTP Code
+                    </h1>
                     <p className="text-xs text-slate-500 mt-1">
-                      Code dispatched to <strong className="text-slate-800">{phoneInput}</strong>
+                      Code sent to <strong className="text-slate-800">{emailInput}</strong> and{" "}
+                      <strong className="text-slate-800">{phoneInput}</strong> — expires in{" "}
+                      {Math.floor(otpCountdown / 60)}:{String(otpCountdown % 60).padStart(2, "0")}
                     </p>
                   </div>
 
-                  {/* WhatsApp Simulator Box */}
-                  <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-xs text-green-800 space-y-1">
-                    <strong>WhatsApp OTP Code:</strong>
-                    <p className="font-mono text-base font-bold text-green-950">{generatedOtp}</p>
-                  </div>
-
-                  {error && <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg mb-4">{error}</div>}
+                  {error && (
+                    <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg mb-4">
+                      {error}
+                    </div>
+                  )}
 
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
                     <input
@@ -459,19 +485,27 @@ function ClientPortalPage() {
             {/* Success Toast */}
             {paySuccessMsg && (
               <div className="p-4 bg-green-100 border border-green-300 text-green-800 text-xs font-bold rounded-xl flex items-center justify-between">
-                <span className="flex items-center gap-2"><CheckCircle2 size={16} /> {paySuccessMsg}</span>
-                <button onClick={() => setPaySuccessMsg(null)}><X size={16} /></button>
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 size={16} /> {paySuccessMsg}
+                </span>
+                <button onClick={() => setPaySuccessMsg(null)}>
+                  <X size={16} />
+                </button>
               </div>
             )}
 
             {/* Header Block */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-200">
               <div>
-                <span className="text-xs font-bold text-accent uppercase tracking-wider">CLIENT HUB & TITLE TRACKER</span>
+                <span className="text-xs font-bold text-accent uppercase tracking-wider">
+                  CLIENT HUB & TITLE TRACKER
+                </span>
                 <h1 className="font-serif font-bold text-3xl sm:text-4xl text-primary-deep mt-1">
                   Welcome Back, {inquiries[0]?.client_full_name}
                 </h1>
-                <p className="text-xs text-slate-500 mt-0.5">Logged in as <strong className="text-slate-800">{sessionEmail}</strong></p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Logged in as <strong className="text-slate-800">{sessionEmail}</strong>
+                </p>
               </div>
               <button
                 onClick={handleLogout}
@@ -484,21 +518,28 @@ function ClientPortalPage() {
             {fetchingData ? (
               <div className="py-24 text-center">
                 <Loader2 className="animate-spin text-primary mx-auto mb-4" size={44} />
-                <p className="text-xs text-slate-500 font-semibold">Synchronizing title deed & payment records...</p>
+                <p className="text-xs text-slate-500 font-semibold">
+                  Synchronizing title deed & payment records...
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Left Column (Purchased Plots & 5-Stage Title Deed Conveyancing Tracker) */}
                 <div className="lg:col-span-8 space-y-8">
                   <h2 className="font-serif font-bold text-2xl text-primary-deep flex items-center gap-2">
-                    <TrendingUp className="text-accent" size={24} /> My Purchased Plots & Conveyancing Status
+                    <TrendingUp className="text-accent" size={24} /> My Purchased Plots &
+                    Conveyancing Status
                   </h2>
 
                   {inquiries.map((inq) => {
-                    const plotPayments = payments.filter((p) => p.inquiry_id === inq.id && p.status === "success");
+                    const plotPayments = payments.filter(
+                      (p) => p.inquiry_id === inq.id && p.status === "success",
+                    );
                     const totalPaid = plotPayments.reduce((acc, curr) => acc + curr.amount, 0);
                     const remainingBalance = Math.max(0, inq.price - totalPaid);
-                    const paidPct = inq.price ? Math.min(100, Math.round((totalPaid / inq.price) * 100)) : 0;
+                    const paidPct = inq.price
+                      ? Math.min(100, Math.round((totalPaid / inq.price) * 100))
+                      : 0;
 
                     // Calculate 5-Stage Conveyancing Stage based on payment status & approval
                     let currentStage = 1;
@@ -507,10 +548,15 @@ function ClientPortalPage() {
                     else if (paidPct > 0) currentStage = 2;
 
                     return (
-                      <div key={inq.id} className="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-6">
+                      <div
+                        key={inq.id}
+                        className="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-sm space-y-6"
+                      >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                           <div>
-                            <span className="text-[10px] font-bold text-accent uppercase tracking-wider">Purchased Unit</span>
+                            <span className="text-[10px] font-bold text-accent uppercase tracking-wider">
+                              Purchased Unit
+                            </span>
                             <h3 className="font-serif font-bold text-2xl text-primary-deep">
                               Plot #{inq.plot_number_ref} · {inq.phase_name}
                             </h3>
@@ -519,26 +565,44 @@ function ClientPortalPage() {
                             </p>
                           </div>
 
-                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                            remainingBalance === 0 ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
-                          }`}>
-                            {remainingBalance === 0 ? "✓ Paid In Full" : `Installment Plan (${paidPct}% Paid)`}
+                          <span
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                              remainingBalance === 0
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {remainingBalance === 0
+                              ? "✓ Paid In Full"
+                              : `Installment Plan (${paidPct}% Paid)`}
                           </span>
                         </div>
 
                         {/* Financial Ledger Summary Bento */}
                         <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Plot Price</span>
-                            <span className="font-stat-lg text-lg font-extrabold text-primary-deep">Ksh {inq.price.toLocaleString()}</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                              Total Plot Price
+                            </span>
+                            <span className="font-stat-lg text-lg font-extrabold text-primary-deep">
+                              Ksh {inq.price.toLocaleString()}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Paid So Far</span>
-                            <span className="font-stat-lg text-lg font-extrabold text-available">Ksh {totalPaid.toLocaleString()}</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                              Total Paid So Far
+                            </span>
+                            <span className="font-stat-lg text-lg font-extrabold text-available">
+                              Ksh {totalPaid.toLocaleString()}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Remaining Balance</span>
-                            <span className="font-stat-lg text-lg font-extrabold text-accent">Ksh {remainingBalance.toLocaleString()}</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                              Remaining Balance
+                            </span>
+                            <span className="font-stat-lg text-lg font-extrabold text-accent">
+                              Ksh {remainingBalance.toLocaleString()}
+                            </span>
                           </div>
                         </div>
 
@@ -560,13 +624,17 @@ function ClientPortalPage() {
                                     isComplete
                                       ? "bg-green-50/60 border-green-200 text-green-900"
                                       : isCurrent
-                                      ? "bg-blue-50 border-blue-200 text-blue-900 shadow-sm"
-                                      : "bg-slate-50 border-slate-200 text-slate-400"
+                                        ? "bg-blue-50 border-blue-200 text-blue-900 shadow-sm"
+                                        : "bg-slate-50 border-slate-200 text-slate-400"
                                   }`}
                                 >
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                                    isComplete ? "bg-green-500 text-white" : "bg-slate-200 text-slate-600"
-                                  }`}>
+                                  <div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                                      isComplete
+                                        ? "bg-green-500 text-white"
+                                        : "bg-slate-200 text-slate-600"
+                                    }`}
+                                  >
                                     {isComplete ? "✓" : s.stage}
                                   </div>
 
@@ -593,7 +661,8 @@ function ClientPortalPage() {
                               onClick={() => openInstallmentModal(inq, remainingBalance)}
                               className="px-6 py-3 bg-primary hover:bg-primary-deep text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-md"
                             >
-                              <CreditCard size={16} /> Pay Next Installment (Ksh {Math.min(26667, remainingBalance).toLocaleString()})
+                              <CreditCard size={16} /> Pay Next Installment (Ksh{" "}
+                              {Math.min(26667, remainingBalance).toLocaleString()})
                             </button>
                           </div>
                         )}
@@ -612,14 +681,21 @@ function ClientPortalPage() {
 
                     <div className="space-y-3">
                       {inquiries.map((inq) => (
-                        <div key={inq.id} className="space-y-2 pb-3 border-b border-slate-100 last:border-b-0">
-                          <span className="text-[11px] font-bold text-slate-700 block">Plot #{inq.plot_number_ref} Documents</span>
+                        <div
+                          key={inq.id}
+                          className="space-y-2 pb-3 border-b border-slate-100 last:border-b-0"
+                        >
+                          <span className="text-[11px] font-bold text-slate-700 block">
+                            Plot #{inq.plot_number_ref} Documents
+                          </span>
                           <Link
                             to="/document/agreement/$id"
                             params={{ id: inq.id }}
                             className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
                           >
-                            <span className="flex items-center gap-2"><FileText size={16} className="text-primary" /> Purchase Agreement PDF</span>
+                            <span className="flex items-center gap-2">
+                              <FileText size={16} className="text-primary" /> Purchase Agreement PDF
+                            </span>
                             <ArrowRight size={14} />
                           </Link>
                           <Link
@@ -627,7 +703,10 @@ function ClientPortalPage() {
                             params={{ id: inq.id }}
                             className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
                           >
-                            <span className="flex items-center gap-2"><FileText size={16} className="text-available" /> Official Payment Receipt</span>
+                            <span className="flex items-center gap-2">
+                              <FileText size={16} className="text-available" /> Official Payment
+                              Receipt
+                            </span>
                             <ArrowRight size={14} />
                           </Link>
                         </div>
@@ -645,12 +724,18 @@ function ClientPortalPage() {
                       <p className="text-xs text-slate-500">No active site visits scheduled.</p>
                     ) : (
                       bookings.map((b) => (
-                        <div key={b.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1">
+                        <div
+                          key={b.id}
+                          className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1"
+                        >
                           <div className="flex justify-between font-bold">
                             <span className="text-primary-deep">Site Visit Scheduled</span>
                             <span className="text-green-600 uppercase">{b.status}</span>
                           </div>
-                          <p className="text-slate-600">Date: <strong>{b.visit_date || "Confirmed"}</strong> at {b.visit_time || "Morning"}</p>
+                          <p className="text-slate-600">
+                            Date: <strong>{b.visit_date || "Confirmed"}</strong> at{" "}
+                            {b.visit_time || "Morning"}
+                          </p>
                         </div>
                       ))
                     )}
@@ -674,13 +759,23 @@ function ClientPortalPage() {
             </button>
 
             <div>
-              <span className="text-[10px] font-bold text-accent uppercase tracking-wider block">IN-PORTAL PAYSTACK CHECKOUT</span>
+              <span className="text-[10px] font-bold text-accent uppercase tracking-wider block">
+                IN-PORTAL PAYSTACK CHECKOUT
+              </span>
               <h3 className="font-serif font-bold text-2xl text-primary-deep">Pay Installment</h3>
-              <p className="text-xs text-slate-500 mt-1">Plot #{payingInquiry.plot_number_ref} · {payingInquiry.phase_name}</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Plot #{payingInquiry.plot_number_ref} · {payingInquiry.phase_name}
+              </p>
             </div>
 
+            {payError && (
+              <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg">{payError}</div>
+            )}
+
             <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700">Enter Payment Amount (Ksh)</label>
+              <label className="block text-xs font-bold text-slate-700">
+                Enter Payment Amount (Ksh)
+              </label>
               <input
                 type="number"
                 value={payAmount}
@@ -704,7 +799,11 @@ function ClientPortalPage() {
                 disabled={payProcessing || payAmount <= 0}
                 className="px-6 py-3 bg-primary hover:bg-primary-deep text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-md"
               >
-                {payProcessing ? <Loader2 className="animate-spin" size={16} /> : `Pay Ksh ${payAmount.toLocaleString()} via Paystack →`}
+                {payProcessing ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  `Pay Ksh ${payAmount.toLocaleString()} via Paystack →`
+                )}
               </button>
             </div>
           </div>

@@ -81,14 +81,25 @@ Only the **client-triggered** verify path is built — called the moment Paystac
 ### bookings / inquiries INSERT — still open, correctly
 Unlike payments/agreements, these are still legitimately written from the browser: the booking forms and the diaspora inquiry form don't involve money and were never part of this vulnerability.
 
-### P0-3 — Client portal OTP is untouched
-`client_otps` isn't in the generated `Database` type and isn't part of any migration yet. The whole mechanism (client-side `Math.random()` OTP, rendered on screen, `sessionStorage`-only session) needs a proper rebuild, not an RLS patch on top of a fundamentally client-side-only scheme. Next.
+## Fixed: P0-3 — real portal OTP, real session, real installment payments
+
+**Code:** [src/lib/portalActions.ts](../src/lib/portalActions.ts) — `requestPortalOtpFn` generates the OTP server-side with `crypto.getRandomValues` (a real CSPRNG, not `Math.random()`), hashes it (salted SHA-256) before storing, and never returns it to the client — the old "WhatsApp OTP Code" box that printed the secret on screen is deleted. `verifyPortalOtpFn` checks the hash, enforces a 5-minute TTL and a 5-attempt lockout, and on success issues an opaque session token stored server-side in a new `portal_sessions` table. `getPortalDataFn` is the only way the portal reads its own data — it validates the token server-side before returning anything, using the service role (bypassing the admin-only RLS from migration 0001 safely, since this function does its own ownership check first).
+
+`portal.tsx` now stores only the opaque token in `sessionStorage` (`gatepath_portal_session`), never the email. The email shown in the UI is display-only, populated *after* a successful server verification — it is never itself treated as proof of identity.
+
+**Migration [0003](../supabase/migrations/0003_portal_otp_lockdown.sql)** enables RLS on `client_otps` (adding the `attempts` column it was missing) and creates `portal_sessions` — both fully locked to the service role, no anon/authenticated policy at all. Before this, `client_otps` had no RLS whatsoever, so the plaintext OTPs were also directly readable via the anon key regardless of the UI.
+
+**A second, more severe bug found in the same file:** the in-portal installment payment inserted a `payments` row directly from the browser — and its fallback branch, meant for "environment without inline SDK," did so **without ever opening a Paystack popup at all**. Any visitor could mark an installment paid with zero money moving, just by having `PaystackPop` fail to load. Fixed by reusing `verifyPaymentFn` from the P0-2 work, gated by a new `assertPortalOwnsInquiryFn` check that the session actually owns the inquiry being paid against. The dangerous no-popup fallback is deleted, not disabled — if the SDK isn't loaded, the user now sees an error and nothing is recorded.
+
+Also fixed in passing: the installment flow had its own **fourth** hardcoded Paystack public key (`pk_test_b867c29...`, different from the other three found across the codebase). Now reads `VITE_PAYSTACK_PUBLIC_KEY` like everywhere else.
+
+### Delivery channels
+OTP is sent via both email (Resend) and SMS (Africa's Talking) in parallel — succeeds if *either* channel works, only fails if both do. These reuse the existing `RESEND_API_KEY`/`AFRICAS_TALKING_API_KEY` env vars already expected elsewhere in this codebase; if OTP delivery fails, check those are configured, not `PAYSTACK_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`.
 
 ---
 
 ## Not yet started
 - P0-2 (partial) — the Paystack **webhook** specifically (client-verify path is done — see above)
-- P0-3 — Server-verified portal OTP + real session
 - P1-5 — Signed/expiring URLs for generated documents
-- P1-6 — Rate limiting on public write endpoints
+- P1-6 — Rate limiting on public write endpoints (now higher-value than before: `requestPortalOtpFn` itself should be rate-limited per email/IP to prevent OTP-spam, even though the attempt lockout limits brute-force guessing)
 - P1-8 — Cloudflare Worker entry not wired into the build (blocks verifying the edge-cache fix from Phase 2 at runtime)

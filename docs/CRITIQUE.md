@@ -36,14 +36,16 @@ The buy flow used to assert payment success via **URL parameters** and write the
 
 ---
 
-### P0-3 · Client portal OTP is theatre
-[portal.tsx:206](../src/routes/portal.tsx#L206), [:428](../src/routes/portal.tsx#L428), [:118](../src/routes/portal.tsx#L118)/[:248](../src/routes/portal.tsx#L248)
+### P0-3 · Client portal OTP was theatre — fixed
+*(pre-fix line numbers)* [portal.tsx:206](../src/routes/portal.tsx#L206), [:428](../src/routes/portal.tsx#L428), [:118](../src/routes/portal.tsx#L118)/[:248](../src/routes/portal.tsx#L248)
 
-The OTP is generated in the browser with `Math.random()` and **rendered on the page**. The session is a single `sessionStorage` key holding an email address.
+The OTP used to be generated in the browser with `Math.random()` and **rendered on the page** in a "WhatsApp OTP Code" box. The session was a single `sessionStorage` key holding an email address — `sessionStorage.gatepath_portal_email = "victim@example.com"` gave full access to that client's plot, payments, documents and conveyancing stage.
 
-**Impact:** `sessionStorage.gatepath_portal_email = "victim@example.com"` → full access to that client's plot, payments, documents and conveyancing stage. `Math.random()` is not a CSPRNG, and the code displays the secret anyway, so even that is moot.
+**Fixed:** [src/lib/portalActions.ts](../src/lib/portalActions.ts) — OTP generated server-side with a real CSPRNG (`crypto.getRandomValues`), hashed (salted SHA-256) before storage, never returned to the client. 5-minute TTL, 5-attempt limit. Verification issues an opaque server-side session token (`portal_sessions` table) — the client only ever holds that token, never the email-as-credential. `client_otps` and `portal_sessions` are both fully RLS-locked (service-role only, no anon/authenticated policy at all — see migration [0003](../supabase/migrations/0003_portal_otp_lockdown.sql)).
 
-**Fix:** server-generated OTP, hashed at rest, short TTL, attempt-limited and rate-limited per email/IP, exchanged for a signed httpOnly cookie session.
+**A second forgery hole in the same file, found and fixed alongside this:** the in-portal installment payment inserted a "success" `payments` row directly from the browser — and if the Paystack SDK simply hadn't loaded, did so **without ever opening a payment popup at all**. Now reuses the same `verifyPaymentFn` from the P0-2 fix, gated by a fresh ownership check (`assertPortalOwnsInquiryFn`) proving the session actually owns the inquiry being paid against.
+
+**Accepted trade-off, same as admin auth:** session token lives in `sessionStorage`, not an httpOnly cookie — consistent with the rest of the app's session handling, not a server-cookie architecture.
 
 ---
 

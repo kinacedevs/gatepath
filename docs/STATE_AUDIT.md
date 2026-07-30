@@ -112,10 +112,12 @@ thank-you.tsx  →  getReceiptFn({ inquiryId })   ← read-only, server function
 | Surface | Mechanism | State |
 |---|---|---|
 | `/admin` | **Supabase Auth — fixed** | Real login form + `onAuthStateChange`, role resolved from `admin_users` by email match, gated by RLS (see [SECURITY_HARDENING.md](SECURITY_HARDENING.md)). Was: `sessionUser` hardcoded to a mock CEO, session check commented `(Bypassed)`, `handleLogin` an empty function. |
-| `/portal` | client-side OTP — **not yet fixed** | OTP generated in the browser via `Math.random()` ([portal.tsx:206](../src/routes/portal.tsx#L206)) and **rendered on screen** ([:428](../src/routes/portal.tsx#L428)); session is `sessionStorage["gatepath_portal_email"]`. Deliberately out of scope for the admin-auth pass — needs a proper server-verified rebuild (CRITIQUE P0-3), not an RLS patch on a client-side-only scheme. |
+| `/portal` | **server-verified OTP — fixed** | Real CSPRNG OTP generated server-side, hashed before storage, never sent to the client (see [lib/portalActions.ts](../src/lib/portalActions.ts)). Session is an opaque server-issued token in a new `portal_sessions` table, not the client's own email. Was: `Math.random()` in the browser, **rendered on screen** in a "WhatsApp OTP Code" box, session = `sessionStorage["gatepath_portal_email"]`. |
 | Public pages | n/a | — |
 
 Supabase Auth (`persistSession`, `autoRefreshToken` in [lib/supabase.ts](../src/lib/supabase.ts)) is now actually used to gate `/admin`. `admin_users` had **zero rows** before this fix — see SECURITY_HARDENING.md's setup runbook for the one-time bootstrap.
+
+The portal's in-portal installment payment had the same class of bug as P0-2 (direct browser insert, no verification) — plus a fallback path that recorded a "successful" payment without ever opening a Paystack popup if the SDK failed to load. Both fixed by reusing the P0-2 verification path — see SECURITY_HARDENING.md.
 
 ---
 
