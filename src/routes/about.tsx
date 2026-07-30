@@ -28,19 +28,19 @@ function AboutPage() {
       bio: "Visionary founder committed to 100% title deed transparency and empowering everyday land ownership in Kenya.",
     },
     {
-      name: "Mercy Wanjiku",
+      name: "Marya Wanjiku",
       role: "Head of Diaspora Relations",
       image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
       bio: "Dedicated advisor assisting diaspora clients across the UK, USA, UAE, and Canada with seamless remote conveyancing.",
     },
     {
-      name: "David Ochieng",
+      name: "Joel Ochieng",
       role: "Senior Legal Conveyancing Officer",
       image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80",
       bio: "Oversees land registry title searches, survey beacon verifications, and legal deed transfers.",
     },
     {
-      name: "Grace Njeri",
+      name: "RoseMary Njeri",
       role: "Customer Operations Lead",
       image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80",
       bio: "Coordinates free guided site visits, M-Pesa payment receipts, and client onboarding.",
@@ -48,8 +48,8 @@ function AboutPage() {
   ];
 
   const milestones = [
-    { year: "2018", title: "Company Founded", desc: "Gatepath Realtors established with a mission to make land buying transparent and fraud-free." },
-    { year: "2020", title: "First 100 Title Deeds Delivered", desc: "Successfully issued and handed over 100 individual title deeds in Machakos & Kilifi." },
+    { year: "2020", title: "Company Founded", desc: "Gatepath Realtors established with a mission to make land buying transparent and fraud-free." },
+    { year: "2022", title: "First 100 Title Deeds Delivered", desc: "Successfully issued and handed over 100 individual title deeds in Machakos & Kilifi." },
     { year: "2023", title: "Diaspora Concierge Hub Launched", desc: "Expanded remote buying services for Kenyans living in the UK, USA, Canada & UAE." },
     { year: "2026", title: "500+ Happy Landowners", desc: "Over 500 verified plots sold across 12 prime locations in Kenya." },
   ];
@@ -98,7 +98,7 @@ function AboutPage() {
             </h2>
             <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
               <p>
-                When I founded Gatepath Realtors in 2018, I saw a market where hard-working Kenyans were terrified of land fraud, double allocations, and delayed title deeds. We set out to change that paradigm completely.
+                When I founded Gatepath Realtors in 2020, I saw a market where hard-working Kenyans were terrified of land fraud, double allocations, and delayed title deeds. We set out to change that paradigm completely.
               </p>
               <p>
                 Every plot of land listed on our platform undergoes rigorous survey beaconing, Ministry of Lands searches, and legal title verification. We don't just sell land — we secure your family's future.
