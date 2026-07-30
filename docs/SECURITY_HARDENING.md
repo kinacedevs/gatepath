@@ -59,25 +59,36 @@ Until this is set, `inviteStaffFn` fails with a clear "not configured" error rat
 
 ---
 
-## Deferred on purpose — do not close these without reading why
+## Fixed: P0-2 — verified payment recording, and P1-1 — atomic plot reservation
 
-These stayed **open** in the migration so it wouldn't break the app the moment it's run. Each is marked `TEMP` in the SQL with the same reasoning inline.
+**Code:** [src/lib/paymentActions.ts](../src/lib/paymentActions.ts) — `recordVerifiedPayment` is now the *only* place that writes a `payments` row. It calls Paystack's `GET /transaction/verify/:reference` server-side (using `PAYSTACK_SECRET_KEY`, never sent to the browser) and writes only what Paystack itself confirms — amount, status, currency — never anything the client asserted. Idempotent on `paystack_reference` (safe to call twice for the same payment).
 
-### P0-2 — `payments` / `agreements` / `bookings` / `inquiries` INSERT still open to anon
-`thank-you.tsx`, the booking forms, and the diaspora form all write to these tables directly from the browser today. Locking INSERT down now, before a verified Paystack webhook exists, would break every purchase and booking immediately. **Do not remove the `_TEMP` insert policies until the webhook verification path (P0-2) is built.**
+The plot-status update is now a single conditional query — `UPDATE plots SET status='booked' WHERE phase_id=… AND plot_number=… AND status='available'` — checking rows-affected. Two buyers racing for the same plot can no longer both "win": whoever's verified payment lands first flips it, the second gets `plotWarning` back for manual reconciliation instead of silently overwriting.
 
-### P1-1 — `plots` UPDATE still open to anon
-The reservation flow updates plot status from the browser. Closing this without replacing it with a verified server-side atomic transition would break plot reservation entirely, and doesn't fix the underlying double-booking race either (that needs a real `WHERE status = 'available'` conditional update in a transaction, not just an RLS policy). Tracked as its own fix.
+**Flow change:**
+- `payment.tsx` — Paystack's client-side "success" callback no longer navigates directly. It calls the new `verifyPaymentFn` server function with the reference, shows "Confirming your payment…", and only proceeds to `/thank-you` once the server confirms. A failure shows an inline error with the reference number for manual follow-up rather than a fake success page.
+- `thank-you.tsx` — rewritten to be **read-only**. The entire old `fetchTransactionDetails` block (which inserted payments/agreements/bookings and updated plot status directly from unverified URL params — the actual vulnerability) is deleted, not disabled. It now calls `getReceiptFn({ inquiryId })` to read back the already-verified record. This was also a **live bug fix**, independent of security: that old code matched inquiries by `plot_number_ref` + `phase_name` and updated `plots` by a `phase_name` column that doesn't exist on the `plots` table (it's `phase_id`) — the plot-status update in the old flow was silently failing (or erroring, uninspected) for every real payment.
+- **Migration [0002](../supabase/migrations/0002_close_payment_insert.sql)** removes the `_TEMP` anon INSERT policies on `payments`/`agreements` and the anon UPDATE policy on `plots` — nothing legitimate writes to any of these from the browser anymore. Run this **after** confirming the new code is deployed, not before (running it against the old client-insert code breaks every purchase).
+
+### One-time setup: add the Paystack secret key
+Same rule as the Supabase service role — never `VITE_`-prefixed. Get it from Paystack Dashboard → Settings → API Keys → **Secret Key**.
+- **Local dev:** `.dev.vars`: `PAYSTACK_SECRET_KEY=sk_test_...`
+- **Production:** Cloudflare encrypted secret, same as `SUPABASE_SERVICE_ROLE_KEY`
+
+### What's honestly still missing: the webhook
+Only the **client-triggered** verify path is built — called the moment Paystack's popup reports success. This closes the actual forgery hole (nothing is trusted from the client; everything is re-checked against Paystack's API). It does **not** cover the edge case where a buyer's money leaves their account but they close the tab before the verify call completes — that needs a true Paystack webhook (signature-verified, hitting the same `recordVerifiedPayment` so it stays idempotent either way it arrives). Not built in this pass — flagged rather than silently skipped. Needs a live Paystack sandbox round-trip to build and verify properly, which wasn't available in this session.
+
+### bookings / inquiries INSERT — still open, correctly
+Unlike payments/agreements, these are still legitimately written from the browser: the booking forms and the diaspora inquiry form don't involve money and were never part of this vulnerability.
 
 ### P0-3 — Client portal OTP is untouched
-`client_otps` isn't in the generated `Database` type and isn't part of this migration. The whole mechanism (client-side `Math.random()` OTP, rendered on screen, `sessionStorage`-only session) needs a proper rebuild, not an RLS patch on top of a fundamentally client-side-only scheme. This is the next logical piece of security work after payment verification.
+`client_otps` isn't in the generated `Database` type and isn't part of any migration yet. The whole mechanism (client-side `Math.random()` OTP, rendered on screen, `sessionStorage`-only session) needs a proper rebuild, not an RLS patch on top of a fundamentally client-side-only scheme. Next.
 
 ---
 
 ## Not yet started
-- P0-2 — Paystack webhook signature verification + idempotent server-side payment writes
+- P0-2 (partial) — the Paystack **webhook** specifically (client-verify path is done — see above)
 - P0-3 — Server-verified portal OTP + real session
-- P1-1 — Atomic plot reservation transaction
 - P1-5 — Signed/expiring URLs for generated documents
 - P1-6 — Rate limiting on public write endpoints
 - P1-8 — Cloudflare Worker entry not wired into the build (blocks verifying the edge-cache fix from Phase 2 at runtime)

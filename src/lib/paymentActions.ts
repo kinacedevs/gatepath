@@ -1,0 +1,246 @@
+/**
+ * Gatepath Realtors — Verified Payment Recording (Server Functions)
+ *
+ * Fixes CRITIQUE P0-2. Previously thank-you.tsx trusted the URL's `amount`
+ * and `ref` params directly and wrote payments/agreements/bookings/plots
+ * from the browser with no verification at all — a forged URL created a
+ * fake paid record. Every write here instead comes from what Paystack's
+ * own verify API confirms was actually charged, never from the client.
+ *
+ * Uses the service-role client from lib/supabaseAdmin.ts — see that file's
+ * warning before touching this one.
+ */
+import { createServerFn } from "@tanstack/react-start";
+import { getServiceClient } from "./supabaseAdmin";
+import { sendResendEmail, sendAfricaTalkingSms, getReservationEmailHtml } from "./notifications";
+
+type PaystackVerifyData = {
+  status: "success" | "failed" | "abandoned" | string;
+  amount: number; // kobo/cents — divide by 100 for the real KES amount
+  currency: string;
+  reference: string;
+  channel?: string;
+  [key: string]: unknown;
+};
+
+async function verifyPaystackTransaction(reference: string): Promise<PaystackVerifyData> {
+  const secretKey = typeof process !== "undefined" ? process.env.PAYSTACK_SECRET_KEY : "";
+  if (!secretKey) {
+    throw new Error("PAYSTACK_SECRET_KEY is not configured on the server.");
+  }
+
+  const res = await fetch(
+    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+    { headers: { Authorization: `Bearer ${secretKey}` } },
+  );
+  const json = (await res.json()) as {
+    status: boolean;
+    message?: string;
+    data?: PaystackVerifyData;
+  };
+
+  if (!json.status || !json.data) {
+    throw new Error(json.message || "Paystack could not verify this transaction.");
+  }
+
+  return json.data;
+}
+
+/**
+ * The one place that records a payment. Idempotent on paystack_reference —
+ * safe to call more than once for the same reference (client retry, or a
+ * future webhook landing on top of an already-processed client verify).
+ */
+async function recordVerifiedPayment(params: { reference: string; inquiryId: string }) {
+  const service = getServiceClient();
+
+  const { data: existing } = await service
+    .from("payments")
+    .select("*")
+    .eq("paystack_reference", params.reference)
+    .maybeSingle();
+
+  if (existing && (existing as any).status === "success") {
+    return { success: true as const, alreadyProcessed: true, payment: existing };
+  }
+
+  const paystackData = await verifyPaystackTransaction(params.reference);
+
+  if (paystackData.status !== "success") {
+    return {
+      success: false as const,
+      error: `Paystack reports this payment as "${paystackData.status}", not successful.`,
+    };
+  }
+
+  const { data: inquiry, error: inqErr } = await (service as any)
+    .from("inquiries")
+    .select("*")
+    .eq("id", params.inquiryId)
+    .maybeSingle();
+
+  if (inqErr || !inquiry) {
+    return { success: false as const, error: "Could not find the associated inquiry." };
+  }
+
+  const amountKes = paystackData.amount / 100;
+
+  const { data: payment, error: payErr } = await (service as any)
+    .from("payments")
+    .upsert(
+      {
+        inquiry_id: inquiry.id,
+        paystack_reference: params.reference,
+        amount: amountKes,
+        deposit_amount: amountKes,
+        payment_method: paystackData.channel ?? null,
+        currency: paystackData.currency ?? "KES",
+        status: "success",
+        paystack_response: paystackData,
+      },
+      { onConflict: "paystack_reference" },
+    )
+    .select()
+    .single();
+
+  if (payErr || !payment) {
+    return { success: false as const, error: payErr?.message ?? "Failed to record the payment." };
+  }
+
+  const { data: existingAgreement } = await (service as any)
+    .from("agreements")
+    .select("id")
+    .eq("payment_id", payment.id)
+    .maybeSingle();
+
+  if (!existingAgreement) {
+    await (service as any)
+      .from("agreements")
+      .insert({ inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false });
+  }
+
+  // Atomic, conditional plot update — only flips a plot that's still
+  // available, so two simultaneous buyers can't both "win" the same plot
+  // (CRITIQUE P1-1). If it matches zero rows, the plot was taken by someone
+  // else between reservation and payment verification — the payment still
+  // succeeded, so this is flagged for manual reconciliation rather than
+  // silently dropped.
+  let plotWarning: string | null = null;
+  if (inquiry.phase_slug && inquiry.plot_number_ref) {
+    const { data: phase } = await service
+      .from("phases")
+      .select("id")
+      .eq("slug", inquiry.phase_slug)
+      .maybeSingle();
+
+    if (phase) {
+      const { data: updatedPlots } = await (service as any)
+        .from("plots")
+        .update({ status: "booked" })
+        .eq("phase_id", (phase as any).id)
+        .eq("plot_number", inquiry.plot_number_ref)
+        .eq("status", "available")
+        .select("id");
+
+      if (!updatedPlots || updatedPlots.length === 0) {
+        plotWarning =
+          "Plot was already booked/sold by the time payment was verified — needs manual reconciliation.";
+        console.error(
+          `[Payment] Plot conflict: inquiry ${inquiry.id}, phase ${inquiry.phase_slug}, plot #${inquiry.plot_number_ref}, payment ${payment.id}`,
+        );
+      }
+    }
+  }
+
+  try {
+    const emailHtml = getReservationEmailHtml({
+      buyerName: inquiry.client_full_name,
+      plotNumber: String(inquiry.plot_number_ref ?? ""),
+      phaseName: inquiry.phase_name ?? "",
+      amount: amountKes,
+      reference: params.reference,
+      isHold: inquiry.payment_preference === "reserve",
+    });
+    await sendResendEmail(
+      inquiry.client_email,
+      `Payment Confirmed: Plot #${inquiry.plot_number_ref} secured!`,
+      emailHtml,
+    );
+    await sendAfricaTalkingSms(
+      inquiry.client_phone,
+      `Payment Confirmed: Ksh ${amountKes.toLocaleString()} received for Plot #${inquiry.plot_number_ref} at ${inquiry.phase_name}. Gatepath Realtors Welcomes you!`,
+    );
+  } catch (err) {
+    // Notification failure must never undo an already-verified payment.
+    console.error("[Payment] Notification dispatch failed:", err);
+  }
+
+  return { success: true as const, payment, plotWarning };
+}
+
+export const verifyPaymentFn = createServerFn({ method: "POST" })
+  .validator((d: { reference: string; inquiryId: string }) => d)
+  .handler(async ({ data }) => {
+    if (!data.reference || !data.inquiryId) {
+      return { success: false as const, error: "Missing payment reference or inquiry id." };
+    }
+    try {
+      return await recordVerifiedPayment(data);
+    } catch (err: any) {
+      console.error("[Payment] verifyPaymentFn error:", err);
+      return { success: false as const, error: err?.message ?? "Payment verification failed." };
+    }
+  });
+
+/**
+ * Read-only receipt lookup for thank-you.tsx. payments/inquiries/agreements/
+ * bookings SELECT is admin-only under RLS (see migration 0001) — this is the
+ * one legitimate path for a buyer to see their own just-completed receipt,
+ * keyed by the inquiry id already sitting in their own browser session
+ * (InquiryContext), not by anything guessable server-side.
+ */
+export const getReceiptFn = createServerFn({ method: "POST" })
+  .validator((d: { inquiryId: string }) => d)
+  .handler(async ({ data }) => {
+    if (!data.inquiryId) {
+      return { found: false as const };
+    }
+
+    const service = getServiceClient();
+
+    const { data: inquiry } = await (service as any)
+      .from("inquiries")
+      .select("*")
+      .eq("id", data.inquiryId)
+      .maybeSingle();
+
+    if (!inquiry) {
+      return { found: false as const };
+    }
+
+    const { data: payment } = await (service as any)
+      .from("payments")
+      .select("*")
+      .eq("inquiry_id", data.inquiryId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: booking } = await (service as any)
+      .from("bookings")
+      .select("*")
+      .eq("inquiry_id", data.inquiryId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: agreement } = payment
+      ? await (service as any)
+          .from("agreements")
+          .select("*")
+          .eq("payment_id", payment.id)
+          .maybeSingle()
+      : { data: null };
+
+    return { found: true as const, inquiry, payment, booking, agreement };
+  });

@@ -5,10 +5,14 @@ import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { useInquiry } from "@/context/InquiryContext";
-import { supabase } from "@/lib/supabase";
-import { sendReservationNotificationFn } from "@/lib/notifications";
+import { getReceiptFn } from "@/lib/paymentActions";
 
 type Search = {
+  inquiryId?: string;
+  // Legacy params kept only as display fallbacks if a record hasn't loaded
+  // yet — never trusted for anything written to the database anymore. See
+  // CRITIQUE.md P0-2: this page used to insert payments/agreements/bookings
+  // directly from these URL params with no verification at all.
   ref?: string;
   plot?: string;
   phase?: string;
@@ -18,6 +22,7 @@ type Search = {
 
 export const Route = createFileRoute("/thank-you")({
   validateSearch: (s: Record<string, unknown>): Search => ({
+    inquiryId: typeof s.inquiryId === "string" ? s.inquiryId : undefined,
     ref: typeof s.ref === "string" ? s.ref : undefined,
     plot: typeof s.plot === "string" ? s.plot : undefined,
     phase: typeof s.phase === "string" ? s.phase : undefined,
@@ -34,7 +39,7 @@ export const Route = createFileRoute("/thank-you")({
 });
 
 function ThankYouPage() {
-  const { ref, plot, phase, name, amount } = Route.useSearch();
+  const { inquiryId, ref, plot, phase, name, amount } = Route.useSearch();
   const { form } = useInquiry();
 
   // Helper to clean quotes and whitespace from query strings (prevents 'NaN' and lookup failures)
@@ -49,179 +54,57 @@ function ThankYouPage() {
   const cleanName = cleanParam(name);
   const cleanAmount = cleanParam(amount);
 
-  const amountNum = Number(cleanAmount) || 0;
+  const effectiveInquiryId = inquiryId || form.inquiryId;
 
   const [animate, setAnimate] = useState(false);
   const [paymentRecord, setPaymentRecord] = useState<any>(null);
   const [agreementRecord, setAgreementRecord] = useState<any>(null);
   const [inquiryRecord, setInquiryRecord] = useState<any>(null);
   const [bookingRecord, setBookingRecord] = useState<any>(null);
+  const [receiptLoading, setReceiptLoading] = useState(true);
+  const [receiptError, setReceiptError] = useState(false);
+
+  // Read-only receipt fetch — this page used to WRITE payments/agreements/
+  // bookings/plots directly from unverified URL params (CRITIQUE P0-2). All
+  // of that now happens server-side in payment.tsx's verify step before the
+  // user ever lands here; this page only reads back what was verified.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (!effectiveInquiryId) {
+        setReceiptLoading(false);
+        return;
+      }
+      try {
+        const result = await (getReceiptFn as any)({ data: { inquiryId: effectiveInquiryId } });
+        if (cancelled) return;
+        if (result?.found) {
+          setInquiryRecord(result.inquiry ?? null);
+          setPaymentRecord(result.payment ?? null);
+          setBookingRecord(result.booking ?? null);
+          setAgreementRecord(result.agreement ?? null);
+        } else {
+          setReceiptError(true);
+        }
+      } catch (err) {
+        console.error("[ThankYou] Failed to load receipt:", err);
+        if (!cancelled) setReceiptError(true);
+      } finally {
+        if (!cancelled) setReceiptLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveInquiryId]);
+
+  const amountNum = paymentRecord?.amount || Number(cleanAmount) || 0;
 
   useEffect(() => {
     setTimeout(() => setAnimate(true), 50);
-  }, []);  useEffect(() => {
-    async function fetchTransactionDetails() {
-      if (!cleanRef) return;
-
-      if (cleanRef === "free_visit") {
-        const plotNum = cleanPlot ? parseInt(cleanPlot) : null;
-        if (plotNum && !isNaN(plotNum)) {
-          const { data: matched } = await (supabase as any)
-            .from("inquiries")
-            .select("*")
-            .eq("plot_number_ref", plotNum)
-            .or(`phase_slug.eq.${cleanPhase},phase_name.eq.${cleanPhase}`)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          const matchedAny = matched as any;
-          if (matchedAny) {
-            setInquiryRecord(matchedAny);
-            const { data: book } = await (supabase as any)
-              .from("bookings")
-              .select("*")
-              .eq("inquiry_id", matchedAny.id)
-              .maybeSingle();
-            if (book) {
-              setBookingRecord(book);
-            }
-          }
-        }
-        return;
-      }
-
-      // 1. Check if payment already exists
-      const { data: pmtData } = await (supabase as any)
-        .from("payments")
-        .select("*")
-        .eq("paystack_reference", cleanRef)
-        .maybeSingle();
-
-      let payment = pmtData as any;
-
-      // 2. If it does not exist, reconcile client-side (helps local testing without webhooks)
-      if (!payment && cleanRef !== "free_visit") {
-        const plotNum = cleanPlot ? parseInt(cleanPlot) : null;
-        let inquiry: any = null;
-
-        if (plotNum && !isNaN(plotNum)) {
-          const { data: matched } = await (supabase as any)
-            .from("inquiries")
-            .select("*")
-            .eq("plot_number_ref", plotNum)
-            .eq("phase_name", cleanPhase)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          inquiry = matched;
-        }
-
-        // Create transaction records
-        if (inquiry) {
-          const { data: createdPayment } = await (supabase as any)
-            .from("payments")
-            .insert({
-              inquiry_id: inquiry.id,
-              paystack_reference: cleanRef,
-              amount: amountNum,
-              deposit_amount: amountNum,
-              loan_period_months: form.loanPeriod || 6,
-              payment_method: form.paymentMethod || "card",
-              status: "success",
-            })
-            .select("*")
-            .single();
-
-          payment = createdPayment;
-
-          if (payment) {
-            // Create agreement
-            await (supabase as any).from("agreements").insert({
-              inquiry_id: inquiry.id,
-              payment_id: payment.id,
-              ceo_signed: false,
-            });
-
-            // Create booking if they specified a date, or if they wanted to hold and booked transport
-            await (supabase as any).from("bookings").insert({
-              inquiry_id: inquiry.id,
-              visit_date: form.visitDate || null,
-              visit_time: form.visitTime || null,
-              attendees: parseInt(form.attendees) || 1,
-              visit_notes: form.visitNotes || null,
-              transport_mode: form.transportMode || null,
-              status: "pending",
-            });
-
-            // Update the plot status to booked in plots table
-            await (supabase as any)
-              .from("plots")
-              .update({ status: "booked" })
-              .eq("plot_number", plotNum)
-              .eq("phase_name", cleanPhase);
-
-            // Send email & SMS notifications
-            try {
-              sendReservationNotificationFn({
-                data: {
-                  buyerName: inquiry.client_full_name,
-                  buyerEmail: inquiry.client_email,
-                  buyerPhone: inquiry.client_phone,
-                  plotNumber: String(inquiry.plot_number_ref),
-                  phaseName: inquiry.phase_name || "",
-                  amount: amountNum,
-                  reference: cleanRef,
-                  isHold: inquiry.payment_preference === "reserve",
-                  visitDate: form.visitDate || undefined,
-                  transportMode: form.transportMode || undefined,
-                }
-              });
-            } catch (err) {
-              console.error("[Gatepath] Failed to send notification:", err);
-            }
-          }
-        }
-      }
-
-      // 3. Load payment, inquiry, booking, and agreement records
-      if (payment) {
-        setPaymentRecord(payment);
-
-        // Load inquiry
-        const { data: inq } = await (supabase as any)
-          .from("inquiries")
-          .select("*")
-          .eq("id", payment.inquiry_id)
-          .maybeSingle();
-
-        if (inq) {
-          setInquiryRecord(inq);
-        }
-
-        // Load booking
-        const { data: book } = await (supabase as any)
-          .from("bookings")
-          .select("*")
-          .eq("inquiry_id", payment.inquiry_id)
-          .maybeSingle();
-        if (book) {
-          setBookingRecord(book);
-        }
-
-        // Load agreement
-        const { data: agreement } = await (supabase as any)
-          .from("agreements")
-          .select("*")
-          .eq("payment_id", payment.id)
-          .maybeSingle();
-        if (agreement) {
-          setAgreementRecord(agreement);
-        }
-      }
-    }
-    fetchTransactionDetails();
-  }, [cleanRef, cleanPlot, cleanPhase, amountNum, form]);
+  }, []);
 
   const isFreeVisit = cleanRef === "free_visit" || amountNum <= 0;
   const isReserve = inquiryRecord?.payment_preference === "reserve" || form.reservePlot;
@@ -302,7 +185,9 @@ function ThankYouPage() {
       <Navbar />
       <div className="pt-20">
         {/* Success hero */}
-        <section style={{ background: "var(--primary)", padding: "80px 24px", textAlign: "center" }}>
+        <section
+          style={{ background: "var(--primary)", padding: "80px 24px", textAlign: "center" }}
+        >
           <div
             style={{
               width: 80,

@@ -6,6 +6,7 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { InquiryStepper } from "@/components/InquiryStepper";
 import { PlotSummaryCard } from "@/components/inquiry/PlotSummaryCard";
 import { useInquiry } from "@/context/InquiryContext";
+import { verifyPaymentFn } from "@/lib/paymentActions";
 
 const PAYSTACK_KEY = (import.meta.env?.VITE_PAYSTACK_PUBLIC_KEY ||
   "pk_test_b0065a39ea3c50c3b60c0ab7a84832b0ea31080a") as string;
@@ -38,6 +39,8 @@ function PaymentPage() {
   const [deposit, setDeposit] = useState(form.depositAmount || defaultDeposit || 0);
   const [period, setPeriod] = useState(form.loanPeriod || 12);
   const [method, setMethod] = useState(form.paymentMethod || "mpesa");
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   useEffect(() => {
     // If fullName is missing, go back to inquire. If not reserving and no visit date, go back to book-visit.
@@ -86,6 +89,12 @@ function PaymentPage() {
       alert("Payment system loading. Please try again in a moment.");
       return;
     }
+    if (!form.inquiryId) {
+      setVerifyError("Your inquiry session expired — please start again from the properties page.");
+      return;
+    }
+    setVerifyError(null);
+
     // Map our method selection to Paystack channel slugs
     const channels =
       method === "mpesa" ? ["mobile_money"] : method === "card" ? ["card"] : ["bank", "card"];
@@ -105,17 +114,39 @@ function PaymentPage() {
           { display_name: "Phone", variable_name: "phone", value: form.phone },
         ],
       },
+      // Paystack's own "success" callback only tells us the popup finished —
+      // it is not proof money moved. Everything downstream (payments,
+      // agreements, plot status) now waits on the server re-verifying this
+      // reference directly against Paystack's API before writing anything.
+      // See CRITIQUE.md P0-2 and lib/paymentActions.ts.
       callback: (response) => {
-        navigate({
-          to: "/thank-you",
-          search: {
-            ref: response.reference,
-            plot: form.plotNumber,
-            phase: form.phaseName,
-            name: form.fullName,
-            amount: String(deposit),
-          },
-        });
+        setVerifying(true);
+        (verifyPaymentFn as any)({
+          data: { reference: response.reference, inquiryId: form.inquiryId },
+        })
+          .then((result: any) => {
+            setVerifying(false);
+            if (!result?.success) {
+              setVerifyError(
+                result?.error ||
+                  "We couldn't confirm your payment. If money left your account, contact us on WhatsApp with your reference: " +
+                    response.reference,
+              );
+              return;
+            }
+            navigate({
+              to: "/thank-you",
+              search: { inquiryId: form.inquiryId },
+            });
+          })
+          .catch((err: any) => {
+            setVerifying(false);
+            setVerifyError(
+              "We couldn't confirm your payment. If money left your account, contact us on WhatsApp with your reference: " +
+                response.reference,
+            );
+            console.error("[Payment] verify call failed:", err);
+          });
       },
       onClose: () => {
         // user cancelled
@@ -287,7 +318,11 @@ function PaymentPage() {
                 />
                 <div
                   className="flex justify-between mt-1"
-                  style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "var(--muted-foreground)" }}
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 11,
+                    color: "var(--muted-foreground)",
+                  }}
                 >
                   <span>
                     {form.reservePlot
@@ -436,7 +471,11 @@ function PaymentPage() {
                       Ksh {deposit.toLocaleString()}
                     </div>
                     <div
-                      style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--muted-foreground)" }}
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 12,
+                        color: "var(--muted-foreground)",
+                      }}
                     >
                       ({pct}% of total)
                     </div>
@@ -664,7 +703,13 @@ function PaymentPage() {
                   >
                     ORDER SUMMARY
                   </div>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "var(--muted-foreground)" }}>
+                  <div
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 13,
+                      color: "var(--muted-foreground)",
+                    }}
+                  >
                     <div className="flex justify-between mb-1.5">
                       <span>Plot #{form.plotNumber}</span>
                       <span>Ksh {totalPrice.toLocaleString()}</span>
@@ -748,8 +793,26 @@ function PaymentPage() {
                     })}
                   </div>
 
+                  {verifyError && (
+                    <div
+                      style={{
+                        background: "#FEE2E2",
+                        border: "1px solid #FECACA",
+                        color: "#DC2626",
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 13,
+                        padding: "12px 14px",
+                        borderRadius: 8,
+                        marginTop: 16,
+                      }}
+                    >
+                      {verifyError}
+                    </div>
+                  )}
+
                   <button
                     onClick={handlePay}
+                    disabled={verifying}
                     className="mt-5"
                     style={{
                       width: "100%",
@@ -761,10 +824,13 @@ function PaymentPage() {
                       padding: "18px 0",
                       borderRadius: 8,
                       border: "none",
-                      cursor: "pointer",
+                      cursor: verifying ? "not-allowed" : "pointer",
+                      opacity: verifying ? 0.7 : 1,
                     }}
                   >
-                    Pay Ksh {deposit.toLocaleString()} Securely →
+                    {verifying
+                      ? "Confirming your payment…"
+                      : `Pay Ksh ${deposit.toLocaleString()} Securely →`}
                   </button>
                   <div
                     style={{
@@ -779,7 +845,11 @@ function PaymentPage() {
                   </div>
                   <div
                     className="mt-3 flex flex-wrap items-center justify-center gap-3"
-                    style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "var(--muted-foreground)" }}
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 11,
+                      color: "var(--muted-foreground)",
+                    }}
                   >
                     <span>🔒 SSL Encrypted</span>
                     <span>✅ Paystack Secured</span>

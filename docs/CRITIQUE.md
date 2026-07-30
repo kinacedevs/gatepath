@@ -21,15 +21,14 @@ The CEO/staff console hardcoded a mock session, the role check was commented `(B
 
 ---
 
-### P0-2 · Payment records are forgeable; a plot can be booked without paying
-[payment.tsx:96](../src/routes/payment.tsx#L96), [:108-119](../src/routes/payment.tsx#L108-L119), [thank-you.tsx:123-160](../src/routes/thank-you.tsx#L123-L160)
+### P0-2 · Payment records are forgeable — fixed (client-verify path); webhook still open
+*(pre-fix line numbers)* [payment.tsx:96](../src/routes/payment.tsx#L96), [:108-119](../src/routes/payment.tsx#L108-L119), [thank-you.tsx:123-160](../src/routes/thank-you.tsx#L123-L160)
 
-The buy flow asserts payment success via **URL parameters** and then writes the financial record **from the browser**:
+The buy flow used to assert payment success via **URL parameters** and write the financial record **from the browser**: client-chosen amount, a client-generated reference, a Paystack callback that only navigated without verifying anything, and `/thank-you` inserting `payments`/`agreements`/`bookings` and setting the plot to `booked` directly.
 
-- `amount: deposit * 100` — the charged amount is chosen client-side with no server price authority
-- `ref: GR-${plotNumber}-${Date.now()}` — the reference is client-generated and guessable
-- the Paystack callback only navigates; it verifies nothing
-- `/thank-you` then inserts into `payments`, `agreements`, `bookings` and sets the plot to `booked`
+**Fixed:** `payment.tsx`'s callback now calls a server function that re-verifies the transaction against Paystack's own API before anything is written — see [SECURITY_HARDENING.md](SECURITY_HARDENING.md) for the full flow change, including a live bug this surfaced (the old plot-status update filtered on a column, `plots.phase_name`, that doesn't exist on that table — it was silently failing for real payments, independent of the security issue).
+
+**Honestly still open:** only the client-triggered verify path is built. A true signature-verified Paystack **webhook** (covering the case where a buyer closes the tab before the verify call completes) is not built — flagged, not silently dropped. See SECURITY_HARDENING.md.
 
 **Impact:** `GET /thank-you?ref=anything&plot=A12&amount=5000000` creates a paid record and books a plot without a shilling changing hands. Conversely a real payer who closes the tab before redirect gets **no record at all** — money in, nothing recorded.
 
@@ -74,8 +73,8 @@ The security posture *is* the RLS policy set, and it exists only as clicked-in s
 
 ## P1 — Must fix before scale
 
-### P1-1 · Plot reservation has a race condition
-Status is checked in the UI and then written with a plain `update`. Two diaspora buyers hitting the same plot concurrently can both succeed — the exact "double allocation" the diaspora page promises ([diaspora.tsx:180-183](../src/routes/diaspora.tsx#L180-L183)) never happens. Needs an atomic conditional transition (`UPDATE … WHERE status = 'available'`) plus a uniqueness constraint, inside a transaction.
+### P1-1 · Plot reservation race condition — fixed for the payment path
+Was: status checked in the UI, then written with a plain `update` — two diaspora buyers hitting the same plot concurrently could both succeed. **Fixed** as part of the P0-2 work: `recordVerifiedPayment` now does `UPDATE plots SET status='booked' WHERE … AND status='available'` and checks rows-affected, so only one verified payment can ever flip a given plot. The loser gets flagged for manual reconciliation rather than silently overwriting. See SECURITY_HARDENING.md.
 
 ### P1-2 · The 5-stage pipeline has no integrity controls
 Stage changes are plain column updates with no role gate, no append-only history, and no audit log. Nobody can prove who advanced a buyer to "Title Deed Issued" or when. For a process that ends in a land title, this is the difference between a record and an assertion. Needs an append-only `conveyancing_events` table with actor, timestamp and reason.

@@ -63,7 +63,9 @@ The buyer tracks progress in `/portal`; the CEO advances operations from `/admin
 
 ---
 
-## 5. Payment path as currently built
+## 5. Payment path — fixed (client-verify path; webhook still pending)
+
+Original, insecure chain (kept for the historical record):
 
 ```
 inquire  →  InquiryContext (sessionStorage)
@@ -80,7 +82,28 @@ thank-you.tsx  →  supabase.from("payments").insert(…)      ← browser, anon
                   supabase.from("plots").update({ status: "booked" })
 ```
 
-**There is no server-side verification anywhere in this chain.** No Paystack webhook, no HMAC signature check, no call to Paystack's verify endpoint, no idempotency key, no service-role boundary. The database is mutated directly by the public client using the anon key.
+There was no server-side verification anywhere in that chain — no Paystack webhook, no call to Paystack's verify endpoint, no idempotency key, no service-role boundary.
+
+**Current chain**, per [SECURITY_HARDENING.md](SECURITY_HARDENING.md):
+
+```
+inquire.tsx  →  creates the real `inquiries` row, stores inquiryId in InquiryContext
+   ↓
+payment.tsx  →  PaystackPop.setup(...) — same UX
+Paystack popup
+   ↓  callback(response) — "success" here is only a UI signal, nothing is trusted yet
+verifyPaymentFn({ reference, inquiryId })            ← server function, lib/paymentActions.ts
+   ↓  server calls Paystack's verify API directly with PAYSTACK_SECRET_KEY
+   ↓  writes payments/agreements + atomic conditional plots.status update,
+   ↓  all via the service role — using only what Paystack itself confirmed
+navigate("/thank-you?inquiryId=…")                    ← no amount/status trusted from the URL
+   ↓
+thank-you.tsx  →  getReceiptFn({ inquiryId })   ← read-only, server function
+```
+
+`payments`/`agreements` INSERT and `plots` UPDATE are no longer anon-writable at all (migration `0002_close_payment_insert.sql`) — nothing legitimate needs to write to them from the browser anymore.
+
+**Still open:** a signature-verified Paystack webhook (covers a buyer closing the tab before the client-side verify call completes) is not built.
 
 ---
 

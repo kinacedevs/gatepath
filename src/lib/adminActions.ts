@@ -1,45 +1,16 @@
 /**
  * Gatepath Realtors — Privileged Admin Actions (Server Functions)
  *
- * The ONLY place in this codebase allowed to hold the Supabase service-role
- * key. Never import GATEPATH_SERVICE_ROLE_KEY, and never construct a client
- * with it, outside a createServerFn `.handler()` body — the handler body is
- * the part TanStack Start strips from the client bundle. Doing it anywhere
- * else risks shipping the service role key to every visitor's browser.
+ * Uses the service-role client from lib/supabaseAdmin.ts — see that file's
+ * warning before touching this one. Never call getServiceClient() outside a
+ * createServerFn `.handler()` body.
  *
  * admin_users.id is a foreign key to auth.users(id) (see SECURITY_HARDENING.md).
  * Creating an auth.users row requires the Admin API, which requires the
  * service role — the browser can never legitimately do this on its own.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
-
-function getServiceClient() {
-  const url =
-    (typeof process !== "undefined" ? process.env.VITE_SUPABASE_URL : "") ||
-    "https://hcnbgtnghvyyokspotfe.supabase.co";
-  const serviceKey = typeof process !== "undefined" ? process.env.SUPABASE_SERVICE_ROLE_KEY : "";
-
-  if (!serviceKey) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is not configured on the server. See docs/SECURITY_HARDENING.md.",
-    );
-  }
-
-  // service-role client: bypasses RLS entirely. Server-only, by construction —
-  // this function only ever runs inside a server function handler.
-  return createClient(url, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-function getAnonClient() {
-  const url =
-    (typeof process !== "undefined" ? process.env.VITE_SUPABASE_URL : "") ||
-    "https://hcnbgtnghvyyokspotfe.supabase.co";
-  const anonKey = typeof process !== "undefined" ? process.env.VITE_SUPABASE_ANON_KEY : "";
-  return createClient(url, anonKey || "");
-}
+import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 
 /**
  * Invites a new staff member: creates their Supabase Auth login (they get an
