@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Hero } from "@/components/sections/Hero";
 import { TrustBar } from "@/components/sections/TrustBar";
+import { TrustAndVerification } from "@/components/sections/TrustAndVerification";
 import { LocationsMarquee } from "@/components/sections/LocationsMarquee";
 import { FeaturedLocations } from "@/components/sections/FeaturedLocations";
 import { HowItWorks } from "@/components/sections/HowItWorks";
@@ -41,6 +42,7 @@ function Index() {
       <main>
         <Hero />
         <TrustBar />
+        <TrustAndVerification />
         <LocationsMarquee />
         <FeaturedLocations />
         <HowItWorks />

@@ -46,7 +46,7 @@ export function WhyGatepath() {
           </h2>
           <p className="mt-6 text-[17px] text-muted-foreground leading-[1.8]">
             At Gatepath Realtors, we believe buying land should be simple, safe, and satisfying.
-            Since 2023, we've helped hundreds of Kenyans — from Nairobi professionals to diaspora
+            Since 2020, we've helped hundreds of Kenyans — from Nairobi professionals to diaspora
             investors — secure titled land at fair prices.
           </p>
           <blockquote className="mt-8 pl-6 border-l-4 border-accent">
