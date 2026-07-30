@@ -6,6 +6,7 @@ import { TrustAndVerification } from "@/components/sections/TrustAndVerification
 import { LocationsMarquee } from "@/components/sections/LocationsMarquee";
 import { FeaturedLocations } from "@/components/sections/FeaturedLocations";
 import { HowItWorks } from "@/components/sections/HowItWorks";
+import { ConveyancingJourney } from "@/components/sections/ConveyancingJourney";
 import { WhyGatepath } from "@/components/sections/WhyGatepath";
 import { PropertyPreview } from "@/components/sections/PropertyPreview";
 import { Testimonials } from "@/components/sections/Testimonials";
@@ -46,6 +47,7 @@ function Index() {
         <LocationsMarquee />
         <FeaturedLocations />
         <HowItWorks />
+        <ConveyancingJourney />
         <WhyGatepath />
         <PropertyPreview />
         <Testimonials />

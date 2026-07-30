@@ -11,6 +11,7 @@ import {
   assertPortalOwnsInquiryFn,
 } from "@/lib/portalActions";
 import { verifyPaymentFn } from "@/lib/paymentActions";
+import { CONVEYANCING_STAGES } from "@/lib/conveyancing";
 import {
   ShieldCheck,
   User,
@@ -81,35 +82,6 @@ interface BookingData {
   pickup_location?: string;
   transport_required: boolean;
 }
-
-// 5-Stage Title Deed Conveyancing Pipeline Stages
-const CONVEYANCING_STAGES = [
-  {
-    stage: 1,
-    label: "Payment Verification & Receipt Issued",
-    desc: "Down payment confirmed & legal file opened",
-  },
-  {
-    stage: 2,
-    label: "Cadastral Survey & Beaconing",
-    desc: "Physical survey beacons placed on site",
-  },
-  {
-    stage: 3,
-    label: "Sales Agreement Executed",
-    desc: "Bilateral agreement signed by CEO & buyer",
-  },
-  {
-    stage: 4,
-    label: "Ministry of Lands Stamp Duty & Search",
-    desc: "Land registry stamp duty and search filing",
-  },
-  {
-    stage: 5,
-    label: "Title Deed Issued & Dispatched",
-    desc: "Official title deed ready & delivered",
-  },
-];
 
 const PORTAL_SESSION_KEY = "gatepath_portal_session";
 
