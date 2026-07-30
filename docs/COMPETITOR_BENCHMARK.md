@@ -1,6 +1,6 @@
 # Gatepath Realtors — Competitive Benchmark & Market Research
 
-**Status:** Stage 1 of the Phase 4 redesign, part 1. Real, sourced findings from live research — not assumptions. This document is the input every Stage 2/3 design decision should be checked against, the same way CRITIQUE.md governs the security work. Still to come in Stage 1: a full page-by-page visual teardown of the top 3 competitors, and the marketing-funnel/lead-conversion deep dive.
+**Status:** Stage 1 of the Phase 4 redesign, complete except for one caveat: no browser/screenshot tool is available in this environment, so §7's "component-by-component visual teardown" was done via fetched page content/structure rather than actual screenshots — real and sourced, but not pixel-level. Real, sourced findings from live research throughout — not assumptions. This document is the input every Stage 2/3 design decision should be checked against, the same way CRITIQUE.md governs the security work.
 
 ---
 
@@ -106,12 +106,30 @@ Sources: [Parallel: Real Estate Website Design 2026](https://www.parallelhq.com/
 
 ---
 
-## 7. What Stage 1 still owes (not done yet, not silently dropped)
+## 7. Structural teardown, funnel mechanics, and the blog audit
 
-- Full visual/screenshot-level teardown of Username Properties, AMG, and one international proptech leader's actual page layouts (component-by-component, not just written descriptions)
-- Marketing funnel / lead-conversion mechanics specific to this category (WhatsApp-first conversion, which Gatepath already leans on, versus form-first)
-- Blog content audit — what Gatepath's blog currently covers versus the content gaps identified in §5
-- A pass specifically on admin/CRM-side competitive patterns, deferred until Phase 5 per the agreed sequencing
+### AMG Realtors homepage, component by component
+(Username Properties' site returned a certificate error to automated fetching — noted as a data gap, not silently skipped.)
+
+Top to bottom: hero headline ("Prime Location, Endless Possibilities for You") over featured-property cards, each linking straight to a detail page via "View Details" — **not** a hero-level contact form or WhatsApp button. Contact/WhatsApp lives on the properties themselves, not the homepage. Then a **certificate carousel** — Kenya Properties Development Association, AMCHAM Kenya, Kenya Private Sector Alliance, RESA — establishing third-party institutional credibility *before* any conversion ask. Then an impact-stats bar: "13+ Years," "25,000+ Clients Served," "160+ Projects Closed," "13,000+ Diaspora Clients" (the same specificity pattern already noted for Username in §2 — a second, independent confirmation that exact numbers beat adjectives in this category). Listings use a standardized card layout, and **some display a "Sold Out" badge** — an explicit scarcity state, not just a low-availability indicator. Testimonials are **video**, hosted on YouTube, with titles like "No Stories, Just Titles!!" (also their tagline) — an emotional register text testimonials can't match. Blog is categorized: Investment Comparison / Land Ownership / News / Property Updates.
+
+**What this changes for Gatepath, concretely:**
+- A "Sold Out" badge state doesn't currently exist on `PhaseCard`/`PropertyPreview` — worth adding once a phase actually sells out, as a natural extension of the Hot Picks scarcity work already shipped.
+- Third-party association/membership badges (if Gatepath holds any — Kenya Property Developers Association, Estate Agents Registration Board, etc.) are a distinct trust category from "verified titles" copy, and currently absent from the site. Worth a direct question to the CEO rather than a guess: does Gatepath hold any such memberships?
+- Video testimonials are a real gap, but — like real photography (P2-5) — the fix is footage, not code. Flagging rather than faking it.
+
+### Funnel mechanics: WhatsApp-first is confirmed correct, not a legacy pattern to reconsider
+**Over 70% of Kenyan property inquiries start on WhatsApp or social media, not search** — and "a real estate website in Kenya without WhatsApp integration is incomplete" (industry research, sourced below). This directly validates what's already built: the floating `WhatsAppButton`, Hero's "Chat on WhatsApp" CTA, and `PlotPanel`'s WhatsApp share/inquiry buttons aren't things to reconsider toward a form-first pattern — they're the category-correct bet, confirmed by data rather than instinct. Separately, research on funnel structure across the category confirms **the first hard conversion in most dealer funnels is the site visit, not the initial inquiry** — which matches Gatepath's own flow (inquire → book-visit → payment) rather than suggesting a restructure.
+
+Source: [Bluxel Africa: Must-Have Features on a Real Estate Website in Kenya (2026)](https://bluxelafrica.com/must-have-features-on-a-real-estate-website-in-kenya/)
+
+### Blog audit: there is no content to audit
+A live read-only query against the `blog_posts` table returned **zero rows** — not "thin content," literally none. The routes, layout, image-loading, category filters, and search are all fully built and working; nothing has ever been published through them. Fixed one small bug this surfaced: the empty-state copy on `/blog` read "No articles match your search" with a "Clear Filters" button regardless of whether a filter was actually applied — misleading for a first-time visitor to an empty blog. Now distinguishes "no articles published yet" from "no results for your search."
+
+The real fix here isn't code, it's content — the AMG category taxonomy above (Investment Comparison / Land Ownership / News / Property Updates) plus the direct-answer/market-report strategy already in §5 is a ready-made starting structure whenever posts get written.
+
+### Deferred, by design
+Admin/CRM-side competitive patterns remain deferred to Phase 5, per the agreed sequencing.
 
 ---
 

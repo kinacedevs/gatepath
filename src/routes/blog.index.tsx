@@ -278,16 +278,24 @@ function BlogIndexPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-24">
               <BookOpen size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-600 text-lg font-serif">No articles match your search.</p>
-              <button
-                onClick={() => {
-                  setSelectedCat("All Articles");
-                  setQ("");
-                }}
-                className="mt-4 text-accent hover:underline text-sm font-semibold"
-              >
-                Clear Filters
-              </button>
+              {posts.length === 0 ? (
+                <p className="text-gray-600 text-lg font-serif">
+                  No articles published yet — check back soon.
+                </p>
+              ) : (
+                <>
+                  <p className="text-gray-600 text-lg font-serif">No articles match your search.</p>
+                  <button
+                    onClick={() => {
+                      setSelectedCat("All Articles");
+                      setQ("");
+                    }}
+                    className="mt-4 text-accent hover:underline text-sm font-semibold"
+                  >
+                    Clear Filters
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
