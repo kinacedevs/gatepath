@@ -393,21 +393,19 @@ function AdminPage() {
       return;
     }
 
-    const { error } = await (supabase.from("admin_users").insert({
-      id: crypto.randomUUID(),
-      email: newStaffEmail.trim(),
-      full_name: newStaffName.trim(),
-      role: newStaffRole,
-    } as any) as any);
-
-    if (error) {
-      setStaffMsg("Error adding staff profile: " + error.message);
-    } else {
-      setStaffMsg("Staff profile successfully created!");
-      setNewStaffEmail("");
-      setNewStaffName("");
-      loadAllData();
-    }
+    // admin_users.id is a foreign key to auth.users(id) — a random UUID here
+    // always violates that constraint. Creating a Supabase Auth login
+    // requires the service-role key, which the browser must never hold, so
+    // this genuinely can't be completed client-side. Until a server-side
+    // invite flow exists (see docs/SECURITY_HARDENING.md), staff are added
+    // manually: Supabase Dashboard → Authentication → Add User, then seed
+    // their admin_users row from the SQL Editor using that user's real id.
+    setStaffMsg(
+      "New staff can't be added from this form yet — creating a login requires " +
+        "server-side setup that isn't built. In Supabase: Authentication → Add User " +
+        `for ${newStaffEmail.trim() || "their email"}, then run the seed SQL in ` +
+        "docs/SECURITY_HARDENING.md with their real user id.",
+    );
   };
 
   const handleUpdatePlotStatus = async (e: React.FormEvent) => {

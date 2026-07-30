@@ -18,17 +18,22 @@ Tracks what's been fixed, what's deliberately deferred, and the exact steps need
 
 `admin_users` currently has **zero rows** — nobody has ever been added to it; the CEO name/email seen in the old UI was hardcoded display text, never a real database row. The CEO-only INSERT policy in the migration can't bootstrap itself on an empty table, so the very first row must be seeded by hand.
 
+**`admin_users.id` has a foreign key to `auth.users(id)`** (this exists in the live schema already — not something this migration adds). That means the Supabase Auth login must be created **first**, and the `admin_users` row must reuse that exact same id — not a fresh `gen_random_uuid()`. Do the steps in this order:
+
 1. **Run the migration.** Paste the full contents of `supabase/migrations/0001_admin_auth_and_rls.sql` into the Supabase SQL Editor and run it. Safe to re-run — every statement is idempotent.
 
-2. **Seed your own CEO row** (edit the email/name, then run in the SQL Editor):
+2. **Create the Supabase Auth login first:** Dashboard → Authentication → Users → Add User. Enter your real email + a password. (Or "Invite" if you'd rather set the password via emailed link.)
+
+3. **Seed your `admin_users` row by pulling the id from `auth.users`** — edit the email (must match step 2 exactly) and name, then run in the SQL Editor:
    ```sql
    insert into public.admin_users (id, email, full_name, role)
-   values (gen_random_uuid(), 'your-real-email@example.com', 'Your Name', 'ceo');
+   select id, 'your-real-email@example.com', 'Your Name', 'ceo'
+   from auth.users
+   where email = 'your-real-email@example.com';
    ```
+   This inserts nothing (and errors nothing) if the email in the `where` clause doesn't match an existing `auth.users` row — double-check step 2 completed with that exact email if so.
 
-3. **Create the matching Supabase Auth login:** Dashboard → Authentication → Users → Add User. Use **the exact same email** as step 2, set a password. (Or "Invite" if you'd rather set the password via emailed link.)
-
-4. **Test it:** go to `/admin`, sign in with that email/password. You should land on the dashboard as CEO. Adding further staff (managers/agents) works from the CEO's **Staff** tab as before — just also create their Supabase Auth login the same way (step 3) with a matching email.
+4. **Test it:** go to `/admin`, sign in with that email/password. You should land on the dashboard as CEO. Adding further staff (managers/agents) works from the CEO's **Staff** tab as before, but its plain `crypto.randomUUID()` insert will hit the same foreign-key constraint — until that's fixed to look up the invited user's real id, create their Supabase Auth login first (step 2's flow) and seed their `admin_users` row the same way (step 3) rather than through the Staff tab form.
 
 ### Accepted trade-off
 The session is stored via Supabase's default `persistSession` (browser `localStorage`), not an httpOnly server cookie. Standard for a Supabase Auth SPA setup and consistent with how this app already handles sessions elsewhere; a server-side cookie session would need the TanStack Start server-function layer, which isn't built yet.
