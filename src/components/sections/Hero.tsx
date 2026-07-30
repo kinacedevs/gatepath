@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_HERO_IMAGES } from "@/lib/heroImages";
 
 export function Hero() {
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>(DEFAULT_HERO_IMAGES);
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
@@ -15,19 +16,13 @@ export function Hero() {
           .select("*")
           .eq("id", "homepage_hero")
           .single();
+        // Only override if a real CEO-uploaded set exists — otherwise keep
+        // the default that's already rendering, no flash-to-nothing.
         if (data?.data?.images && data.data.images.length > 0) {
           setImages(data.data.images);
-        } else {
-          setImages([
-            "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80",
-            "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1920&q=80",
-            "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1920&q=80",
-          ]);
         }
-      } catch (err) {
-        setImages([
-          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80",
-        ]);
+      } catch {
+        // Default images are already showing — nothing to do.
       }
     };
     fetchBanners();
@@ -52,6 +47,8 @@ export function Hero() {
             src={images[current]}
             alt="Gatepath Premium Land Hero"
             className="w-full h-full object-cover object-center transition-opacity duration-1000"
+            loading="eager"
+            fetchPriority="high"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary-deep/90 via-primary-deep/55 to-primary-deep/20" />
           <div className="absolute inset-0 bg-gradient-to-t from-primary-deep/70 via-transparent to-primary-deep/20" />

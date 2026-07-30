@@ -200,6 +200,8 @@ function BlogPostPage() {
               }
               alt={post.title}
               className="w-full h-full object-cover"
+              loading="eager"
+              fetchPriority="high"
             />
           </div>
 
@@ -276,6 +278,7 @@ function BlogPostPage() {
                       <img
                         src={post.featured_image || ""}
                         alt=""
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     </div>

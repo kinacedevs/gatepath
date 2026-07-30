@@ -304,6 +304,7 @@ function BlogIndexPage() {
                         "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80"
                       }
                       alt={post.title}
+                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                     />
                     <span className="absolute top-4 left-4 bg-primary text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded">

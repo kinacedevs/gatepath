@@ -11,6 +11,7 @@ export function CeoSection() {
             <img
               src={ceoJoe}
               alt="Joe Muchiri — CEO & Managing Director, Gatepath Realtors"
+              loading="lazy"
               style={{
                 width: "100%",
                 height: 540,

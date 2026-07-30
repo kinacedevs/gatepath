@@ -83,6 +83,7 @@ function AboutPage() {
               <img
                 src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80"
                 alt="Joe Muchiri CEO Gatepath Realtors"
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -147,7 +148,12 @@ function AboutPage() {
           {staffMembers.map((staff, idx) => (
             <div key={idx} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden text-center p-6 space-y-4">
               <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-2 border-accent">
-                <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" />
+                <img
+                  src={staff.image}
+                  alt={staff.name}
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h3 className="font-serif font-bold text-lg text-primary-deep">{staff.name}</h3>

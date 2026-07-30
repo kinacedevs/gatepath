@@ -18,7 +18,11 @@ export const Route = createFileRoute("/payment")({
       { title: "Secure Your Plot — Gatepath Realtors" },
       { name: "description", content: "Plan your payments and secure your plot with a deposit." },
     ],
-    scripts: [{ src: "https://js.paystack.co/v1/inline.js" }],
+    // defer: the page has to render and the buyer has to fill in the
+    // deposit form before "Pay" is even clickable, so this never needs to
+    // block the initial page paint — deferring it lets the rest of the
+    // page render first while it downloads in parallel.
+    scripts: [{ src: "https://js.paystack.co/v1/inline.js", defer: true }],
   }),
 });
 

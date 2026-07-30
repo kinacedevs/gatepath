@@ -330,6 +330,8 @@ function PhaseDetailPage() {
                       src={slideUrl}
                       alt={`${phase.name} view ${idx + 1}`}
                       className="w-full h-full object-cover"
+                      loading={idx === 0 ? "eager" : "lazy"}
+                      fetchPriority={idx === 0 ? "high" : "auto"}
                     />
                   </div>
                 ))}

@@ -27,6 +27,7 @@ export function Footer() {
             <img
               src={logoIcon}
               alt="Gatepath Realtors"
+              loading="lazy"
               style={{
                 height: 64,
                 width: 64,
