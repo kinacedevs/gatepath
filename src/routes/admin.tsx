@@ -44,6 +44,7 @@ import type {
   Plot,
 } from "@/lib/types";
 import { sendAgreementSignedNotificationFn } from "@/lib/notifications";
+import { inviteStaffFn } from "@/lib/adminActions";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -154,6 +155,7 @@ function AdminPage() {
   const [newStaffName, setNewStaffName] = useState("");
   const [newStaffRole, setNewStaffRole] = useState<"ceo" | "manager" | "agent">("agent");
   const [staffMsg, setStaffMsg] = useState<string | null>(null);
+  const [staffAddLoading, setStaffAddLoading] = useState(false);
 
   // Edit Plot State
   const [editingPlot, setEditingPlot] = useState<Plot | null>(null);
@@ -393,19 +395,47 @@ function AdminPage() {
       return;
     }
 
-    // admin_users.id is a foreign key to auth.users(id) — a random UUID here
-    // always violates that constraint. Creating a Supabase Auth login
-    // requires the service-role key, which the browser must never hold, so
-    // this genuinely can't be completed client-side. Until a server-side
-    // invite flow exists (see docs/SECURITY_HARDENING.md), staff are added
-    // manually: Supabase Dashboard → Authentication → Add User, then seed
-    // their admin_users row from the SQL Editor using that user's real id.
-    setStaffMsg(
-      "New staff can't be added from this form yet — creating a login requires " +
-        "server-side setup that isn't built. In Supabase: Authentication → Add User " +
-        `for ${newStaffEmail.trim() || "their email"}, then run the seed SQL in ` +
-        "docs/SECURITY_HARDENING.md with their real user id.",
-    );
+    const email = newStaffEmail.trim();
+    const fullName = newStaffName.trim();
+    if (!email || !fullName) {
+      setStaffMsg("Enter both an email and a full name.");
+      return;
+    }
+
+    setStaffAddLoading(true);
+
+    // Creating a login (auth.users row) requires the service-role key, which
+    // the browser must never hold — that's why this goes through a server
+    // function rather than a direct client insert. The server function
+    // re-verifies the caller is really the CEO from their session token; it
+    // does not trust adminRole as sent from here.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+
+    if (!accessToken) {
+      setStaffMsg("Your session expired — please sign in again.");
+      setStaffAddLoading(false);
+      return;
+    }
+
+    try {
+      const result = await (inviteStaffFn as any)({
+        data: { callerAccessToken: accessToken, email, fullName, role: newStaffRole },
+      });
+
+      if (!result.success) {
+        setStaffMsg("Error adding staff: " + result.error);
+      } else {
+        setStaffMsg(`Invite sent to ${email}. They'll set their password from that email.`);
+        setNewStaffEmail("");
+        setNewStaffName("");
+        loadAllData();
+      }
+    } catch (err: any) {
+      setStaffMsg("Error adding staff: " + (err?.message ?? "Unknown error."));
+    } finally {
+      setStaffAddLoading(false);
+    }
   };
 
   const handleUpdatePlotStatus = async (e: React.FormEvent) => {
@@ -1449,6 +1479,7 @@ function AdminPage() {
                     </div>
                     <button
                       type="submit"
+                      disabled={staffAddLoading}
                       style={{
                         marginTop: 4,
                         padding: "12px",
@@ -1459,11 +1490,12 @@ function AdminPage() {
                         fontFamily: "Montserrat, sans-serif",
                         fontWeight: 700,
                         fontSize: 13,
-                        cursor: "pointer",
+                        cursor: staffAddLoading ? "not-allowed" : "pointer",
+                        opacity: staffAddLoading ? 0.7 : 1,
                         letterSpacing: "0.03em",
                       }}
                     >
-                      Create Staff Profile
+                      {staffAddLoading ? "Sending Invite…" : "Invite Staff Member"}
                     </button>
                   </form>
                 </div>

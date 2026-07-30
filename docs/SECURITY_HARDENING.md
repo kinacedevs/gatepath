@@ -33,10 +33,29 @@ Tracks what's been fixed, what's deliberately deferred, and the exact steps need
    ```
    This inserts nothing (and errors nothing) if the email in the `where` clause doesn't match an existing `auth.users` row — double-check step 2 completed with that exact email if so.
 
-4. **Test it:** go to `/admin`, sign in with that email/password. You should land on the dashboard as CEO. Adding further staff (managers/agents) works from the CEO's **Staff** tab as before, but its plain `crypto.randomUUID()` insert will hit the same foreign-key constraint — until that's fixed to look up the invited user's real id, create their Supabase Auth login first (step 2's flow) and seed their `admin_users` row the same way (step 3) rather than through the Staff tab form.
+4. **Test it:** go to `/admin`, sign in with that email/password. You should land on the dashboard as CEO. Adding further staff now works properly from the **Staff** tab — see below.
 
 ### Accepted trade-off
-The session is stored via Supabase's default `persistSession` (browser `localStorage`), not an httpOnly server cookie. Standard for a Supabase Auth SPA setup and consistent with how this app already handles sessions elsewhere; a server-side cookie session would need the TanStack Start server-function layer, which isn't built yet.
+The session is stored via Supabase's default `persistSession` (browser `localStorage`), not an httpOnly server cookie. Standard for a Supabase Auth SPA setup and consistent with how this app already handles sessions elsewhere; a server-side cookie session would need a bigger server-function investment than this warrants right now.
+
+---
+
+## Fixed: staff invitation (the same FK problem, solved properly)
+
+The CEO-bootstrap FK issue above would have hit again the moment anyone used the Staff tab to add a manager or agent — `handleAddStaff` inserted with a fresh `crypto.randomUUID()`, which can never satisfy `admin_users.id`'s foreign key to `auth.users(id)`. And the real fix — creating an `auth.users` row — requires the Supabase **Admin API**, which requires the **service-role key**. That key must never reach the browser.
+
+**Fixed with a real server-side flow:** [src/lib/adminActions.ts](../src/lib/adminActions.ts) — a TanStack Start server function (`inviteStaffFn`), the same pattern already used for email/SMS notifications in `lib/notifications.ts`. The service-role client is constructed **only inside the handler body**, which TanStack strips from the client bundle. Verified directly against the compiled output, not just assumed: `grep`'d `dist/client/` for the key name, the service-client constructor, and the invite call — all absent. The one incidental hit (`inviteUserByEmail`) was confirmed to be inert `@supabase/auth-js` SDK boilerplate with no key attached, present in the bundle regardless of this change.
+
+The server function re-verifies the caller server-side (`auth.getUser(accessToken)` against Supabase, then an `admin_users.role === 'ceo'` check via the service client) — it does **not** trust the `adminRole` the client claims to have.
+
+### One-time setup: add the service-role key
+
+Never prefix this with `VITE_` — that prefix ships a variable to every visitor's browser. Get the key from Supabase Dashboard → Settings → API → **service_role** (the long one below `anon`, marked secret).
+
+- **Local dev:** add to `.dev.vars` (already gitignored): `SUPABASE_SERVICE_ROLE_KEY=your_key_here`
+- **Production (Cloudflare):** Cloudflare Dashboard → your Worker/Pages project → Settings → Variables and Secrets → add `SUPABASE_SERVICE_ROLE_KEY` as an **encrypted secret** (not a plain variable)
+
+Until this is set, `inviteStaffFn` fails with a clear "not configured" error rather than silently doing nothing.
 
 ---
 
