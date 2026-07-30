@@ -24,8 +24,22 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PropertiesIndexRouteImport } from './routes/properties.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PropertiesSlugRouteImport } from './routes/properties.$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AdminStaffRouteImport } from './routes/admin.staff'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminPlotsRouteImport } from './routes/admin.plots'
+import { Route as AdminMeetingsRouteImport } from './routes/admin.meetings'
+import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
+import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
+import { Route as AdminInquiriesRouteImport } from './routes/admin.inquiries'
+import { Route as AdminDealsRouteImport } from './routes/admin.deals'
+import { Route as AdminContactsRouteImport } from './routes/admin.contacts'
+import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
+import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
+import { Route as AdminBlogRouteImport } from './routes/admin.blog'
+import { Route as AdminAgentsRouteImport } from './routes/admin.agents'
 import { Route as DocumentReceiptIdRouteImport } from './routes/document.receipt.$id'
 import { Route as DocumentAgreementIdRouteImport } from './routes/document.agreement.$id'
 
@@ -104,6 +118,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const PropertiesSlugRoute = PropertiesSlugRouteImport.update({
   id: '/properties/$slug',
   path: '/properties/$slug',
@@ -113,6 +132,71 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminStaffRoute = AdminStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPlotsRoute = AdminPlotsRouteImport.update({
+  id: '/plots',
+  path: '/plots',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMeetingsRoute = AdminMeetingsRouteImport.update({
+  id: '/meetings',
+  path: '/meetings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLeadsRoute = AdminLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInstallmentsRoute = AdminInstallmentsRouteImport.update({
+  id: '/installments',
+  path: '/installments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInquiriesRoute = AdminInquiriesRouteImport.update({
+  id: '/inquiries',
+  path: '/inquiries',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDealsRoute = AdminDealsRouteImport.update({
+  id: '/deals',
+  path: '/deals',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContactsRoute = AdminContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCampaignsRoute = AdminCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBookingsRoute = AdminBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBlogRoute = AdminBlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAgentsRoute = AdminAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => AdminRoute,
 } as any)
 const DocumentReceiptIdRoute = DocumentReceiptIdRouteImport.update({
   id: '/document/receipt/$id',
@@ -128,7 +212,7 @@ const DocumentAgreementIdRoute = DocumentAgreementIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/book-visit': typeof BookVisitRoute
   '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
@@ -139,8 +223,22 @@ export interface FileRoutesByFullPath {
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
   '/thank-you': typeof ThankYouRoute
+  '/admin/agents': typeof AdminAgentsRoute
+  '/admin/blog': typeof AdminBlogRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/campaigns': typeof AdminCampaignsRoute
+  '/admin/contacts': typeof AdminContactsRoute
+  '/admin/deals': typeof AdminDealsRoute
+  '/admin/inquiries': typeof AdminInquiriesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/leads': typeof AdminLeadsRoute
+  '/admin/meetings': typeof AdminMeetingsRoute
+  '/admin/plots': typeof AdminPlotsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
@@ -149,7 +247,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
   '/book-visit': typeof BookVisitRoute
   '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
@@ -160,8 +257,22 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
   '/thank-you': typeof ThankYouRoute
+  '/admin/agents': typeof AdminAgentsRoute
+  '/admin/blog': typeof AdminBlogRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/campaigns': typeof AdminCampaignsRoute
+  '/admin/contacts': typeof AdminContactsRoute
+  '/admin/deals': typeof AdminDealsRoute
+  '/admin/inquiries': typeof AdminInquiriesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/leads': typeof AdminLeadsRoute
+  '/admin/meetings': typeof AdminMeetingsRoute
+  '/admin/plots': typeof AdminPlotsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
+  '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/properties': typeof PropertiesIndexRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
@@ -171,7 +282,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/book-visit': typeof BookVisitRoute
   '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
@@ -182,8 +293,22 @@ export interface FileRoutesById {
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
   '/thank-you': typeof ThankYouRoute
+  '/admin/agents': typeof AdminAgentsRoute
+  '/admin/blog': typeof AdminBlogRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/campaigns': typeof AdminCampaignsRoute
+  '/admin/contacts': typeof AdminContactsRoute
+  '/admin/deals': typeof AdminDealsRoute
+  '/admin/inquiries': typeof AdminInquiriesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/leads': typeof AdminLeadsRoute
+  '/admin/meetings': typeof AdminMeetingsRoute
+  '/admin/plots': typeof AdminPlotsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
@@ -205,8 +330,22 @@ export interface FileRouteTypes {
     | '/portal'
     | '/privacy'
     | '/thank-you'
+    | '/admin/agents'
+    | '/admin/blog'
+    | '/admin/bookings'
+    | '/admin/campaigns'
+    | '/admin/contacts'
+    | '/admin/deals'
+    | '/admin/inquiries'
+    | '/admin/installments'
+    | '/admin/leads'
+    | '/admin/meetings'
+    | '/admin/plots'
+    | '/admin/settings'
+    | '/admin/staff'
     | '/blog/$slug'
     | '/properties/$slug'
+    | '/admin/'
     | '/blog/'
     | '/properties/'
     | '/document/agreement/$id'
@@ -215,7 +354,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/admin'
     | '/book-visit'
     | '/contact'
     | '/diaspora'
@@ -226,8 +364,22 @@ export interface FileRouteTypes {
     | '/portal'
     | '/privacy'
     | '/thank-you'
+    | '/admin/agents'
+    | '/admin/blog'
+    | '/admin/bookings'
+    | '/admin/campaigns'
+    | '/admin/contacts'
+    | '/admin/deals'
+    | '/admin/inquiries'
+    | '/admin/installments'
+    | '/admin/leads'
+    | '/admin/meetings'
+    | '/admin/plots'
+    | '/admin/settings'
+    | '/admin/staff'
     | '/blog/$slug'
     | '/properties/$slug'
+    | '/admin'
     | '/blog'
     | '/properties'
     | '/document/agreement/$id'
@@ -247,8 +399,22 @@ export interface FileRouteTypes {
     | '/portal'
     | '/privacy'
     | '/thank-you'
+    | '/admin/agents'
+    | '/admin/blog'
+    | '/admin/bookings'
+    | '/admin/campaigns'
+    | '/admin/contacts'
+    | '/admin/deals'
+    | '/admin/inquiries'
+    | '/admin/installments'
+    | '/admin/leads'
+    | '/admin/meetings'
+    | '/admin/plots'
+    | '/admin/settings'
+    | '/admin/staff'
     | '/blog/$slug'
     | '/properties/$slug'
+    | '/admin/'
     | '/blog/'
     | '/properties/'
     | '/document/agreement/$id'
@@ -258,7 +424,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   BookVisitRoute: typeof BookVisitRoute
   ContactRoute: typeof ContactRoute
   DiasporaRoute: typeof DiasporaRoute
@@ -384,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/properties/$slug': {
       id: '/properties/$slug'
       path: '/properties/$slug'
@@ -397,6 +570,97 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/staff': {
+      id: '/admin/staff'
+      path: '/staff'
+      fullPath: '/admin/staff'
+      preLoaderRoute: typeof AdminStaffRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/plots': {
+      id: '/admin/plots'
+      path: '/plots'
+      fullPath: '/admin/plots'
+      preLoaderRoute: typeof AdminPlotsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/meetings': {
+      id: '/admin/meetings'
+      path: '/meetings'
+      fullPath: '/admin/meetings'
+      preLoaderRoute: typeof AdminMeetingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/leads': {
+      id: '/admin/leads'
+      path: '/leads'
+      fullPath: '/admin/leads'
+      preLoaderRoute: typeof AdminLeadsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/installments': {
+      id: '/admin/installments'
+      path: '/installments'
+      fullPath: '/admin/installments'
+      preLoaderRoute: typeof AdminInstallmentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/inquiries': {
+      id: '/admin/inquiries'
+      path: '/inquiries'
+      fullPath: '/admin/inquiries'
+      preLoaderRoute: typeof AdminInquiriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/deals': {
+      id: '/admin/deals'
+      path: '/deals'
+      fullPath: '/admin/deals'
+      preLoaderRoute: typeof AdminDealsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/contacts': {
+      id: '/admin/contacts'
+      path: '/contacts'
+      fullPath: '/admin/contacts'
+      preLoaderRoute: typeof AdminContactsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/campaigns': {
+      id: '/admin/campaigns'
+      path: '/campaigns'
+      fullPath: '/admin/campaigns'
+      preLoaderRoute: typeof AdminCampaignsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bookings': {
+      id: '/admin/bookings'
+      path: '/bookings'
+      fullPath: '/admin/bookings'
+      preLoaderRoute: typeof AdminBookingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/blog': {
+      id: '/admin/blog'
+      path: '/blog'
+      fullPath: '/admin/blog'
+      preLoaderRoute: typeof AdminBlogRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/agents': {
+      id: '/admin/agents'
+      path: '/agents'
+      fullPath: '/admin/agents'
+      preLoaderRoute: typeof AdminAgentsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/document/receipt/$id': {
       id: '/document/receipt/$id'
@@ -415,10 +679,46 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminAgentsRoute: typeof AdminAgentsRoute
+  AdminBlogRoute: typeof AdminBlogRoute
+  AdminBookingsRoute: typeof AdminBookingsRoute
+  AdminCampaignsRoute: typeof AdminCampaignsRoute
+  AdminContactsRoute: typeof AdminContactsRoute
+  AdminDealsRoute: typeof AdminDealsRoute
+  AdminInquiriesRoute: typeof AdminInquiriesRoute
+  AdminInstallmentsRoute: typeof AdminInstallmentsRoute
+  AdminLeadsRoute: typeof AdminLeadsRoute
+  AdminMeetingsRoute: typeof AdminMeetingsRoute
+  AdminPlotsRoute: typeof AdminPlotsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminStaffRoute: typeof AdminStaffRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAgentsRoute: AdminAgentsRoute,
+  AdminBlogRoute: AdminBlogRoute,
+  AdminBookingsRoute: AdminBookingsRoute,
+  AdminCampaignsRoute: AdminCampaignsRoute,
+  AdminContactsRoute: AdminContactsRoute,
+  AdminDealsRoute: AdminDealsRoute,
+  AdminInquiriesRoute: AdminInquiriesRoute,
+  AdminInstallmentsRoute: AdminInstallmentsRoute,
+  AdminLeadsRoute: AdminLeadsRoute,
+  AdminMeetingsRoute: AdminMeetingsRoute,
+  AdminPlotsRoute: AdminPlotsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminStaffRoute: AdminStaffRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   BookVisitRoute: BookVisitRoute,
   ContactRoute: ContactRoute,
   DiasporaRoute: DiasporaRoute,

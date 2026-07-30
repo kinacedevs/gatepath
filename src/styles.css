@@ -40,7 +40,9 @@
   --color-ivory: var(--ivory);
   --color-stone: var(--stone);
   --color-available: var(--available);
+  --color-available-foreground: var(--available-foreground);
   --color-booked: var(--booked);
+  --color-booked-foreground: var(--booked-foreground);
   --color-sold: var(--sold);
   --font-serif: var(--font-serif);
   --font-display: var(--font-display);
@@ -96,7 +98,9 @@
   --ring: #e8a020;
 
   --available: #22c55e;
+  --available-foreground: #ffffff;
   --booked: #f59e0b;
+  --booked-foreground: #ffffff;
   --sold: #ef4444;
 
   --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
@@ -236,6 +240,28 @@
   --color-surface-container-high: var(--primary-tint-dim); /* higher-emphasis panel bg */
   --color-outline-variant: var(--border); /* subtle borders/dividers */
   --color-error: var(--destructive); /* alias so bg-error/text-error resolve */
+
+  /* Status-badge semantic surfaces — Phase 5A admin rebuild. Re-derived from
+     existing brand/status tokens (never a new hex): success from --available
+     (already used for plot-available green), warning from --booked (already
+     used for plot-booked amber), info from --primary (brand cerulean). */
+  --color-success-container: var(--available);
+  --color-on-success-container: var(--available-foreground);
+  --color-warning-container: var(--booked);
+  --color-on-warning-container: var(--booked-foreground);
+  --color-info-container: var(--primary);
+  --color-on-info-container: var(--primary-foreground);
+
+  /* shadcn Sidebar tokens — used by AdminShell (Phase 5A). Undefined before
+     this point, so ui/sidebar.tsx would have rendered unstyled. Mapped to the
+     same dark CRM surface already used for primary-container, keeping the
+     existing sidebar look while making it token-driven. */
+  --color-sidebar: var(--primary-deep);
+  --color-sidebar-foreground: #ffffff;
+  --color-sidebar-border: var(--primary-dark);
+  --color-sidebar-ring: var(--accent);
+  --color-sidebar-accent: var(--accent);
+  --color-sidebar-accent-foreground: var(--primary-deep);
 
   /* Typography */
   --font-body-md: "Inter", sans-serif;
