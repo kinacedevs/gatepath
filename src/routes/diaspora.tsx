@@ -36,6 +36,12 @@ export const Route = createFileRoute("/diaspora")({
           "Securely purchase land in Kenya from anywhere in the world. Real-time plots, certified land searches, escrow protection, and DHL title deed delivery — priced in your own currency.",
       },
     ],
+    links: [
+      // Hero renders as a CSS background-image, which the browser's preload
+      // scanner discovers later than an <img> — this hint gets the fetch
+      // started as early as an eager <img> would.
+      { rel: "preload", as: "image", href: diasporaHeroAsset, fetchPriority: "high" },
+    ],
   }),
 });
 
