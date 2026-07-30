@@ -5,7 +5,7 @@ const stats = [
   { value: 12, suffix: "+", label: "Prime Locations" },
   { value: 100, suffix: "%", label: "Title Deed Verified" },
   { value: 5, suffix: "★", label: "Client Satisfaction" },
-  { value: 2018, suffix: "", label: "Trusted Since", prefix: "Since " },
+  { value: 2020, suffix: "", label: "Trusted Since", prefix: "Since " },
 ];
 
 function useCountUp(target: number, start: boolean, duration = 1600) {
@@ -27,7 +27,7 @@ function useCountUp(target: number, start: boolean, duration = 1600) {
 }
 
 function Stat({ s, visible }: { s: (typeof stats)[number]; visible: boolean }) {
-  const isYear = s.value === 2018;
+  const isYear = s.value === 2020;
   const n = useCountUp(s.value, visible, isYear ? 1200 : 1600);
   return (
     <div className="text-center px-6">
