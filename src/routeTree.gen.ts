@@ -42,6 +42,7 @@ import { Route as AdminBlogRouteImport } from './routes/admin.blog'
 import { Route as AdminAgentsRouteImport } from './routes/admin.agents'
 import { Route as DocumentReceiptIdRouteImport } from './routes/document.receipt.$id'
 import { Route as DocumentAgreementIdRouteImport } from './routes/document.agreement.$id'
+import { Route as AdminPlotsPlotIdRouteImport } from './routes/admin.plots.$plotId'
 
 const ThankYouRoute = ThankYouRouteImport.update({
   id: '/thank-you',
@@ -208,6 +209,11 @@ const DocumentAgreementIdRoute = DocumentAgreementIdRouteImport.update({
   path: '/document/agreement/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPlotsPlotIdRoute = AdminPlotsPlotIdRouteImport.update({
+  id: '/$plotId',
+  path: '/$plotId',
+  getParentRoute: () => AdminPlotsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -233,7 +239,7 @@ export interface FileRoutesByFullPath {
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
-  '/admin/plots': typeof AdminPlotsRoute
+  '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
+  '/admin/plots/$plotId': typeof AdminPlotsPlotIdRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
   '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
@@ -267,7 +274,7 @@ export interface FileRoutesByTo {
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
-  '/admin/plots': typeof AdminPlotsRoute
+  '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -275,6 +282,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/properties': typeof PropertiesIndexRoute
+  '/admin/plots/$plotId': typeof AdminPlotsPlotIdRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
   '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
@@ -303,7 +311,7 @@ export interface FileRoutesById {
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
-  '/admin/plots': typeof AdminPlotsRoute
+  '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -311,6 +319,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/properties/': typeof PropertiesIndexRoute
+  '/admin/plots/$plotId': typeof AdminPlotsPlotIdRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
   '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/blog/'
     | '/properties/'
+    | '/admin/plots/$plotId'
     | '/document/agreement/$id'
     | '/document/receipt/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/blog'
     | '/properties'
+    | '/admin/plots/$plotId'
     | '/document/agreement/$id'
     | '/document/receipt/$id'
   id:
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/blog/'
     | '/properties/'
+    | '/admin/plots/$plotId'
     | '/document/agreement/$id'
     | '/document/receipt/$id'
   fileRoutesById: FileRoutesById
@@ -676,8 +688,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentAgreementIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/plots/$plotId': {
+      id: '/admin/plots/$plotId'
+      path: '/$plotId'
+      fullPath: '/admin/plots/$plotId'
+      preLoaderRoute: typeof AdminPlotsPlotIdRouteImport
+      parentRoute: typeof AdminPlotsRoute
+    }
   }
 }
+
+interface AdminPlotsRouteChildren {
+  AdminPlotsPlotIdRoute: typeof AdminPlotsPlotIdRoute
+}
+
+const AdminPlotsRouteChildren: AdminPlotsRouteChildren = {
+  AdminPlotsPlotIdRoute: AdminPlotsPlotIdRoute,
+}
+
+const AdminPlotsRouteWithChildren = AdminPlotsRoute._addFileChildren(
+  AdminPlotsRouteChildren,
+)
 
 interface AdminRouteChildren {
   AdminAgentsRoute: typeof AdminAgentsRoute
@@ -690,7 +721,7 @@ interface AdminRouteChildren {
   AdminInstallmentsRoute: typeof AdminInstallmentsRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
   AdminMeetingsRoute: typeof AdminMeetingsRoute
-  AdminPlotsRoute: typeof AdminPlotsRoute
+  AdminPlotsRoute: typeof AdminPlotsRouteWithChildren
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminStaffRoute: typeof AdminStaffRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -707,7 +738,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminInstallmentsRoute: AdminInstallmentsRoute,
   AdminLeadsRoute: AdminLeadsRoute,
   AdminMeetingsRoute: AdminMeetingsRoute,
-  AdminPlotsRoute: AdminPlotsRoute,
+  AdminPlotsRoute: AdminPlotsRouteWithChildren,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminStaffRoute: AdminStaffRoute,
   AdminIndexRoute: AdminIndexRoute,
