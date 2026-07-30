@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Printer, ShieldCheck, ArrowLeft, Loader2, Award } from "lucide-react";
+import { Printer, ShieldCheck, ArrowLeft, Loader2, Award, AlertTriangle } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 
 export const Route = createFileRoute("/document/agreement/$id")({
@@ -103,7 +103,7 @@ function AgreementDocumentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ivory px-6">
         <div className="bg-white max-w-md w-full p-8 rounded-xl border border-[#E5E0D8] text-center shadow-xl">
-          <span className="text-4xl">⚠️</span>
+          <AlertTriangle className="mx-auto text-red-600" size={40} strokeWidth={1.75} />
           <h2 className="font-serif font-bold text-2xl text-red-600 mt-4">Document Error</h2>
           <p className="text-muted-foreground mt-2 text-[14px]">
             {error || "Unable to display purchase agreement details."}

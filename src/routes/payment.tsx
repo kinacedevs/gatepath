@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { Smartphone, CreditCard, Landmark, Lock, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -28,9 +29,9 @@ export const Route = createFileRoute("/payment")({
 
 const PERIODS = [0, 3, 6, 12];
 const METHODS = [
-  { id: "mpesa", icon: "📱", label: "M-Pesa" },
-  { id: "card", icon: "💳", label: "Card" },
-  { id: "bank", icon: "🏦", label: "Bank Transfer" },
+  { id: "mpesa", icon: Smartphone, label: "M-Pesa" },
+  { id: "card", icon: CreditCard, label: "Card" },
+  { id: "bank", icon: Landmark, label: "Bank Transfer" },
 ];
 
 function PaymentPage() {
@@ -612,7 +613,7 @@ function PaymentPage() {
                       }}
                     >
                       {period === 0 || isFullPayment
-                        ? "✓ 5% Cash Discount applied"
+                        ? "5% Cash Discount applied"
                         : period === 3
                           ? "+ Ksh 30,000 surcharge included"
                           : period === 6
@@ -790,7 +791,10 @@ function PaymentPage() {
                             color: "var(--primary)",
                           }}
                         >
-                          <div style={{ fontSize: 18, marginBottom: 4 }}>{m.icon}</div>
+                          <m.icon
+                            size={18}
+                            style={{ marginBottom: 4, color: "var(--primary)" }}
+                          />
                           {m.label}
                         </button>
                       );
@@ -844,8 +848,9 @@ function PaymentPage() {
                       textAlign: "center",
                       marginTop: 8,
                     }}
+                    className="flex items-center justify-center gap-1"
                   >
-                    🔒 Secured by Paystack
+                    <Lock size={12} /> Secured by Paystack
                   </div>
                   <div
                     className="mt-3 flex flex-wrap items-center justify-center gap-3"
@@ -855,8 +860,12 @@ function PaymentPage() {
                       color: "var(--muted-foreground)",
                     }}
                   >
-                    <span>🔒 SSL Encrypted</span>
-                    <span>✅ Paystack Secured</span>
+                    <span className="inline-flex items-center gap-1">
+                      <Lock size={11} /> SSL Encrypted
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <ShieldCheck size={11} /> Paystack Secured
+                    </span>
                     <span>🇰🇪 M-Pesa Ready</span>
                   </div>
                   <button

@@ -1,3 +1,5 @@
+import { MapPin } from "lucide-react";
+
 const locations = [
   "Malindi",
   "Mambrui",
@@ -30,7 +32,7 @@ export function LocationsMarquee() {
               key={`${loc}-${i}`}
               className="shrink-0 inline-flex items-center gap-2 bg-white border-[1.5px] border-accent rounded-full px-6 py-2.5 text-[15px] font-medium text-primary hover:bg-primary hover:text-white transition-colors cursor-default"
             >
-              <span className="text-accent">🌿</span> {loc}
+              <MapPin size={14} className="text-accent" /> {loc}
             </span>
           ))}
         </div>

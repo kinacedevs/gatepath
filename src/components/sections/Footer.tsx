@@ -1,4 +1,4 @@
-import { Facebook, Instagram, Music2 } from "lucide-react";
+import { Facebook, Instagram, Music2, Phone, Mail, Building2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import logoIcon from "@/assets/logo-icon.png";
 
@@ -120,23 +120,26 @@ export function Footer() {
             <li>
               <a
                 href="tel:+254799488488"
-                className="text-[15px] font-medium text-white hover:text-accent"
+                className="inline-flex items-center gap-2 text-[15px] font-medium text-white hover:text-accent"
               >
-                📞 +254 799 488 488
+                <Phone size={14} className="shrink-0" /> +254 799 488 488
               </a>
             </li>
             <li>
               <a
                 href="mailto:info@gatepathrealtors.com"
-                className="text-[14px] text-accent hover:underline"
+                className="inline-flex items-center gap-2 text-[14px] text-accent hover:underline"
               >
-                ✉️ info@gatepathrealtors.com
+                <Mail size={14} className="shrink-0" /> info@gatepathrealtors.com
               </a>
             </li>
-            <li className="text-[13px] text-white/60 leading-relaxed">
-              🏢 1st Floor, CNM Centre,
-              <br />
-              Ruiru Eastern Bypass, Nairobi
+            <li className="flex items-start gap-2 text-[13px] text-white/60 leading-relaxed">
+              <Building2 size={14} className="shrink-0 mt-0.5" />
+              <span>
+                1st Floor, CNM Centre,
+                <br />
+                Ruiru Eastern Bypass, Nairobi
+              </span>
             </li>
             <li className="text-[13px] text-white/50">Mon–Fri: 8am–6pm | Sat: 9am–4pm</li>
           </ul>

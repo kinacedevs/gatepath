@@ -1,33 +1,34 @@
+import { Tag, FileCheck2, CalendarClock, Building2, Handshake, Smartphone } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 
 const features = [
   {
-    emoji: "🏷️",
+    icon: Tag,
     title: "Fair Published Prices",
     text: "No phone calls needed to know what a plot costs. All prices visible online.",
   },
   {
-    emoji: "📜",
+    icon: FileCheck2,
     title: "Verified Title Deeds",
     text: "Every plot carries a clean title deed. Full legal due diligence done for you.",
   },
   {
-    emoji: "📅",
+    icon: CalendarClock,
     title: "Flexible Payment Plans",
     text: "Cash, installments, or bank loan. We structure a plan that works for your income.",
   },
   {
-    emoji: "🏢",
+    icon: Building2,
     title: "Physical Offices",
     text: "Visit us at CNM Centre, Ruiru Eastern Bypass. We are a real company with a real address.",
   },
   {
-    emoji: "🤝",
+    icon: Handshake,
     title: "Guided Through Every Step",
     text: "From first inquiry to title transfer, a dedicated agent walks with you.",
   },
   {
-    emoji: "📱",
+    icon: Smartphone,
     title: "Full Digital Process",
     text: "Inquire, book, pay, and receive your signed agreement — all from your phone.",
   },
@@ -68,7 +69,7 @@ export function WhyGatepath() {
               key={f.title}
               className="group bg-white border-l-[3px] border-accent rounded-md p-6 shadow-[var(--shadow-card)] hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] transition-all duration-400"
             >
-              <div className="text-2xl mb-3">{f.emoji}</div>
+              <f.icon className="text-accent mb-3" size={28} strokeWidth={1.75} />
               <h3 className="font-sans font-semibold text-[16px] text-primary">{f.title}</h3>
               <p className="mt-2 text-[14px] text-muted-foreground leading-[1.6]">{f.text}</p>
             </Reveal>

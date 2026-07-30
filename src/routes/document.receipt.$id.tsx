@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Printer, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
+import { Printer, ShieldCheck, ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 
 export const Route = createFileRoute("/document/receipt/$id")({
@@ -103,7 +103,7 @@ function ReceiptDocumentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ivory px-6">
         <div className="bg-white max-w-md w-full p-8 rounded-xl border border-[#E5E0D8] text-center shadow-xl">
-          <span className="text-4xl">⚠️</span>
+          <AlertTriangle className="mx-auto text-red-600" size={40} strokeWidth={1.75} />
           <h2 className="font-serif font-bold text-2xl text-red-600 mt-4">Document Error</h2>
           <p className="text-muted-foreground mt-2 text-[14px]">
             {error || "Unable to display receipt details."}
@@ -282,7 +282,7 @@ function ReceiptDocumentPage() {
             </div>
             <div>
               <h4 className="font-semibold text-[13px] text-available flex items-center gap-1">
-                Transaction Verified ✓
+                Transaction Verified
               </h4>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 Authorized by Paystack API. Settlement Reference recorded in Gatepath Registry.

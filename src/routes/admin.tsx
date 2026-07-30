@@ -2780,7 +2780,7 @@ function AdminPage() {
 
                     {signed ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#059669", background: "#D1FAE5", padding: "10px 16px", borderRadius: 9, border: "1px solid #A7F3D0", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 13 }}>
-                        <Check size={15} /> Signed ✓
+                        <Check size={15} /> Signed
                       </div>
                     ) : adminRole === "ceo" ? (
                       <button

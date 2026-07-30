@@ -5,6 +5,7 @@
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Banknote, CalendarClock, MessageCircle } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -576,7 +577,7 @@ function InquiryPage() {
                   ["Size", form.plotSize || "—"],
                   ["Location", form.plotLocation || "—"],
                   ["Price", form.plotPrice ? `Ksh ${form.plotPrice.toLocaleString()}` : "—"],
-                  ["Status", "Available ✓"],
+                  ["Status", "Available"],
                 ].map(([l, v]) => (
                   <div
                     key={l}
@@ -657,13 +658,13 @@ function InquiryPage() {
                       {[
                         {
                           id: "cash" as const,
-                          icon: "💵",
+                          icon: Banknote,
                           label: "Cash",
                           sub: `Ksh ${form.plotPrice.toLocaleString()} — full payment`,
                         },
                         {
                           id: "installment" as const,
-                          icon: "📅",
+                          icon: CalendarClock,
                           label: "Instalments (Lipa Pole Pole)",
                           sub: "Spread over 6 months",
                         },
@@ -687,7 +688,10 @@ function InquiryPage() {
                               cursor: "pointer",
                             }}
                           >
-                            <div style={{ fontSize: 20, marginBottom: 4 }}>{opt.icon}</div>
+                            <opt.icon
+                              size={20}
+                              style={{ marginBottom: 4, color: "var(--primary)" }}
+                            />
                             <div
                               style={{
                                 fontFamily: "Inter, sans-serif",
@@ -1330,7 +1334,7 @@ function InquiryPage() {
                     textDecoration: "none",
                   }}
                 >
-                  <span style={{ fontSize: 18 }}>💬</span> Chat on WhatsApp
+                  <MessageCircle size={18} /> Chat on WhatsApp
                 </a>
               </div>
             </aside>

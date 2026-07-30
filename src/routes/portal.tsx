@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   Clock,
   X,
+  Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/portal")({
@@ -189,7 +190,7 @@ function ClientPortalPage() {
       setLoading(false);
 
       if (!result?.success) {
-        setError("❌ " + (result?.error || "Could not send a verification code."));
+        setError(result?.error || "Could not send a verification code.");
         return;
       }
 
@@ -208,7 +209,7 @@ function ClientPortalPage() {
     setError(null);
 
     if (otpCountdown <= 0) {
-      setError("❌ The verification code has expired. Please request a new OTP.");
+      setError("The verification code has expired. Please request a new OTP.");
       setOtpVerifying(false);
       return;
     }
@@ -219,7 +220,7 @@ function ClientPortalPage() {
       });
 
       if (!result?.success) {
-        setError("❌ " + (result?.error || "Invalid verification code."));
+        setError(result?.error || "Invalid verification code.");
         setOtpVerifying(false);
         return;
       }
@@ -231,7 +232,7 @@ function ClientPortalPage() {
       setOtpSent(false);
       await fetchClientData(token);
     } catch (err: any) {
-      setError("❌ Verification failed. Please try again.");
+      setError("Verification failed. Please try again.");
       console.error("[Portal] OTP verify failed:", err);
     } finally {
       setOtpVerifying(false);
@@ -423,8 +424,9 @@ function ClientPortalPage() {
                   </div>
 
                   {error && (
-                    <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg mb-4">
-                      {error}
+                    <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg mb-4 flex items-start gap-2">
+                      <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                      <span>{error}</span>
                     </div>
                   )}
 
@@ -545,7 +547,7 @@ function ClientPortalPage() {
                             }`}
                           >
                             {remainingBalance === 0
-                              ? "✓ Paid In Full"
+                              ? "Paid In Full"
                               : `Installment Plan (${paidPct}% Paid)`}
                           </span>
                         </div>
@@ -607,7 +609,7 @@ function ClientPortalPage() {
                                         : "bg-slate-200 text-slate-600"
                                     }`}
                                   >
-                                    {isComplete ? "✓" : s.stage}
+                                    {isComplete ? <Check size={16} /> : s.stage}
                                   </div>
 
                                   <div className="flex-1">

@@ -1,11 +1,21 @@
-import { MapPin } from "lucide-react";
+import {
+  MapPin,
+  CreditCard,
+  Smartphone,
+  Landmark,
+  CalendarClock,
+  Star,
+  Calendar,
+  MessageCircle,
+  type LucideIcon,
+} from "lucide-react";
 import type { Phase, Plot } from "@/lib/phases";
 import { formatFromKes, type Currency } from "@/lib/currency";
 
-function PaymentPill({ icon, label }: { icon: string; label: string }) {
+function PaymentPill({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <span className="bg-stone text-primary font-medium text-[12px] px-3 py-1.5 rounded-full">
-      {icon} {label}
+    <span className="inline-flex items-center gap-1.5 bg-stone text-primary font-medium text-[12px] px-3 py-1.5 rounded-full">
+      <Icon size={13} /> {label}
     </span>
   );
 }
@@ -171,30 +181,30 @@ export function PlotPanel({
           <div className="text-[13px] text-accent italic mt-1">Flexible payment plan available</div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <PaymentPill icon="💳" label="Card" />
-            <PaymentPill icon="📱" label="M-Pesa" />
-            <PaymentPill icon="🏦" label="Bank Transfer" />
-            <PaymentPill icon="📆" label="Installments" />
+            <PaymentPill icon={CreditCard} label="Card" />
+            <PaymentPill icon={Smartphone} label="M-Pesa" />
+            <PaymentPill icon={Landmark} label="Bank Transfer" />
+            <PaymentPill icon={CalendarClock} label="Installments" />
           </div>
         </div>
 
         <a
           href={reserveHref}
-          className="mt-6 block w-full text-center bg-accent text-white font-bold text-[15px] py-4 rounded-lg hover:bg-accent-dark hover:scale-[1.02] transition-all"
+          className="mt-6 flex items-center justify-center gap-1.5 w-full text-center bg-accent text-white font-bold text-[15px] py-4 rounded-lg hover:bg-accent-dark hover:scale-[1.02] transition-all"
         >
-          🌟 Reserve Plot ({formatFromKes(10000, currency)} Hold)
+          <Star size={16} /> Reserve Plot ({formatFromKes(10000, currency)} Hold)
         </a>
         <a
           href={visitHref}
-          className="mt-3 block w-full text-center bg-[#E8F4FC] text-primary border border-primary/20 font-semibold text-[14px] py-3.5 rounded-lg hover:bg-[#D4ECF9] transition-all"
+          className="mt-3 flex items-center justify-center gap-1.5 w-full text-center bg-[#E8F4FC] text-primary border border-primary/20 font-semibold text-[14px] py-3.5 rounded-lg hover:bg-[#D4ECF9] transition-all"
         >
-          📅 Book Free Site Visit
+          <Calendar size={15} /> Book Free Site Visit
         </a>
         <a
           href={inquireHref}
-          className="mt-3 block w-full text-center border-[1.5px] border-primary text-primary font-medium text-[14px] py-3 rounded-lg hover:bg-primary hover:text-white transition-all"
+          className="mt-3 flex items-center justify-center gap-1.5 w-full text-center border-[1.5px] border-primary text-primary font-medium text-[14px] py-3 rounded-lg hover:bg-primary hover:text-white transition-all"
         >
-          💬 Start Purchase Inquiry
+          <MessageCircle size={15} /> Start Purchase Inquiry
         </a>
 
         <div className="mt-4 flex items-center justify-center gap-3 text-[12px] text-muted-foreground">
@@ -203,10 +213,10 @@ export function PlotPanel({
             href={`https://wa.me/?text=${encodeURIComponent(`Check out ${phase.name} Plot #${plot.id} on Gatepath Realtors`)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center text-[14px]"
+            className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center"
             aria-label="Share via WhatsApp"
           >
-            💬
+            <MessageCircle size={14} />
           </a>
         </div>
       </div>

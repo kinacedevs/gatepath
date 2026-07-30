@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Lock } from "lucide-react";
 import type { Plot } from "@/lib/phases";
 
 const PLOT_W = 80;
@@ -257,15 +258,15 @@ export function PlotMap({
                 />
               )}
               {p.status === "booked" && (
-                <text
-                  x={x + PLOT_W - 8}
-                  y={y + 14}
-                  textAnchor="end"
-                  fontSize="11"
+                <Lock
+                  x={x + PLOT_W - 20}
+                  y={y + 4}
+                  width={12}
+                  height={12}
+                  color="white"
+                  strokeWidth={2.25}
                   pointerEvents="none"
-                >
-                  🔒
-                </text>
+                />
               )}
             </g>
           );

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Receipt, FileText, Check } from "lucide-react";
+import { Receipt, FileText, Check, Calendar } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -125,46 +125,46 @@ function ThankYouPage() {
     ? [
         [
           "Booking Confirmation",
-          "⏱ Instant notification",
+          "Instant notification",
           "Our customer care team has received your booking details and preferred date.",
         ],
         [
           "Transport Coordination",
-          "📞 Within 2 hours (Business hours)",
+          "Within 2 hours (Business hours)",
           `Our agent will contact you at ${inquiryRecord?.client_phone || form.phone || "your phone"} to finalize the pick-up location and coordinate timings.`,
         ],
         [
           "Guided Tour & Beacon Check",
-          `📅 Scheduled: ${visitDateText}${transportText}`,
+          `Scheduled: ${visitDateText}${transportText}`,
           "We will pick you up, drive you to the site, point out the surveyed beacons, and answer all infrastructure questions.",
         ],
         [
           "Priority Reservation Option",
-          "🌟 Tour follow-up",
+          "Tour follow-up",
           "After the visit, you will have first priority to reserve this plot if it meets your expectations.",
         ],
       ]
     : [
         [
           "CEO Review & Signature",
-          "⏱ Within 4 hours on business days",
+          "Within 4 hours on business days",
           "Our CEO/MD will review your transaction and electronically sign your purchase agreement.",
         ],
         [
           "Documents Delivered to You",
-          "📧 Same day as signing",
+          "Same day as signing",
           `Your purchase agreement and official payment receipt will be sent to ${inquiryRecord?.client_email || form.email || "your email"} and via WhatsApp to ${inquiryRecord?.client_phone || form.phone || "your phone"}.`,
         ],
         [
           "Site Visit Status",
-          `📅 ${visitDateText}${transportText}`,
+          `${visitDateText}${transportText}`,
           bookingRecord?.visit_date
             ? "Our agent will WhatsApp you to confirm the meeting point and any access details for your visit."
             : "You can coordinate with our office to schedule a free site visit at your convenience during your 14-day hold period.",
         ],
         [
           "You're a Gatepath Landowner!",
-          "🏆 Welcome to the family",
+          "Welcome to the family",
           "Your plot is secured. Your journey to land ownership has begun.",
         ],
       ];
@@ -215,10 +215,10 @@ function ThankYouPage() {
             }}
           >
             {isFreeVisit
-              ? "Site Visit Booked Successfully! 📅"
+              ? "Site Visit Booked Successfully!"
               : isReserve
-                ? "Plot Reserved Successfully! ✓"
-                : "Payment Received. Your Plot is Secured. ✓"}
+                ? "Plot Reserved Successfully!"
+                : "Payment Received. Your Plot is Secured."}
           </h1>
           <p
             style={{
@@ -397,10 +397,13 @@ function ThankYouPage() {
                       padding: "6px 14px",
                       borderRadius: 8,
                       textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                     className="hover:bg-[rgba(34,197,94,0.15)] transition-all"
                   >
-                    View & Print Receipt ✓
+                    View & Print Receipt <Check size={12} />
                   </Link>
                 ) : (
                   <span
@@ -451,10 +454,13 @@ function ThankYouPage() {
                         padding: "6px 14px",
                         borderRadius: 8,
                         textDecoration: "none",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
                       }}
                       className="hover:bg-[rgba(34,197,94,0.15)] transition-all"
                     >
-                      View Signed Agreement ✓
+                      View Signed Agreement <Check size={12} />
                     </Link>
                   ) : (
                     <Link
@@ -539,10 +545,13 @@ function ThankYouPage() {
                 padding: "12px 22px",
                 borderRadius: 8,
                 textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
               }}
               className="hover:bg-accent-dark transition-all"
             >
-              📅 Schedule Site Visit for Plot #{plotNum}
+              <Calendar size={15} /> Schedule Site Visit for Plot #{plotNum}
             </Link>
           )}
           <a

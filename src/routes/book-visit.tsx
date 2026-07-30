@@ -1,6 +1,20 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CheckCircle, Minus, Plus } from "lucide-react";
+import {
+  CheckCircle,
+  Minus,
+  Plus,
+  Car,
+  Plane,
+  TrainFront,
+  Bus,
+  Truck,
+  Video,
+  Sunrise,
+  Sunset,
+  Lock,
+  Lightbulb,
+} from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -47,14 +61,14 @@ function BookVisitPage() {
 
   const transportOptions = isCoastal
     ? [
-        { id: "self" as const, icon: "🚗", title: "Self Transport", sub: "Drive yourself" },
-        { id: "air" as const, icon: "✈️", title: "Air / Flight", sub: "Flight to Coast" },
-        { id: "sgr" as const, icon: "🚆", title: "SGR Train", sub: "Train to Coast" },
-        { id: "bus" as const, icon: "🚌", title: "Bus / Coach", sub: "Mash/Coach to Coast" },
+        { id: "self" as const, icon: Car, title: "Self Transport", sub: "Drive yourself" },
+        { id: "air" as const, icon: Plane, title: "Air / Flight", sub: "Flight to Coast" },
+        { id: "sgr" as const, icon: TrainFront, title: "SGR Train", sub: "Train to Coast" },
+        { id: "bus" as const, icon: Bus, title: "Bus / Coach", sub: "Mash/Coach to Coast" },
       ]
     : [
-        { id: "self" as const, icon: "🚗", title: "Self Transport", sub: "Drive yourself" },
-        { id: "road" as const, icon: "🚐", title: "Company Vehicle", sub: "Corporate van/car" },
+        { id: "self" as const, icon: Car, title: "Self Transport", sub: "Drive yourself" },
+        { id: "road" as const, icon: Truck, title: "Company Vehicle", sub: "Corporate van/car" },
       ];
 
   const { inquiry_id } = Route.useSearch();
@@ -423,13 +437,13 @@ function BookVisitPage() {
                     {[
                       {
                         id: "physical" as const,
-                        icon: "🚗",
+                        icon: Car,
                         title: "Physical Visit",
                         sub: "Guided tour on the ground",
                       },
                       {
                         id: "virtual" as const,
-                        icon: "💻",
+                        icon: Video,
                         title: "Virtual Tour",
                         sub: "Live video tour & call",
                       },
@@ -455,7 +469,10 @@ function BookVisitPage() {
                             position: "relative",
                           }}
                         >
-                          <div style={{ fontSize: 22, marginBottom: 6 }}>{opt.icon}</div>
+                          <opt.icon
+                            size={22}
+                            style={{ marginBottom: 6, color: "var(--primary)" }}
+                          />
                           <div
                             style={{
                               fontFamily: "Inter, sans-serif",
@@ -488,9 +505,12 @@ function BookVisitPage() {
                                 fontWeight: 700,
                                 padding: "2px 6px",
                                 borderRadius: 4,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
                               }}
                             >
-                              🔒 Lock
+                              <Lock size={9} /> Lock
                             </span>
                           )}
                         </button>
@@ -517,9 +537,12 @@ function BookVisitPage() {
                   )}
 
                   {form.intent === "free_visit" && form.visitMode === "physical" && (
-                    <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-[12px] text-amber-800 leading-relaxed">
-                      💡 <strong>Note:</strong> You can unlock <strong>Virtual Tour</strong> mode by
-                      upgrading to a reservation hold (checkbox on Step 1).
+                    <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-[12px] text-amber-800 leading-relaxed flex items-start gap-1.5">
+                      <Lightbulb size={14} className="shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Note:</strong> You can unlock <strong>Virtual Tour</strong> mode by
+                        upgrading to a reservation hold (checkbox on Step 1).
+                      </span>
                     </div>
                   )}
 
@@ -556,13 +579,13 @@ function BookVisitPage() {
                     {[
                       {
                         id: "morning",
-                        icon: "🌅",
+                        icon: Sunrise,
                         title: "Morning Visit",
                         sub: "8:00 AM – 12:00 PM",
                       },
                       {
                         id: "afternoon",
-                        icon: "🌆",
+                        icon: Sunset,
                         title: "Afternoon Visit",
                         sub: "1:00 PM – 5:00 PM",
                       },
@@ -583,7 +606,10 @@ function BookVisitPage() {
                             cursor: "pointer",
                           }}
                         >
-                          <div style={{ fontSize: 22, marginBottom: 6 }}>{opt.icon}</div>
+                          <opt.icon
+                            size={22}
+                            style={{ marginBottom: 6, color: "var(--primary)" }}
+                          />
                           <div
                             style={{
                               fontFamily: "Inter, sans-serif",
@@ -642,7 +668,10 @@ function BookVisitPage() {
                                 cursor: "pointer",
                               }}
                             >
-                              <div style={{ fontSize: 18, marginBottom: 4 }}>{opt.icon}</div>
+                              <opt.icon
+                                size={18}
+                                style={{ marginBottom: 4, color: "var(--primary)" }}
+                              />
                               <div
                                 style={{
                                   fontFamily: "Inter, sans-serif",
@@ -837,7 +866,7 @@ function BookVisitPage() {
                 {loading
                   ? "Confirming..."
                   : form.intent === "free_visit"
-                    ? "📅 Confirm & Schedule Site Visit"
+                    ? "Confirm & Schedule Site Visit"
                     : "Continue to Payment →"}
               </button>
               <button
