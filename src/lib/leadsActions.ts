@@ -4,12 +4,12 @@
  * Same pattern as adminActions.ts: service-role client, caller re-verified
  * server-side via callerAccessToken, never trusting a client-asserted role.
  *
- * Backs the real drag-and-drop Kanban in admin.leads.tsx (Phase 5A). The old
- * admin.tsx handleApproveInquiry() did the status update AND a raw client-side
- * supabase.from("agreements").insert(...) — a violation of the "never write
- * to agreements from client-side code" rule. That agreement-creation side
- * effect is folded in here so the one legitimate server-side path replaces
- * both the old write and the old violation at once.
+ * Backs the real drag-and-drop Kanban in admin.leads.tsx (Phase 5A). Status
+ * updates only — document issuance (Offer Letter / Agreement) is entirely
+ * payment-driven via paymentActions.ts's recordVerifiedPayment (Phase 7):
+ * a deposit issues an Offer, full payment issues an Agreement. Dragging a
+ * card to "approved" is a review-workflow flag, nothing more, matching
+ * admin.inquiries.tsx's handleApproveInquiry.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
@@ -46,7 +46,8 @@ export const updateInquiryStatusFn = createServerFn({ method: "POST" })
       return { success: false, error: "Not recognised as Gatepath staff." };
     }
 
-    // 3. The actual status write.
+    // 3. The actual status write. Document issuance is payment-driven
+    // elsewhere (paymentActions.ts) — this never touches offers/agreements.
     const { error: updateErr } = await serviceClient
       .from("inquiries")
       .update({ status: data.newStatus })
@@ -54,40 +55,6 @@ export const updateInquiryStatusFn = createServerFn({ method: "POST" })
 
     if (updateErr) {
       return { success: false, error: updateErr.message };
-    }
-
-    // 4. Approval creates the paired (unsigned) agreement, same as before —
-    // now server-side, and idempotent so re-dragging a card that's already
-    // been approved once doesn't create a duplicate agreement row.
-    if (data.newStatus === "approved") {
-      const { data: existingAgreement } = await serviceClient
-        .from("agreements")
-        .select("id")
-        .eq("inquiry_id", data.inquiryId)
-        .maybeSingle();
-
-      if (!existingAgreement) {
-        const { data: linkedPayment } = await serviceClient
-          .from("payments")
-          .select("id")
-          .eq("inquiry_id", data.inquiryId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const { error: agreementErr } = await serviceClient.from("agreements").insert({
-          inquiry_id: data.inquiryId,
-          payment_id: linkedPayment?.id ?? null,
-          ceo_signed: false,
-        });
-
-        if (agreementErr) {
-          return {
-            success: false,
-            error: `Status updated, but agreement creation failed: ${agreementErr.message}`,
-          };
-        }
-      }
     }
 
     return { success: true };
