@@ -15,7 +15,6 @@ import {
   DollarSign,
   FileText,
   Calendar,
-  PhoneCall,
   MapPin,
   Megaphone,
   UserCheck,
@@ -70,7 +69,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/inquiries", label: "Inquiries Queue", icon: FileText, showPendingBadge: true },
       { to: "/admin/bookings", label: "Site Visits", icon: Calendar },
-      { to: "/admin/meetings", label: "Meetings & Calls", icon: PhoneCall },
       { to: "/admin/plots", label: "Plot Inventory", icon: MapPin },
     ],
   },

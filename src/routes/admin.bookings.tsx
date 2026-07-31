@@ -1,176 +1,356 @@
 /**
- * Gatepath Realtors — Site Visit Bookings (Phase 5A mechanical split)
- * Relocated verbatim from the old "bookings" tab (admin.tsx, previously
- * ~1253-1358). Same JSX, same inline styles, same NAVY hex — copied as-is,
- * not redesigned.
- *
- * NOTE: the plan assumed this tab needed `bookings` joined to `inquiries`
- * for client name/phase display, but the original table only ever rendered
- * booking fields (visit_date, visit_time, visit_type, attendees,
- * visit_notes, status) — no client name column. That join actually belongs
- * to the separate "Meetings & Calls" tab (admin.meetings.tsx), which does
- * cross-reference inquiries. So this tab's scoped fetch is `bookings` only.
+ * Gatepath Realtors — Site Visits (Phase 2, Slice 1)
+ * Merges the old "Site Visit Bookings" (flat table, NAVY legacy style) and
+ * "Meetings & Calls" (card grid with non-functional Reschedule/Complete
+ * buttons — see admin.meetings.tsx, now retired to a redirect) into one
+ * real calendar + agenda screen. Both previously rendered the same
+ * `bookings` table in two different shapes.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Check, CheckCircle, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Check,
+  CheckCircle,
+  X,
+  MapPin,
+  Activity,
+  Calendar as CalendarIcon,
+  Users as UsersIcon,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { Booking } from "@/lib/types";
+import { updateBookingFn } from "@/lib/bookingActions";
+import { KpiCard } from "@/components/admin/KpiCard";
+import { SectionCard } from "@/components/admin/SectionCard";
+import { EscalationCard } from "@/components/admin/EscalationCard";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import type { Booking, Inquiry } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/bookings")({
-  component: SiteVisitBookings,
+  component: SiteVisits,
 });
 
-const NAVY = "#0C1A30";
-const CARD_BORDER = "#E5E0D8";
+const BOOKING_STATUS_TONE = {
+  pending: "neutral",
+  confirmed: "info",
+  completed: "success",
+  cancelled: "error",
+} as const;
 
-function SiteVisitBookings() {
+/** Local (not UTC) YYYY-MM-DD — Date#toISOString() would roll back a day for
+ * any EAT (UTC+3) local-midnight date, showing the wrong day's bookings. */
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+type BookingPatch = {
+  status?: Booking["status"];
+  visitDate?: string;
+  visitTime?: "morning" | "afternoon";
+};
+
+function SiteVisits() {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [dataLoading, setDataLoading] = useState(false);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [reschedulingBooking, setReschedulingBooking] = useState<Booking | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState<"morning" | "afternoon">("morning");
+  const [actionState, setActionState] = useState<Record<string, boolean>>({});
 
   const loadData = async () => {
-    setDataLoading(true);
-    try {
-      const bookingsRes = await supabase
-        .from("bookings")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setBookings((bookingsRes.data as Booking[]) ?? []);
-    } catch (err) {
-      console.error("Error loading bookings data:", err);
-    } finally {
-      setDataLoading(false);
-    }
+    setLoading(true);
+    const [bookingsRes, inquiriesRes] = await Promise.all([
+      supabase.from("bookings").select("*").order("visit_date", { ascending: true }),
+      supabase.from("inquiries").select("*"),
+    ]);
+    setBookings((bookingsRes.data as Booking[]) ?? []);
+    setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
+    setLoading(false);
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const handleUpdateBookingStatus = async (
-    bookingId: string,
-    status: Booking["status"]
-  ) => {
-    const { error } = await ((supabase as any)
-      .from("bookings")
-      .update({ status })
-      .eq("id", bookingId));
+  const bookedDateObjs = useMemo(() => {
+    const keys = new Set<string>();
+    bookings.forEach((b) => {
+      if (b.visit_date) keys.add(b.visit_date);
+    });
+    return Array.from(keys).map((d) => new Date(`${d}T00:00:00`));
+  }, [bookings]);
 
-    if (error) {
-      alert("Error updating booking: " + error.message);
+  const todayKey = localDateKey(new Date());
+  const monthKey = todayKey.slice(0, 7);
+  const selectedDateKey = localDateKey(selectedDate);
+  const dayBookings = bookings.filter((b) => b.visit_date === selectedDateKey);
+
+  const upcoming = bookings.filter(
+    (b) => b.visit_date && b.visit_date >= todayKey && b.status !== "cancelled",
+  ).length;
+  const confirmed = bookings.filter((b) => b.status === "confirmed").length;
+  const completedThisMonth = bookings.filter(
+    (b) => b.status === "completed" && b.visit_date?.startsWith(monthKey),
+  ).length;
+  const cancelled = bookings.filter((b) => b.status === "cancelled").length;
+
+  const overdueBookings = bookings.filter(
+    (b) => b.status === "pending" && b.visit_date && b.visit_date < todayKey,
+  );
+
+  const runAction = async (bookingId: string, patch: BookingPatch) => {
+    setActionState((s) => ({ ...s, [bookingId]: true }));
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+      setActionState((s) => ({ ...s, [bookingId]: false }));
       return;
     }
-    loadData();
+    await updateBookingFn({ data: { ...patch, callerAccessToken: accessToken, bookingId } });
+    await loadData();
+    setActionState((s) => ({ ...s, [bookingId]: false }));
   };
 
-  void dataLoading;
+  const openReschedule = (booking: Booking) => {
+    setReschedulingBooking(booking);
+    setRescheduleDate(booking.visit_date ?? "");
+    setRescheduleTime(booking.visit_time ?? "morning");
+  };
+
+  const submitReschedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reschedulingBooking) return;
+    await runAction(reschedulingBooking.id, {
+      visitDate: rescheduleDate,
+      visitTime: rescheduleTime,
+      status: "confirmed",
+    });
+    setReschedulingBooking(null);
+  };
 
   return (
-    <div style={{ animation: "fadeIn 0.3s ease" }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 24, color: NAVY, margin: 0 }}>Site Visit Bookings</h1>
-        <p style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#6B7280", marginTop: 4 }}>Manage and confirm scheduled site visits and virtual tours.</p>
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div>
+        <h1 className="font-headline-lg text-headline-lg text-primary font-bold">Site Visits</h1>
+        <p className="text-body-md text-on-surface-variant">
+          Calendar and agenda for scheduled physical and virtual visits.
+        </p>
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${CARD_BORDER}`, boxShadow: "0 2px 12px rgba(12,26,48,0.05)", overflow: "hidden" }}>
-        <div style={{ padding: "18px 24px", borderBottom: `1px solid ${CARD_BORDER}` }}>
-          <h3 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 600, fontSize: 16, color: NAVY, margin: 0 }}>Active Bookings Queue</h3>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <KpiCard label="Upcoming" value={loading ? "…" : String(upcoming)} icon={CalendarIcon} />
+        <KpiCard
+          label="Confirmed"
+          value={loading ? "…" : String(confirmed)}
+          icon={Check}
+          tone="success"
+        />
+        <KpiCard
+          label="Completed This Month"
+          value={loading ? "…" : String(completedThisMonth)}
+          icon={CheckCircle}
+          tone="success"
+        />
+        <KpiCard
+          label="Cancelled"
+          value={loading ? "…" : String(cancelled)}
+          icon={X}
+          tone="warning"
+        />
+      </div>
+
+      {!loading && overdueBookings.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {overdueBookings.slice(0, 3).map((b) => {
+            const inquiry = inquiries.find((i) => i.id === b.inquiry_id);
+            return (
+              <EscalationCard
+                key={b.id}
+                title={`Visit never confirmed — ${b.visit_date}`}
+                description={`${inquiry?.client_full_name ?? "Unknown client"}'s ${b.visit_type} visit is past its date and still pending.`}
+                urgency="error"
+                actionLabel="Jump to date"
+                onAction={() => setSelectedDate(new Date(`${b.visit_date ?? todayKey}T00:00:00`))}
+              />
+            );
+          })}
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#F9FAFB", borderBottom: `1px solid ${CARD_BORDER}` }}>
-                {["Scheduled Date", "Visit Type", "Attendees", "Notes", "Status", "Actions"].map((h) => (
-                  <th key={h} style={{ padding: "12px 20px", textAlign: "left", fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.09em" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {bookings.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: "48px 20px", textAlign: "center", color: "#9CA3AF", fontFamily: "Inter, sans-serif", fontSize: 13 }}>
-                    No bookings scheduled.
-                  </td>
-                </tr>
-              ) : (
-                bookings.map((booking, idx) => {
-                  const visitBadge = booking.visit_type === "virtual"
-                    ? { bg: "#EDE9FE", color: "#7C3AED" }
-                    : { bg: "#DBEAFE", color: "#2563EB" };
-                  const statusMap: Record<string, { bg: string; color: string }> = {
-                    pending: { bg: "#FEF3C7", color: "#D97706" },
-                    confirmed: { bg: "#DBEAFE", color: "#2563EB" },
-                    completed: { bg: "#D1FAE5", color: "#059669" },
-                    cancelled: { bg: "#FEE2E2", color: "#DC2626" },
-                  };
-                  const sc = statusMap[booking.status] ?? { bg: "#F3F4F6", color: "#6B7280" };
-                  return (
-                    <tr
-                      key={booking.id}
-                      style={{ borderBottom: idx < bookings.length - 1 ? `1px solid ${CARD_BORDER}` : "none" }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#F9FAFB"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
-                    >
-                      <td style={{ padding: "14px 20px", fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 600, color: NAVY }}>
-                        {booking.visit_date} <span style={{ fontWeight: 400, color: "#6B7280" }}>({booking.visit_time})</span>
-                      </td>
-                      <td style={{ padding: "14px 20px" }}>
-                        <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, textTransform: "capitalize", background: visitBadge.bg, color: visitBadge.color }}>
-                          {booking.visit_type}
-                        </span>
-                      </td>
-                      <td style={{ padding: "14px 20px", fontFamily: "Inter, sans-serif", fontSize: 13, color: "#374151" }}>{booking.attendees}</td>
-                      <td style={{ padding: "14px 20px", fontFamily: "Inter, sans-serif", fontSize: 12, color: "#6B7280", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {booking.visit_notes || "—"}
-                      </td>
-                      <td style={{ padding: "14px 20px" }}>
-                        <span style={{ fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", padding: "4px 10px", borderRadius: 20, background: sc.bg, color: sc.color }}>
-                          {booking.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: "14px 20px" }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                          {booking.status === "pending" && (
-                            <button
-                              onClick={() => handleUpdateBookingStatus(booking.id, "confirmed")}
-                              title="Confirm Visit"
-                              style={{ padding: "6px", background: "#DBEAFE", border: "none", borderRadius: 7, cursor: "pointer", color: "#2563EB" }}
-                            >
-                              <Check size={14} />
-                            </button>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6 items-start">
+        <SectionCard title="Calendar" className="w-fit">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(d) => d && setSelectedDate(d)}
+            modifiers={{ hasBooking: bookedDateObjs }}
+            modifiersClassNames={{
+              hasBooking:
+                "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-accent",
+            }}
+          />
+        </SectionCard>
+
+        <SectionCard
+          title={selectedDate.toLocaleDateString("en-KE", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+        >
+          {dayBookings.length === 0 ? (
+            <p className="text-sm text-on-surface-variant text-center py-8">
+              No visits scheduled for this day.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {dayBookings.map((booking) => {
+                const inquiry = inquiries.find((i) => i.id === booking.inquiry_id);
+                const busy = actionState[booking.id];
+                return (
+                  <div
+                    key={booking.id}
+                    className="rounded-xl border border-outline-variant/30 p-4 relative overflow-hidden bg-surface-container-lowest"
+                  >
+                    <div
+                      className={`absolute top-0 left-0 bottom-0 w-1 ${booking.visit_type === "virtual" ? "bg-purple-500" : "bg-accent"}`}
+                    />
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {booking.visit_type === "virtual" ? (
+                            <Activity size={13} className="text-purple-500" />
+                          ) : (
+                            <MapPin size={13} className="text-accent" />
                           )}
-                          {booking.status !== "completed" && booking.status !== "cancelled" && (
-                            <>
-                              <button
-                                onClick={() => handleUpdateBookingStatus(booking.id, "completed")}
-                                title="Mark Completed"
-                                style={{ padding: "6px", background: "#D1FAE5", border: "none", borderRadius: 7, cursor: "pointer", color: "#059669" }}
-                              >
-                                <CheckCircle size={14} />
-                              </button>
-                              <button
-                                onClick={() => handleUpdateBookingStatus(booking.id, "cancelled")}
-                                title="Cancel"
-                                style={{ padding: "6px", background: "#FEE2E2", border: "none", borderRadius: 7, cursor: "pointer", color: "#DC2626" }}
-                              >
-                                <X size={14} />
-                              </button>
-                            </>
-                          )}
+                          <span className="font-label-md text-[11px] uppercase text-on-surface-variant">
+                            {booking.visit_type} Visit
+                          </span>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        <p className="font-semibold text-sm text-primary-container">
+                          {inquiry?.client_full_name ?? "Unknown Client"}
+                        </p>
+                      </div>
+                      <StatusBadge tone={BOOKING_STATUS_TONE[booking.status]}>
+                        {booking.status}
+                      </StatusBadge>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-on-surface-variant mb-1">
+                      <UsersIcon size={12} /> {booking.attendees} attendee(s) · {booking.visit_time}
+                    </div>
+                    {booking.pickup_location && (
+                      <div className="flex items-start gap-2 text-xs text-on-surface-variant mb-3">
+                        <MapPin size={12} className="mt-0.5" /> Pickup: {booking.pickup_location}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {booking.status === "pending" && (
+                        <button
+                          disabled={busy}
+                          onClick={() => runAction(booking.id, { status: "confirmed" })}
+                          className="px-2.5 py-1.5 rounded-lg bg-info-container/15 text-on-info-container text-[11px] font-bold disabled:opacity-50"
+                        >
+                          Confirm
+                        </button>
+                      )}
+                      {booking.status !== "completed" && booking.status !== "cancelled" && (
+                        <>
+                          <button
+                            disabled={busy}
+                            onClick={() => runAction(booking.id, { status: "completed" })}
+                            className="px-2.5 py-1.5 rounded-lg bg-success-container/15 text-on-success-container text-[11px] font-bold disabled:opacity-50"
+                          >
+                            Complete
+                          </button>
+                          <button
+                            disabled={busy}
+                            onClick={() => openReschedule(booking)}
+                            className="px-2.5 py-1.5 rounded-lg bg-surface-container-high text-on-surface text-[11px] font-bold disabled:opacity-50"
+                          >
+                            Reschedule
+                          </button>
+                          <button
+                            disabled={busy}
+                            onClick={() => runAction(booking.id, { status: "cancelled" })}
+                            className="px-2.5 py-1.5 rounded-lg bg-error/10 text-error text-[11px] font-bold disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </SectionCard>
       </div>
 
-      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      <Dialog
+        open={!!reschedulingBooking}
+        onOpenChange={(open) => !open && setReschedulingBooking(null)}
+      >
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader>
+            <DialogTitle>Reschedule Visit</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitReschedule} className="flex flex-col gap-4">
+            <div>
+              <label className="block text-[11px] font-bold text-on-surface-variant uppercase mb-1">
+                New Date
+              </label>
+              <input
+                type="date"
+                required
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-on-surface-variant uppercase mb-1">
+                Time
+              </label>
+              <select
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value as "morning" | "afternoon")}
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none"
+              >
+                <option value="morning">Morning</option>
+                <option value="afternoon">Afternoon</option>
+              </select>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <button
+                type="button"
+                onClick={() => setReschedulingBooking(null)}
+                className="px-4 py-2 rounded-lg border border-outline-variant/40 text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold"
+              >
+                Confirm New Date
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
