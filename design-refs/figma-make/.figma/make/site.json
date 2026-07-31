@@ -1,0 +1,10 @@
+{
+  "description": "This platform streamlines project management for large-scale initiatives, enhancing collaboration and efficiency for teams handling billion-dollar projects.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

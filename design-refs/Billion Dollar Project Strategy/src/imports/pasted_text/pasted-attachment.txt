@@ -1,0 +1,167 @@
+I run Gatepath Realtors, a land-sales company based in Kenya. We sell
+subdivided plots — mostly around Ruiru/Kiambu — to two kinds of buyers:
+people living in Kenya who visit our sites in person, and Kenyans in the
+diaspora (UK, US, Gulf states) who buy remotely and trust us to represent
+their interests honestly. Our public-facing motto is "Your Interest Is Our
+Priority," and we mean it literally — our whole pitch against competitors
+is that we're more transparent and better organized than the informal land
+brokers people are scared of.
+
+I need you to design the internal console my staff and I use to actually
+run the business day to day. I'm going to describe how the business
+actually works and what each part of the tool needs to let us do — not how
+to draw it. I want you to bring your own design instincts and make
+something that feels premium, confident, and a little unexpected — not a
+generic admin-panel template. Surprise me.
+
+===============================================================================
+WHO WE ARE
+===============================================================================
+Brand colors — these are fixed, not up for reinterpretation:
+- Ivory #F8F4EE — our warm, light background. We are NOT a dark-mode
+  product. Everything should feel light, airy, trustworthy.
+- Cerulean #0B7FC7 — our dominant blue, used everywhere.
+- Deep Navy #074B7D — a second, darker blue we use for depth and weight,
+  never as the main background.
+- Warm Gold #E8A020 — our accent. This is the color of trust and premium-
+  ness in our brand — use it for the things that matter most on a screen.
+- Standard green/amber/red for success/warning/danger states.
+
+Typography: Cormorant Garamond and Playfair Display for anything that
+should feel editorial or important, Inter for everyday reading, Montserrat
+for numbers and money — we want figures to feel confident and legible,
+almost like a financial report.
+
+Our logo is a blue-and-gold house/key mark next to the wordmark "Gatepath
+Realtors." Use lucide-style icons if you need icons — simple, thin-line,
+modern, never cartoonish or filled.
+
+===============================================================================
+THE STORY OF A CLIENT, START TO FINISH — read this before designing anything
+===============================================================================
+Someone hears about us — Instagram, a friend, a radio ad, our CEO
+personally, a referral partner — and fills in an inquiry form on our
+website naming a project and a plot they're interested in. That inquiry
+lands with my staff, who need to work it like a sales lead: contact the
+person, qualify them, maybe book them a site visit so they can walk the
+actual land (or a virtual tour if they're abroad). If they're serious, they
+pay a deposit.
+
+The moment that deposit lands, something specific happens in Kenyan land
+sales that I need the tool to respect exactly: the client is issued an
+"Offer Letter" — a real signed document, but a lighter one than a full sale
+agreement. It's provisional. They then usually keep paying in installments
+over months. Only once they've paid the FULL price does the real, binding
+"Agreement" become valid — and only then can I, as CEO, sign it. Before
+that point, the Agreement literally should not be presentable as a real
+document. This two-stage gate is core to how we protect ourselves and our
+clients legally, and I need the internal tool to make that gate obvious and
+impossible for my staff to bypass by accident.
+
+Once a client is fully paid up and signed, we still owe them a title deed —
+and before we ever hand over land, my team manually checks the government
+land registry to confirm the title is genuinely clean. That's a real,
+manual, accountable step someone on my team does and logs.
+
+Meanwhile I'm running a small sales team — a few agents/CROs who each own
+a slice of these leads — and I need to see who's actually converting
+inquiries into paying clients versus who's coasting.
+
+===============================================================================
+WHAT EACH AREA OF THE TOOL NEEDS TO DO FOR US
+===============================================================================
+
+HOME — When I or a manager opens this tool first thing in the morning, I
+want the state of the business in one glance: how much money actually came
+in this month, how many people are physically coming to see plots today,
+how much unsold inventory we're sitting on across every project, and —
+importantly — whose installment payments are falling behind, because
+that's money we're owed and someone needs to chase it. This is a "what
+needs my attention right now" screen, not a report.
+
+AGENT PERFORMANCE — I want to hold my sales team accountable. I need to see
+each agent ranked by how well they're actually converting the leads
+assigned to them into closed, paid deals — not just activity, results. If
+someone's leads are going stale without follow-up, I want that visible
+without having to dig for it.
+
+LEADS — Every inquiry that comes in needs to visibly move through stages
+as my team works it: brand new, being actively worked, won (they're now a
+paying client), or lost. My staff work leads by physically moving them
+through these stages as things happen — it should feel tactile and
+immediate, not like filling out a form. If someone already has a site
+visit booked, that needs to be obvious on their card so nobody double-
+books or forgets they've already shown real intent.
+
+CONTACTS — This is our single source of truth on every person who has
+ever engaged with us. For each one I want to know instantly: how many
+plots have they bought from us, and how much money have they put in with
+us total, across everything. My team also needs quick one-tap ways to call
+or email someone from here. Separately — and this matters — I want a clear
+warning list of any plot we've sold or booked where nobody has actually
+logged a title verification check yet. That's a compliance gap I never
+want hiding silently.
+
+DEALS — This is my proof-of-sale record — the list I'd show at a board
+meeting or to an auditor. It should only ever contain sales that are
+completely done: the client paid in full AND I personally signed the
+Agreement. Nothing provisional belongs here. I want it to feel final,
+clean, and authoritative — the opposite of a messy spreadsheet.
+
+INSTALLMENT TRACKER — Most of our clients pay over time, not in one lump
+sum. For each of them I need to see clearly what they've actually paid
+against what they owe, and be able to nudge someone who's behind with one
+click. Company-wide, I want one honest number: of everything we're owed
+across every payment plan running right now, what percentage has actually
+landed in our account. That number is one of the most important in the
+whole business to me.
+
+INQUIRIES QUEUE — This is where my staff formally review a serious buyer
+before anything legal happens — their personal details, and critically
+their next-of-kin information, which Kenyan land transactions require. I
+need to be able to approve or reject an inquiry with full context in front
+of me. And — this is the single most important workflow in the whole
+system — once someone's approved, I need to see their Offer Letter and
+their Agreement as two clearly separate things, each only becoming real
+and signable at the right moment (deposit paid vs. fully paid), never
+confusable with each other, and I need to be able to sign each one myself
+digitally the instant it's ready.
+
+SITE VISITS — My team needs to see, at a glance, which days have visits
+booked, who's confirmed versus still pending, and be able to reschedule or
+mark a visit complete without friction. If a booking has just sat there
+unconfirmed past its own date, I want that flagged — that's a client we're
+about to lose through sheer neglect.
+
+PLOT INVENTORY — This is our actual warehouse: every project we're
+selling, every individual plot within it, its size and price, and whether
+it's available, booked, or sold. My team needs to browse the whole
+catalog easily, and drill into any single plot to see who's interested in
+it and — critically — whether we've actually verified its title is clean
+yet, with a record of who checked and what they found. Selling a plot
+without that check logged should feel visibly wrong on this screen.
+
+CAMPAIGNS & CONTENT — Our public website needs to stay fresh, and I don't
+want to need a developer every time. My non-technical staff should be able
+to swap the photos and videos for a specific project, upload a new
+brochure, write and publish blog posts, and see which referral partners
+are actually bringing us business.
+
+STAFF ACCOUNTS — I control who has access to this whole system and at what
+level — myself as the only one who can sign legal documents, managers, and
+field agents below them. I need to invite new team members, see everyone
+at a glance, and be able to change someone's access level or cut them off
+entirely if I need to.
+
+SYSTEM SETTINGS — The quiet, necessary stuff: my team editing their own
+profile, choosing what they get notified about, and being able to pull a
+data export when someone needs a report. Doesn't need to be exciting.
+
+===============================================================================
+LAST THING
+===============================================================================
+Don't ask me how to lay any of this out, what shape the cards should be,
+or how many columns a table needs — that's your job, and I want to see
+what a genuinely great designer does with this brief, not what I'd have
+drawn myself. Be bold. Make it feel like a premium, trustworthy financial
+product, not a generic CRM template.
