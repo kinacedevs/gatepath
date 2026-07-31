@@ -4,6 +4,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { supabase } from "./supabase";
+import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 
 /**
  * Sends a regional SMS via Africa's Talking API (pure HTTP implementation)
@@ -537,4 +538,95 @@ export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
     const smsResult = await sendAfricaTalkingSms(data.buyerPhone, smsMessage);
 
     return { emailResult, smsResult };
+  });
+
+/**
+ * Sends an installment-payment reminder — Phase 5C Installment Tracker.
+ *
+ * Unlike sendAgreementSignedNotificationFn above (which reads via the plain
+ * anon `supabase` client and likely fails silently in production, since
+ * server functions have no authenticated user context and inquiries/payments
+ * are admin-only under RLS), this reads via getServiceClient() — the
+ * correct pattern already used in leadsActions.ts / plotVerificationActions.ts
+ * / paymentActions.ts. Caller is re-verified server-side, never trusting a
+ * client-asserted role.
+ */
+export const sendPaymentReminderFn = createServerFn({ method: "POST" })
+  .validator((d: { callerAccessToken: string; inquiryId: string }) => d)
+  .handler(async ({ data }) => {
+    const anonClient = getAnonClient();
+    const { data: callerData, error: callerErr } = await anonClient.auth.getUser(
+      data.callerAccessToken,
+    );
+    if (callerErr || !callerData.user?.email) {
+      return { success: false, error: "Not authenticated." };
+    }
+
+    const serviceClient = getServiceClient();
+
+    const { data: callerRow } = await serviceClient
+      .from("admin_users")
+      .select("id")
+      .eq("email", callerData.user.email.toLowerCase())
+      .maybeSingle();
+    if (!callerRow) {
+      return { success: false, error: "Not recognised as Gatepath staff." };
+    }
+
+    const { data: inquiry } = await serviceClient
+      .from("inquiries")
+      .select("*")
+      .eq("id", data.inquiryId)
+      .maybeSingle();
+    if (!inquiry) {
+      return { success: false, error: "Inquiry not found." };
+    }
+
+    const { data: paymentRows } = await serviceClient
+      .from("payments")
+      .select("amount")
+      .eq("inquiry_id", data.inquiryId)
+      .eq("status", "success");
+    const totalPaid = (paymentRows ?? []).reduce(
+      (sum: number, p: { amount: number }) => sum + Number(p.amount),
+      0,
+    );
+    const balance = Math.max(0, (inquiry.price ?? 0) - totalPaid);
+
+    const subject = `Payment Reminder: Plot #${inquiry.plot_number_ref} — ${inquiry.phase_name}`;
+    const emailHtml = `
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Payment Reminder</title></head>
+<body style="margin: 0; padding: 0; background-color: #F8F4EE; font-family: Arial, sans-serif;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr><td style="padding: 40px 0 30px 0;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; border: 1px solid #E5E0D8; background-color: #FFFFFF; border-radius: 12px; overflow: hidden;">
+        <tr><td align="center" bgcolor="#074B7D" style="padding: 40px 0 30px 0; color: #FFFFFF; font-size: 24px; font-weight: bold;">GATEPATH REALTORS</td></tr>
+        <tr><td style="padding: 40px 30px 40px 30px;">
+          <p style="font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #333333;">Hello <strong>${inquiry.client_full_name}</strong>,</p>
+          <p style="font-family: Arial, sans-serif; font-size: 14px; line-height: 22px; color: #666666; margin-bottom: 20px;">
+            This is a friendly reminder about your instalment plan for Plot #${inquiry.plot_number_ref} at ${inquiry.phase_name}.
+          </p>
+          <table border="0" cellpadding="12" cellspacing="0" width="100%" style="background-color: #F8F4EE; border: 1px solid #E5E0D8; border-radius: 8px;">
+            <tr><td style="font-family: Arial, sans-serif; font-size: 14px; color: #333333;">
+              <strong>Agreed Price:</strong> Ksh ${(inquiry.price ?? 0).toLocaleString()}<br/>
+              <strong>Paid So Far:</strong> Ksh ${totalPaid.toLocaleString()}<br/>
+              <strong>Balance Remaining:</strong> Ksh ${balance.toLocaleString()}
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td bgcolor="#074B7D" style="padding: 30px; text-align: center; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 12px;">
+          1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi, Kenya<br/>+254 799 488 488 | info@gatepathrealtors.com
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+    const emailResult = await sendResendEmail(inquiry.client_email, subject, emailHtml);
+    const smsMessage2 = `Hello ${inquiry.client_full_name}, a reminder on your instalment plan for Plot #${inquiry.plot_number_ref} at ${inquiry.phase_name}: balance remaining is Ksh ${balance.toLocaleString()}. Gatepath Realtors.`;
+    const smsResult = await sendAfricaTalkingSms(inquiry.client_phone, smsMessage2);
+
+    return { success: true, emailResult, smsResult, balance };
   });
