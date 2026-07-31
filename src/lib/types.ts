@@ -92,6 +92,14 @@ export type Inquiry = {
   kin_dob: string | null;
   kin_relationship: string | null;
   kin_id_passport: string | null;
+  client_country: string | null;
+  client_county: string | null;
+  client_city: string | null;
+  kin_occupation: string | null;
+  kin_country_of_residence: string | null;
+  kin_county: string | null;
+  kin_city: string | null;
+  kin_kra_pin: string | null;
   phase_name: string | null;
   phase_slug: string | null;
   plot_size: string | null;
@@ -147,6 +155,21 @@ export type Agreement = {
   pdf_agreement_url: string | null;
   email_sent: boolean;
   sms_sent: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Issued on the first (deposit/reservation) payment against an inquiry —
+ * distinct from `Agreement`, which only becomes valid once the client has
+ * paid the full purchase price. See paymentActions.ts's recordVerifiedPayment.
+ */
+export type Offer = {
+  id: string;
+  inquiry_id: string;
+  payment_id: string | null;
+  ceo_signed: boolean;
+  ceo_signed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -237,6 +260,11 @@ export type Database = {
         Row: Agreement;
         Insert: Omit<Agreement, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<Agreement, "id" | "created_at" | "updated_at">>;
+      };
+      offers: {
+        Row: Offer;
+        Insert: Omit<Offer, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<Offer, "id" | "created_at" | "updated_at">>;
       };
       admin_users: {
         Row: AdminUser;

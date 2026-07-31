@@ -107,18 +107,6 @@ async function recordVerifiedPayment(params: { reference: string; inquiryId: str
     return { success: false as const, error: payErr?.message ?? "Failed to record the payment." };
   }
 
-  const { data: existingAgreement } = await (service as any)
-    .from("agreements")
-    .select("id")
-    .eq("payment_id", payment.id)
-    .maybeSingle();
-
-  if (!existingAgreement) {
-    await (service as any)
-      .from("agreements")
-      .insert({ inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false });
-  }
-
   // Only the FIRST payment against an inquiry should flip its plot to
   // booked — installment payments (from the client portal) come after the
   // plot is already booked, and would otherwise always report a false
@@ -129,6 +117,49 @@ async function recordVerifiedPayment(params: { reference: string; inquiryId: str
     .eq("inquiry_id", inquiry.id)
     .neq("id", payment.id);
   const isFirstPayment = !priorPaymentsCount;
+
+  // Real Gatepath business logic (confirmed against the company's actual
+  // Offer Letter / Purchase-Sale Agreement templates): a deposit/reservation
+  // payment issues an Offer Letter, NOT an Agreement. The Agreement only
+  // becomes a valid document once the client has paid the FULL purchase
+  // price — everything in between is tracked against the Offer.
+  if (isFirstPayment) {
+    const { data: existingOffer } = await (service as any)
+      .from("offers")
+      .select("id")
+      .eq("inquiry_id", inquiry.id)
+      .maybeSingle();
+
+    if (!existingOffer) {
+      await (service as any)
+        .from("offers")
+        .insert({ inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false });
+    }
+  }
+
+  const { data: successfulPayments } = await (service as any)
+    .from("payments")
+    .select("amount")
+    .eq("inquiry_id", inquiry.id)
+    .eq("status", "success");
+  const totalPaid = ((successfulPayments ?? []) as { amount: number }[]).reduce(
+    (sum, p) => sum + Number(p.amount),
+    0,
+  );
+
+  if (inquiry.price && totalPaid >= Number(inquiry.price)) {
+    const { data: existingAgreement } = await (service as any)
+      .from("agreements")
+      .select("id")
+      .eq("inquiry_id", inquiry.id)
+      .maybeSingle();
+
+    if (!existingAgreement) {
+      await (service as any)
+        .from("agreements")
+        .insert({ inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false });
+    }
+  }
 
   // Atomic, conditional plot update — only flips a plot that's still
   // available, so two simultaneous buyers can't both "win" the same plot
