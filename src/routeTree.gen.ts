@@ -41,6 +41,7 @@ import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AdminBlogRouteImport } from './routes/admin.blog'
 import { Route as AdminAgentsRouteImport } from './routes/admin.agents'
 import { Route as DocumentReceiptIdRouteImport } from './routes/document.receipt.$id'
+import { Route as DocumentOfferIdRouteImport } from './routes/document.offer.$id'
 import { Route as DocumentAgreementIdRouteImport } from './routes/document.agreement.$id'
 import { Route as AdminPlotsPlotIdRouteImport } from './routes/admin.plots.$plotId'
 
@@ -204,6 +205,11 @@ const DocumentReceiptIdRoute = DocumentReceiptIdRouteImport.update({
   path: '/document/receipt/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentOfferIdRoute = DocumentOfferIdRouteImport.update({
+  id: '/document/offer/$id',
+  path: '/document/offer/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocumentAgreementIdRoute = DocumentAgreementIdRouteImport.update({
   id: '/document/agreement/$id',
   path: '/document/agreement/$id',
@@ -249,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/properties/': typeof PropertiesIndexRoute
   '/admin/plots/$plotId': typeof AdminPlotsPlotIdRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
+  '/document/offer/$id': typeof DocumentOfferIdRoute
   '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
 export interface FileRoutesByTo {
@@ -284,6 +291,7 @@ export interface FileRoutesByTo {
   '/properties': typeof PropertiesIndexRoute
   '/admin/plots/$plotId': typeof AdminPlotsPlotIdRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
+  '/document/offer/$id': typeof DocumentOfferIdRoute
   '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
 export interface FileRoutesById {
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/properties/': typeof PropertiesIndexRoute
   '/admin/plots/$plotId': typeof AdminPlotsPlotIdRoute
   '/document/agreement/$id': typeof DocumentAgreementIdRoute
+  '/document/offer/$id': typeof DocumentOfferIdRoute
   '/document/receipt/$id': typeof DocumentReceiptIdRoute
 }
 export interface FileRouteTypes {
@@ -359,6 +368,7 @@ export interface FileRouteTypes {
     | '/properties/'
     | '/admin/plots/$plotId'
     | '/document/agreement/$id'
+    | '/document/offer/$id'
     | '/document/receipt/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/properties'
     | '/admin/plots/$plotId'
     | '/document/agreement/$id'
+    | '/document/offer/$id'
     | '/document/receipt/$id'
   id:
     | '__root__'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/properties/'
     | '/admin/plots/$plotId'
     | '/document/agreement/$id'
+    | '/document/offer/$id'
     | '/document/receipt/$id'
   fileRoutesById: FileRoutesById
 }
@@ -452,6 +464,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   PropertiesIndexRoute: typeof PropertiesIndexRoute
   DocumentAgreementIdRoute: typeof DocumentAgreementIdRoute
+  DocumentOfferIdRoute: typeof DocumentOfferIdRoute
   DocumentReceiptIdRoute: typeof DocumentReceiptIdRoute
 }
 
@@ -681,6 +694,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentReceiptIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/document/offer/$id': {
+      id: '/document/offer/$id'
+      path: '/document/offer/$id'
+      fullPath: '/document/offer/$id'
+      preLoaderRoute: typeof DocumentOfferIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/document/agreement/$id': {
       id: '/document/agreement/$id'
       path: '/document/agreement/$id'
@@ -765,6 +785,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   PropertiesIndexRoute: PropertiesIndexRoute,
   DocumentAgreementIdRoute: DocumentAgreementIdRoute,
+  DocumentOfferIdRoute: DocumentOfferIdRoute,
   DocumentReceiptIdRoute: DocumentReceiptIdRoute,
 }
 export const routeTree = rootRouteImport
