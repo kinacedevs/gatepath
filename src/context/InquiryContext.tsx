@@ -34,6 +34,9 @@ export interface InquiryFormData {
   kraPin: string;
   idNumber: string; // ID/PASSPORT No
   occupation: string;
+  country: string;
+  county: string;
+  city: string;
 
   // ── Next of Kin (Sales Booking Form) ──
   kinFullName: string;
@@ -41,6 +44,11 @@ export interface InquiryFormData {
   kinDob: string;
   kinRelationship: string;
   kinIdPassport: string;
+  kinOccupation: string;
+  kinCountryOfResidence: string;
+  kinCounty: string;
+  kinCity: string;
+  kinKraPin: string;
 
   // ── How did you hear about us? ──
   heardFrom: string;
@@ -94,11 +102,19 @@ const defaultForm: InquiryFormData = {
   kraPin: "",
   idNumber: "",
   occupation: "",
+  country: "",
+  county: "",
+  city: "",
   kinFullName: "",
   kinPhone: "",
   kinDob: "",
   kinRelationship: "",
   kinIdPassport: "",
+  kinOccupation: "",
+  kinCountryOfResidence: "",
+  kinCounty: "",
+  kinCity: "",
+  kinKraPin: "",
   heardFrom: "",
   paymentPreference: "",
   locationPreference: "",

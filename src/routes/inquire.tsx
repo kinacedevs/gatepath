@@ -354,11 +354,20 @@ function InquiryPage() {
         client_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kraPin) || null,
         client_id_passport: sanitize(form.idNumber).toUpperCase(),
         client_occupation: form.intent === "free_visit" ? null : sanitize(form.occupation) || null,
+        client_country: form.intent === "free_visit" ? null : sanitize(form.country) || null,
+        client_county: form.intent === "free_visit" ? null : sanitize(form.county) || null,
+        client_city: form.intent === "free_visit" ? null : sanitize(form.city) || null,
         kin_full_name: form.intent === "free_visit" ? null : sanitize(form.kinFullName) || null,
         kin_phone: form.intent === "free_visit" ? null : form.kinPhone || null,
         kin_dob: form.intent === "free_visit" ? null : form.kinDob || null,
         kin_relationship: form.intent === "free_visit" ? null : form.kinRelationship || null,
         kin_id_passport: form.intent === "free_visit" ? null : sanitize(form.kinIdPassport) || null,
+        kin_occupation: form.intent === "free_visit" ? null : sanitize(form.kinOccupation) || null,
+        kin_country_of_residence:
+          form.intent === "free_visit" ? null : sanitize(form.kinCountryOfResidence) || null,
+        kin_county: form.intent === "free_visit" ? null : sanitize(form.kinCounty) || null,
+        kin_city: form.intent === "free_visit" ? null : sanitize(form.kinCity) || null,
+        kin_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kinKraPin) || null,
         heard_from: form.heardFrom,
         payment_preference: form.intent, // Set intent ('free_visit', 'reserve', 'deposit') as payment preference
         location_preference: sanitize(form.locationPreference),
@@ -972,6 +981,45 @@ function InquiryPage() {
                 </div>
               )}
 
+              {/* Country / County / City (conditional) */}
+              {form.intent !== "free_visit" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                  <div>
+                    <label style={label}>Country</label>
+                    <input
+                      name="country"
+                      type="text"
+                      value={form.country}
+                      placeholder="e.g. Kenya"
+                      onChange={(e) => setForm({ country: e.target.value })}
+                      style={inp("country")}
+                    />
+                  </div>
+                  <div>
+                    <label style={label}>County</label>
+                    <input
+                      name="county"
+                      type="text"
+                      value={form.county}
+                      placeholder="e.g. Kiambu"
+                      onChange={(e) => setForm({ county: e.target.value })}
+                      style={inp("county")}
+                    />
+                  </div>
+                  <div>
+                    <label style={label}>City</label>
+                    <input
+                      name="city"
+                      type="text"
+                      value={form.city}
+                      placeholder="e.g. Ruiru"
+                      onChange={(e) => setForm({ city: e.target.value })}
+                      style={inp("city")}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* ─────────────────────────────────────────────── */}
               {/* SECTION 4: NEXT OF KIN (conditional)           */}
               {/* ─────────────────────────────────────────────── */}
@@ -1034,16 +1082,76 @@ function InquiryPage() {
                     </div>
                   </div>
 
-                  {/* Kin ID/Passport */}
-                  <div className="mb-5">
-                    <label style={label}>ID / Passport No.</label>
-                    <input
-                      type="text"
-                      value={form.kinIdPassport}
-                      placeholder="Next of kin ID or Passport number"
-                      onChange={(e) => setForm({ kinIdPassport: e.target.value })}
-                      style={inp("kinIdPassport")}
-                    />
+                  {/* Kin ID/Passport + KRA PIN */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <label style={label}>ID / Passport No.</label>
+                      <input
+                        type="text"
+                        value={form.kinIdPassport}
+                        placeholder="Next of kin ID or Passport number"
+                        onChange={(e) => setForm({ kinIdPassport: e.target.value })}
+                        style={inp("kinIdPassport")}
+                      />
+                    </div>
+                    <div>
+                      <label style={label}>KRA PIN</label>
+                      <input
+                        type="text"
+                        value={form.kinKraPin}
+                        placeholder="e.g. A123456789B"
+                        onChange={(e) => setForm({ kinKraPin: e.target.value.toUpperCase() })}
+                        style={inp("kinKraPin")}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Kin Occupation + Country of Residence */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <label style={label}>Occupation</label>
+                      <input
+                        type="text"
+                        value={form.kinOccupation}
+                        placeholder="e.g. Teacher, Business Owner"
+                        onChange={(e) => setForm({ kinOccupation: e.target.value })}
+                        style={inp("kinOccupation")}
+                      />
+                    </div>
+                    <div>
+                      <label style={label}>Country of Residence</label>
+                      <input
+                        type="text"
+                        value={form.kinCountryOfResidence}
+                        placeholder="e.g. Kenya"
+                        onChange={(e) => setForm({ kinCountryOfResidence: e.target.value })}
+                        style={inp("kinCountryOfResidence")}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Kin County + City */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <label style={label}>County</label>
+                      <input
+                        type="text"
+                        value={form.kinCounty}
+                        placeholder="e.g. Kiambu"
+                        onChange={(e) => setForm({ kinCounty: e.target.value })}
+                        style={inp("kinCounty")}
+                      />
+                    </div>
+                    <div>
+                      <label style={label}>City</label>
+                      <input
+                        type="text"
+                        value={form.kinCity}
+                        placeholder="e.g. Ruiru"
+                        onChange={(e) => setForm({ kinCity: e.target.value })}
+                        style={inp("kinCity")}
+                      />
+                    </div>
                   </div>
                 </>
               )}
