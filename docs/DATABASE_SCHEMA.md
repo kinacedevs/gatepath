@@ -285,3 +285,11 @@ Listed here for traceability only — these are proposals from the Phase 0 visua
 - `pipeline_stages`, `message_templates` (DB-editable config, currently hardcoded in `conveyancing.ts`/`notifications.ts`)
 
 See `docs/VIZ_SPEC.md`'s "Cross-cutting schema gaps" section for which tabs each one unlocks, ranked by leverage.
+
+---
+
+## Orphan tables found live, unused by any code path
+
+`public.activity_logs` and `public.shift_logs` exist in the live database (origin: dashboard, like the other 9 hand-created tables above) but are **not referenced anywhere in this codebase** — confirmed via a repo-wide search. They predate this session's work and were never wired into the app. Supabase's Advisor flagged both as CRITICAL: each had RLS *policies* defined but RLS itself was never *enabled* on the table, leaving those policies inert and the tables fully exposed via the public anon-key API. One of the existing policies on each table followed an `allow_all_*` naming pattern, suggesting a permissive blanket-access policy alongside an admin-only one.
+
+**Fixed in migration `0007_lock_down_orphan_tables.sql`**: RLS enabled on both tables, the `allow_all_*` policies dropped. The pre-existing `*_admin_all` policies are left as-is (their exact command scope wasn't inspected since this migration doesn't need to guess at it to close the exposure). Full column-level schema for these two tables is not documented here — since nothing in the app reads or writes them, there was no query to reverse-engineer their shape from. If they're ever wired into a real feature (e.g. the proposed `interaction_log`/general audit log above), document them properly at that point.
