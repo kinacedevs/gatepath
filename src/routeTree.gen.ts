@@ -31,6 +31,7 @@ import { Route as AdminTasksRouteImport } from './routes/admin.tasks'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSiteContentRouteImport } from './routes/admin.site-content'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminPropertyMatchingRouteImport } from './routes/admin.property-matching'
 import { Route as AdminPlotsRouteImport } from './routes/admin.plots'
 import { Route as AdminMeetingsRouteImport } from './routes/admin.meetings'
@@ -158,6 +159,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPropertyMatchingRoute = AdminPropertyMatchingRouteImport.update({
   id: '/property-matching',
   path: '/property-matching',
@@ -265,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
@@ -304,6 +311,7 @@ export interface FileRoutesByTo {
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
@@ -345,6 +353,7 @@ export interface FileRoutesById {
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
@@ -387,6 +396,7 @@ export interface FileRouteTypes {
     | '/admin/meetings'
     | '/admin/plots'
     | '/admin/property-matching'
+    | '/admin/reports'
     | '/admin/settings'
     | '/admin/site-content'
     | '/admin/staff'
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/admin/meetings'
     | '/admin/plots'
     | '/admin/property-matching'
+    | '/admin/reports'
     | '/admin/settings'
     | '/admin/site-content'
     | '/admin/staff'
@@ -466,6 +477,7 @@ export interface FileRouteTypes {
     | '/admin/meetings'
     | '/admin/plots'
     | '/admin/property-matching'
+    | '/admin/reports'
     | '/admin/settings'
     | '/admin/site-content'
     | '/admin/staff'
@@ -660,6 +672,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/property-matching': {
       id: '/admin/property-matching'
       path: '/property-matching'
@@ -800,6 +819,7 @@ interface AdminRouteChildren {
   AdminMeetingsRoute: typeof AdminMeetingsRoute
   AdminPlotsRoute: typeof AdminPlotsRouteWithChildren
   AdminPropertyMatchingRoute: typeof AdminPropertyMatchingRoute
+  AdminReportsRoute: typeof AdminReportsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSiteContentRoute: typeof AdminSiteContentRoute
   AdminStaffRoute: typeof AdminStaffRoute
@@ -820,6 +840,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMeetingsRoute: AdminMeetingsRoute,
   AdminPlotsRoute: AdminPlotsRouteWithChildren,
   AdminPropertyMatchingRoute: AdminPropertyMatchingRoute,
+  AdminReportsRoute: AdminReportsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSiteContentRoute: AdminSiteContentRoute,
   AdminStaffRoute: AdminStaffRoute,

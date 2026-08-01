@@ -27,6 +27,7 @@ import {
   Globe,
   ListTodo,
   Target,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -66,6 +67,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/admin/deals", label: "Deals", icon: Briefcase },
       { to: "/admin/installments", label: "Installment Tracker", icon: DollarSign },
       { to: "/admin/property-matching", label: "Property Matching", icon: Target },
+      { to: "/admin/reports", label: "Reports & Analytics", icon: BarChart3 },
     ],
   },
   {
