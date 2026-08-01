@@ -12,12 +12,13 @@
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, PhoneCall, Mail, ShieldAlert, Users, DollarSign, Globe } from "lucide-react";
+import { Search, Mail, ShieldAlert, Users, DollarSign, Globe } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatFromKes } from "@/lib/currency";
 import { KpiCard } from "@/components/admin/KpiCard";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { AdminDataTable } from "@/components/admin/AdminDataTable";
+import { QuickCallLogger } from "@/components/admin/QuickCallLogger";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { FreshnessStamp } from "@/components/admin/FreshnessStamp";
 import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
@@ -38,6 +39,11 @@ interface ClientRow {
   kraPin: string | null;
   lifetimeValue: number;
   plotsOwned: number;
+  /** Most recent inquiry for this client — inquiries are fetched newest-
+   * first, so the first row seen per email is already the latest. Calls
+   * logged from this screen attach to it, since a client can span several
+   * inquiries but interaction_log needs one concrete inquiry_id to anchor to. */
+  latestInquiryId: string;
 }
 
 interface PendingApproval {
@@ -115,6 +121,7 @@ function ClientDirectory() {
           kraPin: inq.client_kra_pin,
           lifetimeValue: paid,
           plotsOwned: ownsThis,
+          latestInquiryId: inq.id,
         });
       }
     }
@@ -220,12 +227,7 @@ function ClientDirectory() {
       header: () => <span className="block text-right">Actions</span>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
-          <a
-            href={`tel:${row.original.phone}`}
-            className="p-2 bg-surface-container-low rounded-lg text-primary-container hover:bg-primary hover:text-white transition-colors"
-          >
-            <PhoneCall size={15} />
-          </a>
+          <QuickCallLogger inquiryId={row.original.latestInquiryId} phone={row.original.phone} />
           <a
             href={`mailto:${row.original.email}`}
             className="p-2 bg-surface-container-low rounded-lg text-primary-container hover:bg-primary hover:text-white transition-colors"

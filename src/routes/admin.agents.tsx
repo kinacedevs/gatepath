@@ -15,7 +15,16 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Users, CheckCircle, Trophy, TrendingUp, DollarSign, Clock, Activity } from "lucide-react";
+import {
+  Users,
+  CheckCircle,
+  Trophy,
+  TrendingUp,
+  DollarSign,
+  Clock,
+  Activity,
+  PhoneCall,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatFromKes } from "@/lib/currency";
 import { KpiCard } from "@/components/admin/KpiCard";
@@ -50,6 +59,8 @@ interface AgentRow {
   conversionRate: number;
   totalActivities: number;
   avgResponseMs: number | null;
+  callsLogged: number;
+  connectRate: number | null;
 }
 
 function monthLabel(d: Date) {
@@ -154,6 +165,17 @@ function AgentPerformance() {
             ? responseDeltas.reduce((a, b) => a + b, 0) / responseDeltas.length
             : null;
 
+        // Module 11 — Telephony: calls this agent logged and what fraction
+        // actually connected. null (not 0%) when they've logged zero calls,
+        // so an untouched agent doesn't misleadingly read as "never connects".
+        const agentCalls = interactions.filter(
+          (i) => i.channel === "call" && i.logged_by_email === agent.email,
+        );
+        const callsLogged = agentCalls.length;
+        const connectedCalls = agentCalls.filter((i) => i.call_outcome === "connected").length;
+        const connectRate =
+          callsLogged > 0 ? Math.round((connectedCalls / callsLogged) * 100) : null;
+
         return {
           agent,
           assignedLeads: agentLeads.length,
@@ -162,6 +184,8 @@ function AgentPerformance() {
           conversionRate,
           totalActivities,
           avgResponseMs,
+          callsLogged,
+          connectRate,
         };
       })
       .sort((a, b) => b.revenue - a.revenue);
@@ -181,6 +205,18 @@ function AgentPerformance() {
     }
     return deltas.length > 0 ? deltas.reduce((a, b) => a + b, 0) / deltas.length : null;
   }, [agentRows, inquiries, firstTouchByInquiry]);
+
+  // Team-wide connect rate — aggregate connected/total across every agent's
+  // logged calls, not an average of per-agent rates (same skew reasoning
+  // already applied to teamAvgResponseMs above).
+  const teamConnectRate = useMemo(() => {
+    const teamCalls = interactions.filter(
+      (i) => i.channel === "call" && agentRows.some((a) => a.agent.email === i.logged_by_email),
+    );
+    if (teamCalls.length === 0) return null;
+    const connected = teamCalls.filter((i) => i.call_outcome === "connected").length;
+    return Math.round((connected / teamCalls.length) * 100);
+  }, [interactions, agentRows]);
 
   const totalAgents = agentRows.length;
   const teamRevenue = agentRows.reduce((sum, a) => sum + a.revenue, 0);
@@ -315,6 +351,26 @@ function AgentPerformance() {
         </span>
       ),
     },
+    {
+      id: "callsLogged",
+      header: "Calls Logged",
+      accessorFn: (row) => row.callsLogged,
+      cell: (info) => (
+        <div className="flex items-center gap-2 text-on-surface">
+          <PhoneCall size={15} className="text-on-surface-variant" /> {info.getValue() as number}
+        </div>
+      ),
+    },
+    {
+      id: "connectRate",
+      header: "Connect Rate",
+      accessorFn: (row) => row.connectRate ?? -1,
+      cell: ({ row }) => (
+        <span className="text-[13px] text-on-surface-variant">
+          {row.original.connectRate === null ? "No calls yet" : `${row.original.connectRate}%`}
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -331,7 +387,7 @@ function AgentPerformance() {
         <FreshnessStamp updatedAt={lastUpdated} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <KpiCard label="Total Agents" value={loading ? "…" : String(totalAgents)} icon={Users} />
         <KpiCard
           label="Team Conversion Rate"
@@ -360,6 +416,11 @@ function AgentPerformance() {
                 : formatDuration(teamAvgResponseMs)
           }
           icon={Clock}
+        />
+        <KpiCard
+          label="Team Connect Rate"
+          value={loading ? "…" : teamConnectRate === null ? "No calls yet" : `${teamConnectRate}%`}
+          icon={PhoneCall}
         />
       </div>
 

@@ -19,8 +19,27 @@ import {
 import { supabase } from "@/lib/supabase";
 import { logInteractionFn } from "@/lib/interactionLogActions";
 import { EmptyState } from "@/components/admin/EmptyState";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { InteractionLog } from "@/lib/types";
+
+type CallOutcome = NonNullable<InteractionLog["call_outcome"]>;
+
+const OUTCOME_LABEL: Record<CallOutcome, string> = {
+  connected: "Connected",
+  voicemail: "Voicemail",
+  no_answer: "No Answer",
+  wrong_number: "Wrong Number",
+  callback_requested: "Callback Requested",
+};
+
+const OUTCOME_TONE: Record<CallOutcome, "success" | "warning" | "info" | "neutral"> = {
+  connected: "success",
+  callback_requested: "info",
+  voicemail: "warning",
+  no_answer: "warning",
+  wrong_number: "neutral",
+};
 
 const CHANNEL_ICON: Record<InteractionLog["channel"], typeof Phone> = {
   call: Phone,
@@ -57,6 +76,7 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
 
   const [channel, setChannel] = useState<InteractionLog["channel"]>("call");
   const [direction, setDirection] = useState<InteractionLog["direction"]>("outbound");
+  const [callOutcome, setCallOutcome] = useState<CallOutcome>("connected");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -102,6 +122,7 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
           channel,
           direction,
           notes: notes.trim(),
+          callOutcome: channel === "call" ? callOutcome : undefined,
         },
       });
       if (!result.success) {
@@ -149,6 +170,19 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
             <option value="inbound">Inbound (they reached us)</option>
           </select>
         </div>
+        {channel === "call" && (
+          <select
+            value={callOutcome}
+            onChange={(e: any) => setCallOutcome(e.target.value)}
+            className="p-2 border border-outline-variant/40 rounded-lg text-[13px] bg-white outline-none"
+          >
+            {(Object.keys(OUTCOME_LABEL) as CallOutcome[]).map((o) => (
+              <option key={o} value={o}>
+                {OUTCOME_LABEL[o]}
+              </option>
+            ))}
+          </select>
+        )}
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -185,6 +219,11 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
                       <span className="font-semibold text-primary">
                         {CHANNEL_LABEL[entry.channel]}
                       </span>
+                      {entry.call_outcome && (
+                        <StatusBadge tone={OUTCOME_TONE[entry.call_outcome as CallOutcome]}>
+                          {OUTCOME_LABEL[entry.call_outcome as CallOutcome]}
+                        </StatusBadge>
+                      )}
                       <span className="text-on-surface-variant">
                         · {entry.direction === "outbound" ? "Outbound" : "Inbound"} ·{" "}
                         {relativeTime(entry.occurred_at)}

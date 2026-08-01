@@ -31,6 +31,7 @@ import {
   FolderLock,
   Bell,
   ShieldCheck,
+  PhoneCall,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -79,6 +80,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/admin/inquiries", label: "Inquiries Queue", icon: FileText, showPendingBadge: true },
       { to: "/admin/bookings", label: "Site Visits", icon: Calendar },
       { to: "/admin/tasks", label: "Tasks & Follow-ups", icon: ListTodo },
+      { to: "/admin/telephony", label: "Call Log", icon: PhoneCall },
       { to: "/admin/notifications", label: "Notifications & Escalations", icon: Bell },
       { to: "/admin/documents", label: "Document Vault", icon: FolderLock },
       { to: "/admin/plots", label: "Plot Inventory", icon: MapPin },

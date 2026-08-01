@@ -27,6 +27,7 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PropertiesSlugRouteImport } from './routes/properties.$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AdminTelephonyRouteImport } from './routes/admin.telephony'
 import { Route as AdminTasksRouteImport } from './routes/admin.tasks'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSiteContentRouteImport } from './routes/admin.site-content'
@@ -141,6 +142,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTelephonyRoute = AdminTelephonyRouteImport.update({
+  id: '/telephony',
+  path: '/telephony',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminTasksRoute = AdminTasksRouteImport.update({
   id: '/tasks',
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/tasks': typeof AdminTasksRoute
+  '/admin/telephony': typeof AdminTelephonyRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/tasks': typeof AdminTasksRoute
+  '/admin/telephony': typeof AdminTelephonyRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
   '/admin': typeof AdminIndexRoute
@@ -385,6 +393,7 @@ export interface FileRoutesById {
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/tasks': typeof AdminTasksRoute
+  '/admin/telephony': typeof AdminTelephonyRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -431,6 +440,7 @@ export interface FileRouteTypes {
     | '/admin/site-content'
     | '/admin/staff'
     | '/admin/tasks'
+    | '/admin/telephony'
     | '/blog/$slug'
     | '/properties/$slug'
     | '/admin/'
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/admin/site-content'
     | '/admin/staff'
     | '/admin/tasks'
+    | '/admin/telephony'
     | '/blog/$slug'
     | '/properties/$slug'
     | '/admin'
@@ -518,6 +529,7 @@ export interface FileRouteTypes {
     | '/admin/site-content'
     | '/admin/staff'
     | '/admin/tasks'
+    | '/admin/telephony'
     | '/blog/$slug'
     | '/properties/$slug'
     | '/admin/'
@@ -679,6 +691,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/telephony': {
+      id: '/admin/telephony'
+      path: '/telephony'
+      fullPath: '/admin/telephony'
+      preLoaderRoute: typeof AdminTelephonyRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/tasks': {
       id: '/admin/tasks'
@@ -884,6 +903,7 @@ interface AdminRouteChildren {
   AdminSiteContentRoute: typeof AdminSiteContentRoute
   AdminStaffRoute: typeof AdminStaffRoute
   AdminTasksRoute: typeof AdminTasksRoute
+  AdminTelephonyRoute: typeof AdminTelephonyRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -908,6 +928,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSiteContentRoute: AdminSiteContentRoute,
   AdminStaffRoute: AdminStaffRoute,
   AdminTasksRoute: AdminTasksRoute,
+  AdminTelephonyRoute: AdminTelephonyRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

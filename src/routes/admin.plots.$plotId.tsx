@@ -37,6 +37,7 @@ import { useAdminSession } from "@/context/AdminSessionContext";
 import { formatFromKes } from "@/lib/currency";
 import { logPlotTitleVerificationFn } from "@/lib/plotVerificationActions";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { QuickCallLogger } from "@/components/admin/QuickCallLogger";
 import {
   Dialog,
   DialogContent,
@@ -463,18 +464,20 @@ function PlotDetail() {
                       </StatusBadge>
                     </div>
                     <div className="flex items-center gap-3 text-[11px] text-on-surface-variant">
-                      <a
-                        href={`tel:${lead.client_phone}`}
-                        className="flex items-center gap-1 hover:text-secondary"
-                      >
+                      <span className="flex items-center gap-1">
                         <Phone size={11} /> {lead.client_phone}
-                      </a>
+                      </span>
                       <a
                         href={`mailto:${lead.client_email}`}
                         className="flex items-center gap-1 hover:text-secondary truncate"
                       >
                         <Mail size={11} /> {lead.client_email}
                       </a>
+                      <QuickCallLogger
+                        inquiryId={lead.id}
+                        phone={lead.client_phone}
+                        className="ml-auto"
+                      />
                     </div>
                   </div>
                 ))}
