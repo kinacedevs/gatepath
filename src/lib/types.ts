@@ -230,6 +230,24 @@ export type Faq = {
   created_at: string;
 };
 
+export type BuyerPreference = {
+  id: string;
+  client_name: string;
+  client_email: string | null;
+  client_phone: string | null;
+  preferred_phase_id: string | null;
+  preferred_location: string | null;
+  min_budget_kes: number | null;
+  max_budget_kes: number | null;
+  stated_currency: string;
+  notes: string | null;
+  is_active: boolean;
+  created_by_email: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -376,6 +394,11 @@ export type Database = {
         Row: Task;
         Insert: Omit<Task, "id" | "created_at">;
         Update: Partial<Omit<Task, "id" | "created_at">>;
+      };
+      buyer_preferences: {
+        Row: BuyerPreference;
+        Insert: Omit<BuyerPreference, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<BuyerPreference, "id" | "created_at" | "updated_at">>;
       };
     };
     Views: {
