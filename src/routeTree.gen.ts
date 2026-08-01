@@ -41,6 +41,7 @@ import { Route as AdminInstallmentsRouteImport } from './routes/admin.installmen
 import { Route as AdminInquiriesRouteImport } from './routes/admin.inquiries'
 import { Route as AdminDocumentsRouteImport } from './routes/admin.documents'
 import { Route as AdminDealsRouteImport } from './routes/admin.deals'
+import { Route as AdminDataGovernanceRouteImport } from './routes/admin.data-governance'
 import { Route as AdminContactsRouteImport } from './routes/admin.contacts'
 import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
@@ -211,6 +212,11 @@ const AdminDealsRoute = AdminDealsRouteImport.update({
   path: '/deals',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDataGovernanceRoute = AdminDataGovernanceRouteImport.update({
+  id: '/data-governance',
+  path: '/data-governance',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminContactsRoute = AdminContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
@@ -276,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/contacts': typeof AdminContactsRoute
+  '/admin/data-governance': typeof AdminDataGovernanceRoute
   '/admin/deals': typeof AdminDealsRoute
   '/admin/documents': typeof AdminDocumentsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/contacts': typeof AdminContactsRoute
+  '/admin/data-governance': typeof AdminDataGovernanceRoute
   '/admin/deals': typeof AdminDealsRoute
   '/admin/documents': typeof AdminDocumentsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
@@ -362,6 +370,7 @@ export interface FileRoutesById {
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/contacts': typeof AdminContactsRoute
+  '/admin/data-governance': typeof AdminDataGovernanceRoute
   '/admin/deals': typeof AdminDealsRoute
   '/admin/documents': typeof AdminDocumentsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
@@ -407,6 +416,7 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/contacts'
+    | '/admin/data-governance'
     | '/admin/deals'
     | '/admin/documents'
     | '/admin/inquiries'
@@ -449,6 +459,7 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/contacts'
+    | '/admin/data-governance'
     | '/admin/deals'
     | '/admin/documents'
     | '/admin/inquiries'
@@ -492,6 +503,7 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/campaigns'
     | '/admin/contacts'
+    | '/admin/data-governance'
     | '/admin/deals'
     | '/admin/documents'
     | '/admin/inquiries'
@@ -766,6 +778,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDealsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/data-governance': {
+      id: '/admin/data-governance'
+      path: '/data-governance'
+      fullPath: '/admin/data-governance'
+      preLoaderRoute: typeof AdminDataGovernanceRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/contacts': {
       id: '/admin/contacts'
       path: '/contacts'
@@ -850,6 +869,7 @@ interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminCampaignsRoute: typeof AdminCampaignsRoute
   AdminContactsRoute: typeof AdminContactsRoute
+  AdminDataGovernanceRoute: typeof AdminDataGovernanceRoute
   AdminDealsRoute: typeof AdminDealsRoute
   AdminDocumentsRoute: typeof AdminDocumentsRoute
   AdminInquiriesRoute: typeof AdminInquiriesRoute
@@ -873,6 +893,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingsRoute: AdminBookingsRoute,
   AdminCampaignsRoute: AdminCampaignsRoute,
   AdminContactsRoute: AdminContactsRoute,
+  AdminDataGovernanceRoute: AdminDataGovernanceRoute,
   AdminDealsRoute: AdminDealsRoute,
   AdminDocumentsRoute: AdminDocumentsRoute,
   AdminInquiriesRoute: AdminInquiriesRoute,

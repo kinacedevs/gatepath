@@ -53,6 +53,9 @@ export interface InquiryFormData {
   // ── How did you hear about us? ──
   heardFrom: string;
 
+  // ── Consent ──
+  marketingOptIn: boolean;
+
   // ── Legacy / Extra (kept for payment + visit flow) ──
   paymentPreference: string;
   locationPreference: string;
@@ -116,6 +119,7 @@ const defaultForm: InquiryFormData = {
   kinCity: "",
   kinKraPin: "",
   heardFrom: "",
+  marketingOptIn: false,
   paymentPreference: "",
   locationPreference: "",
   questions: "",

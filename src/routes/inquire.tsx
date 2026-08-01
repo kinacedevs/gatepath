@@ -108,7 +108,8 @@ function validate(form: ReturnType<typeof useInquiry>["form"]) {
     errs.phone = "Phone number is required";
   } else if (cleanPhone.startsWith("0")) {
     if (!/^(07|01)\d{8}$/.test(cleanPhone)) {
-      errs.phone = "Kenyan phone number must start with 07 or 01 and contain exactly 10 digits (e.g. 0712345678)";
+      errs.phone =
+        "Kenyan phone number must start with 07 or 01 and contain exactly 10 digits (e.g. 0712345678)";
     }
   } else if (cleanPhone.startsWith("+")) {
     if (!/^\+\d{9,15}$/.test(cleanPhone)) {
@@ -119,7 +120,8 @@ function validate(form: ReturnType<typeof useInquiry>["form"]) {
   }
 
   // Email
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email || "")) errs.email = "Enter a valid email address";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email || ""))
+    errs.email = "Enter a valid email address";
 
   // Main Buyer Date of Birth & 18+ Age Check
   if (!form.dateOfBirth) {
@@ -304,7 +306,9 @@ function InquiryPage() {
     // Validate CEO / Staff / Influencer Referral Codes
     if (["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)) {
       if (!referralCodeInput.trim()) {
-        setDbError("A registered referral code is required for CEO, Gatepath Staff, or Influencer selections.");
+        setDbError(
+          "A registered referral code is required for CEO, Gatepath Staff, or Influencer selections.",
+        );
         setLoading(false);
         setBannerError(true);
         return;
@@ -316,7 +320,9 @@ function InquiryPage() {
         .single();
 
       if (affErr || !aff) {
-        setDbError("Invalid referral code. Please enter a valid registered CEO, Staff, or Influencer referral code.");
+        setDbError(
+          "Invalid referral code. Please enter a valid registered CEO, Staff, or Influencer referral code.",
+        );
         setLoading(false);
         setBannerError(true);
         return;
@@ -369,6 +375,7 @@ function InquiryPage() {
         kin_city: form.intent === "free_visit" ? null : sanitize(form.kinCity) || null,
         kin_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kinKraPin) || null,
         heard_from: form.heardFrom,
+        marketing_opt_in: form.marketingOptIn,
         payment_preference: form.intent, // Set intent ('free_visit', 'reserve', 'deposit') as payment preference
         location_preference: sanitize(form.locationPreference),
         questions: sanitize(form.questions),
@@ -631,7 +638,11 @@ function InquiryPage() {
                     month: "long",
                     year: "numeric",
                   })}
-                  style={{ ...inp("bookingDate"), background: "#F5F2EE", color: "var(--muted-foreground)" }}
+                  style={{
+                    ...inp("bookingDate"),
+                    background: "#F5F2EE",
+                    color: "var(--muted-foreground)",
+                  }}
                 />
               </div>
               <button
@@ -1206,7 +1217,14 @@ function InquiryPage() {
                     placeholder="Enter CEO / Staff / Influencer Referral Code"
                     style={inp("referralCode")}
                   />
-                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: "#8A8179", marginTop: 4 }}>
+                  <p
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 11,
+                      color: "#8A8179",
+                      marginTop: 4,
+                    }}
+                  >
                     Verification ensures the legitimacy of the referral reward program.
                   </p>
                 </div>
@@ -1241,10 +1259,10 @@ function InquiryPage() {
                     margin: 0,
                   }}
                 >
-                  <strong style={{ color: "var(--primary)" }}>N.B:</strong> Please note that all details on
-                  this form are important. Therefore, when filling this form, ensure that you
-                  accurately capture all information. After filling this form, it shall be forwarded
-                  to the legal department either physically or digitally.
+                  <strong style={{ color: "var(--primary)" }}>N.B:</strong> Please note that all
+                  details on this form are important. Therefore, when filling this form, ensure that
+                  you accurately capture all information. After filling this form, it shall be
+                  forwarded to the legal department either physically or digitally.
                 </p>
               </div>
 
@@ -1296,6 +1314,31 @@ function InquiryPage() {
                   Please check the consent box to continue.
                 </div>
               )}
+
+              {/* Marketing Opt-In Checkbox — optional, separate from the required privacy consent above */}
+              <div className="mb-6 flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="marketing-opt-in"
+                  checked={form.marketingOptIn}
+                  onChange={(e) => setForm({ marketingOptIn: e.target.checked })}
+                  className="mt-1 shrink-0 w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  style={{ accentColor: "var(--primary)", cursor: "pointer" }}
+                />
+                <label
+                  htmlFor="marketing-opt-in"
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 13,
+                    color: "var(--muted-foreground)",
+                    lineHeight: 1.5,
+                    cursor: "pointer",
+                  }}
+                >
+                  Keep me updated on new plot releases, offers, and Gatepath news by email/SMS
+                  (optional).
+                </label>
+              </div>
 
               {/* Submit */}
               <button
