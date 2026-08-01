@@ -125,6 +125,10 @@ export type Booking = {
   visit_type: "physical" | "virtual";
   pickup_location: string | null;
   status: "pending" | "confirmed" | "completed" | "cancelled";
+  /** Staff post-visit feedback — distinct from visit_notes (the client's
+   * own pre-visit note). Added migration 0012. */
+  staff_feedback: string | null;
+  feedback_logged_at: string | null;
   created_at: string;
   updated_at: string;
 };
