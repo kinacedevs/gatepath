@@ -26,6 +26,7 @@ import { supabase } from "@/lib/supabase";
 import { useAdminSession } from "@/context/AdminSessionContext";
 import { sendAgreementSignedNotificationFn } from "@/lib/notifications";
 import { signAgreementFn, signOfferFn } from "@/lib/inquiryActions";
+import { InteractionTimeline } from "@/components/admin/InteractionTimeline";
 import { KpiCard } from "@/components/admin/KpiCard";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { AdminDataTable } from "@/components/admin/AdminDataTable";
@@ -506,6 +507,13 @@ function InquiriesQueue() {
                   </div>
                 </div>
               ))}
+
+              <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4.5">
+                <div className="text-[10px] font-bold text-accent uppercase tracking-[0.12em] mb-3.5">
+                  ACTIVITY LOG
+                </div>
+                <InteractionTimeline inquiryId={selectedInquiry.id} />
+              </div>
             </div>
 
             {/* Action Footer */}
