@@ -304,6 +304,9 @@ export type InteractionLog = {
   inquiry_id: string;
   channel: "call" | "email" | "whatsapp" | "sms" | "site_visit" | "other";
   direction: "outbound" | "inbound";
+  /** Meaningful only when channel === "call". Added migration 0014. */
+  call_outcome:
+    "connected" | "voicemail" | "no_answer" | "wrong_number" | "callback_requested" | null;
   notes: string | null;
   logged_by_name: string | null;
   logged_by_email: string | null;
