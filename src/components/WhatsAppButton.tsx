@@ -1,7 +1,35 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+
+const DEFAULT_WHATSAPP_NUMBER = "254799488488";
+
 export function WhatsAppButton() {
+  const [whatsappNumber, setWhatsappNumber] = useState(DEFAULT_WHATSAPP_NUMBER);
+
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("site_banners")
+          .select("data")
+          .eq("id", "contact_info")
+          .maybeSingle();
+        // Only override if a real CEO-set number exists — otherwise keep
+        // the default that's already rendering, no flash-to-nothing.
+        const number = data?.data?.whatsapp_number;
+        if (typeof number === "string" && number.trim()) {
+          setWhatsappNumber(number.trim());
+        }
+      } catch {
+        // Default number is already showing — nothing to do.
+      }
+    };
+    fetchContactInfo();
+  }, []);
+
   return (
     <a
-      href="https://wa.me/254799488488?text=Hello%20Gatepath%20Realtors%2C%20I%20am%20interested%20in%20a%20land%20plot."
+      href={`https://wa.me/${whatsappNumber}?text=Hello%20Gatepath%20Realtors%2C%20I%20am%20interested%20in%20a%20land%20plot.`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"

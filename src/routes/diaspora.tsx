@@ -24,6 +24,7 @@ import diasporaHeroAsset from "@/assets/diaspora.jpg";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhases } from "@/lib/phases";
 import { CURRENCIES, formatFromKes, type Currency } from "@/lib/currency";
+import type { Faq } from "@/lib/types";
 
 export const Route = createFileRoute("/diaspora")({
   component: DiasporaPage,
@@ -135,6 +136,23 @@ function DiasporaPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // ─── Diaspora FAQs — real, CRM-editable content (faqs table, category
+  // "diaspora"). No fabricated fallback: if none are published yet, the
+  // section below hides instead of showing placeholder Q&As.
+  const [diasporaFaqs, setDiasporaFaqs] = useState<Faq[]>([]);
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      const { data } = await supabase
+        .from("faqs")
+        .select("*")
+        .eq("category", "diaspora")
+        .eq("is_published", true)
+        .order("display_order");
+      setDiasporaFaqs((data as Faq[]) ?? []);
+    };
+    fetchFaqs();
   }, []);
 
   const [nairobiTime, setNairobiTime] = useState<string>("");
@@ -849,53 +867,38 @@ function DiasporaPage() {
         </div>
       </section>
 
-      {/* DIASPORA FAQS */}
-      <section className="py-20 bg-white">
-        <div className="mx-auto max-w-7xl px-6 lg:px-12">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <Globe className="text-accent mx-auto" size={36} />
-            <h2 className="font-serif font-semibold text-[38px] text-primary mt-4 leading-tight">
-              Diaspora Investment FAQs
-            </h2>
-            <p className="text-[15px] text-muted-foreground mt-2">
-              Everything you need to know about purchasing land securely from abroad.
-            </p>
-          </div>
+      {/* DIASPORA FAQS — hidden until real content exists, no fabricated fallback Q&As */}
+      {diasporaFaqs.length > 0 && (
+        <section className="py-20 bg-white">
+          <div className="mx-auto max-w-7xl px-6 lg:px-12">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <Globe className="text-accent mx-auto" size={36} />
+              <h2 className="font-serif font-semibold text-[38px] text-primary mt-4 leading-tight">
+                Diaspora Investment FAQs
+              </h2>
+              <p className="text-[15px] text-muted-foreground mt-2">
+                Everything you need to know about purchasing land securely from abroad.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                q: "Do I need to travel to Kenya to purchase or receive my title deed?",
-                a: "No. The entire process is designed for remote completion. You can browse live plot maps, schedule virtual walkthroughs, review certified searches, sign agreements digitally via secure e-signatures, and have your original registered title deed shipped directly to your address globally via DHL.",
-              },
-              {
-                q: "How can I verify that the land is genuine before making a payment?",
-                a: "Once you reserve a plot, Gatepath Realtors provides a certified copy of the Land Search Certificate and the Registry Deed Plan. You can verify these documents independently at the Land Registry, through legal counsel in Kenya, or through Ardhisasa (Ministry of Lands portal).",
-              },
-              {
-                q: "Can I make installment payments from abroad?",
-                a: "Yes. We support installment plans (Lipa Pole Pole) spanning up to 12 months for diaspora buyers. Deposits and monthly installments can be paid securely using cards or international bank transfers via Paystack.",
-              },
-              {
-                q: "What currency will I actually be charged in?",
-                a: "Prices are shown in your selected currency for convenience, but Paystack always settles in Kenyan Shillings (KES) — the exact KES amount is shown before you confirm payment, so there are never surprises from exchange-rate estimates.",
-              },
-              {
-                q: "What legal protection do I have during the transaction?",
-                a: "All transactions are bound by a legally binding Land Purchase Agreement vetted by our legal department. Your deposit is secured in an escrow-backed account until all transfers are successfully registered under your name at the Land Office.",
-              },
-            ].map((faq) => (
-              <div key={faq.q} className="flex gap-4">
-                <HelpCircle className="text-primary shrink-0" size={24} />
-                <div>
-                  <h4 className="font-serif font-semibold text-[18px] text-primary">{faq.q}</h4>
-                  <p className="text-[14px] text-muted-foreground leading-relaxed mt-2">{faq.a}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {diasporaFaqs.map((faq) => (
+                <div key={faq.id} className="flex gap-4">
+                  <HelpCircle className="text-primary shrink-0" size={24} />
+                  <div>
+                    <h4 className="font-serif font-semibold text-[18px] text-primary">
+                      {faq.question}
+                    </h4>
+                    <p className="text-[14px] text-muted-foreground leading-relaxed mt-2">
+                      {faq.answer}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <Footer />
       <WhatsAppButton />

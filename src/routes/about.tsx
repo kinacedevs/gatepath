@@ -1,9 +1,21 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { ShieldCheck, Award, Users, Building, CheckCircle2, Phone, MapPin, Mail, Calendar } from "lucide-react";
+import {
+  ShieldCheck,
+  Award,
+  Users,
+  Building,
+  CheckCircle2,
+  Phone,
+  MapPin,
+  Mail,
+  Calendar,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import type { TeamProfile } from "@/lib/types";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -20,38 +32,41 @@ export const Route = createFileRoute("/about")({
 });
 
 function AboutPage() {
-  const staffMembers = [
-    {
-      name: "Joe Muchiri",
-      role: "CEO & Managing Director",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80",
-      bio: "Visionary founder committed to 100% title deed transparency and empowering everyday land ownership in Kenya.",
-    },
-    {
-      name: "Marya Wanjiku",
-      role: "Head of Diaspora Relations",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
-      bio: "Dedicated advisor assisting diaspora clients across the UK, USA, UAE, and Canada with seamless remote conveyancing.",
-    },
-    {
-      name: "Joel Ochieng",
-      role: "Senior Legal Conveyancing Officer",
-      image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80",
-      bio: "Oversees land registry title searches, survey beacon verifications, and legal deed transfers.",
-    },
-    {
-      name: "RoseMary Njeri",
-      role: "Customer Operations Lead",
-      image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80",
-      bio: "Coordinates free guided site visits, M-Pesa payment receipts, and client onboarding.",
-    },
-  ];
+  const [staffMembers, setStaffMembers] = useState<TeamProfile[]>([]);
+
+  useEffect(() => {
+    const fetchTeam = async () => {
+      const { data } = await supabase
+        .from("team_profiles")
+        .select("*")
+        .eq("is_published", true)
+        .order("display_order");
+      setStaffMembers((data as TeamProfile[]) ?? []);
+    };
+    fetchTeam();
+  }, []);
 
   const milestones = [
-    { year: "2020", title: "Company Founded", desc: "Gatepath Realtors established with a mission to make land buying transparent and fraud-free." },
-    { year: "2022", title: "First 100 Title Deeds Delivered", desc: "Successfully issued and handed over 100 individual title deeds in Machakos & Kilifi." },
-    { year: "2023", title: "Diaspora Concierge Hub Launched", desc: "Expanded remote buying services for Kenyans living in the UK, USA, Canada & UAE." },
-    { year: "2026", title: "500+ Happy Landowners", desc: "Over 500 verified plots sold across 12 prime locations in Kenya." },
+    {
+      year: "2020",
+      title: "Company Founded",
+      desc: "Gatepath Realtors established with a mission to make land buying transparent and fraud-free.",
+    },
+    {
+      year: "2022",
+      title: "First 100 Title Deeds Delivered",
+      desc: "Successfully issued and handed over 100 individual title deeds in Machakos & Kilifi.",
+    },
+    {
+      year: "2023",
+      title: "Diaspora Concierge Hub Launched",
+      desc: "Expanded remote buying services for Kenyans living in the UK, USA, Canada & UAE.",
+    },
+    {
+      year: "2026",
+      title: "500+ Happy Landowners",
+      desc: "Over 500 verified plots sold across 12 prime locations in Kenya.",
+    },
   ];
 
   return (
@@ -69,7 +84,8 @@ function AboutPage() {
               Built on Trust. <span className="text-accent">Led by Joe Muchiri.</span>
             </h1>
             <p className="text-base text-slate-300 max-w-2xl leading-relaxed">
-              Gatepath Realtors is Kenya's trusted land sales company. We believe every everyday Kenyan deserves affordable, fully verified land ownership backed by ready title deeds.
+              Gatepath Realtors is Kenya's trusted land sales company. We believe every everyday
+              Kenyan deserves affordable, fully verified land ownership backed by ready title deeds.
             </p>
           </div>
         </div>
@@ -93,16 +109,22 @@ function AboutPage() {
           </div>
 
           <div className="lg:col-span-7 space-y-6">
-            <span className="text-xs font-bold uppercase tracking-widest text-accent">A Message From Our CEO</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-accent">
+              A Message From Our CEO
+            </span>
             <h2 className="font-serif font-bold text-3xl sm:text-4xl text-primary-deep">
               "Your Interest is Our Priority — That Is Our Unbroken Promise."
             </h2>
             <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
               <p>
-                When I founded Gatepath Realtors in 2020, I saw a market where hard-working Kenyans were terrified of land fraud, double allocations, and delayed title deeds. We set out to change that paradigm completely.
+                When I founded Gatepath Realtors in 2020, I saw a market where hard-working Kenyans
+                were terrified of land fraud, double allocations, and delayed title deeds. We set
+                out to change that paradigm completely.
               </p>
               <p>
-                Every plot of land listed on our platform undergoes rigorous survey beaconing, Ministry of Lands searches, and legal title verification. We don't just sell land — we secure your family's future.
+                Every plot of land listed on our platform undergoes rigorous survey beaconing,
+                Ministry of Lands searches, and legal title verification. We don't just sell land —
+                we secure your family's future.
               </p>
             </div>
 
@@ -120,13 +142,20 @@ function AboutPage() {
       <section className="bg-primary-deep text-white py-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-accent">OUR JOURNEY</span>
-            <h2 className="font-serif font-bold text-3xl sm:text-4xl">Milestones of Growth & Trust</h2>
+            <span className="text-xs font-bold uppercase tracking-widest text-accent">
+              OUR JOURNEY
+            </span>
+            <h2 className="font-serif font-bold text-3xl sm:text-4xl">
+              Milestones of Growth & Trust
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {milestones.map((m, idx) => (
-              <div key={idx} className="bg-white/10 border border-white/15 backdrop-blur-md rounded-2xl p-6 space-y-3">
+              <div
+                key={idx}
+                className="bg-white/10 border border-white/15 backdrop-blur-md rounded-2xl p-6 space-y-3"
+              >
                 <span className="font-stat-lg text-3xl font-extrabold text-accent">{m.year}</span>
                 <h3 className="font-serif font-bold text-lg text-white">{m.title}</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">{m.desc}</p>
@@ -136,46 +165,74 @@ function AboutPage() {
         </div>
       </section>
 
-      {/* Staff Roster & Leadership Team */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-10 py-16 space-y-12">
-        <div className="text-center max-w-2xl mx-auto space-y-3">
-          <span className="text-xs font-bold uppercase tracking-widest text-accent">OUR TEAM</span>
-          <h2 className="font-serif font-bold text-3xl sm:text-4xl text-primary-deep">Meet the Gatepath Leadership</h2>
-          <p className="text-sm text-slate-600">Dedicated legal officers, diaspora liaisons, and customer support managers.</p>
-        </div>
+      {/* Staff Roster & Leadership Team — hidden until real profiles exist,
+          no fabricated fallback names/stock photos */}
+      {staffMembers.length > 0 && (
+        <section className="mx-auto max-w-7xl px-6 lg:px-10 py-16 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-accent">
+              OUR TEAM
+            </span>
+            <h2 className="font-serif font-bold text-3xl sm:text-4xl text-primary-deep">
+              Meet the Gatepath Leadership
+            </h2>
+            <p className="text-sm text-slate-600">
+              Dedicated legal officers, diaspora liaisons, and customer support managers.
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {staffMembers.map((staff, idx) => (
-            <div key={idx} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden text-center p-6 space-y-4">
-              <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-2 border-accent">
-                <img
-                  src={staff.image}
-                  alt={staff.name}
-                  loading="lazy"
-                  className="w-full h-full object-cover"
-                />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {staffMembers.map((staff) => (
+              <div
+                key={staff.id}
+                className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden text-center p-6 space-y-4"
+              >
+                <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-2 border-accent bg-slate-100">
+                  {staff.photo_url && (
+                    <img
+                      src={staff.photo_url}
+                      alt={staff.full_name}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-primary-deep">
+                    {staff.full_name}
+                  </h3>
+                  <span className="text-xs font-bold text-accent uppercase tracking-wider block mt-0.5">
+                    {staff.role_title}
+                  </span>
+                </div>
+                {staff.bio && <p className="text-xs text-slate-500 leading-relaxed">{staff.bio}</p>}
               </div>
-              <div>
-                <h3 className="font-serif font-bold text-lg text-primary-deep">{staff.name}</h3>
-                <span className="text-xs font-bold text-accent uppercase tracking-wider block mt-0.5">{staff.role}</span>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed">{staff.bio}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Working Office Location & Google Map */}
       <section className="mx-auto max-w-7xl px-6 lg:px-10 py-12">
         <div className="bg-white rounded-3xl border border-slate-200 p-8 lg:p-12 shadow-sm space-y-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-accent">PHYSICAL HEADQUARTERS</span>
-              <h3 className="font-serif font-bold text-2xl text-primary-deep mt-1">Visit Us at CNM Centre, Ruiru Bypass</h3>
+              <span className="text-xs font-bold uppercase tracking-widest text-accent">
+                PHYSICAL HEADQUARTERS
+              </span>
+              <h3 className="font-serif font-bold text-2xl text-primary-deep mt-1">
+                Visit Us at CNM Centre, Ruiru Bypass
+              </h3>
             </div>
             <div className="text-xs text-slate-600 space-y-1">
-              <p className="flex items-center gap-2"><MapPin size={14} className="text-accent" /> 1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi</p>
-              <p className="flex items-center gap-2"><Phone size={14} className="text-accent" /> +254 799 488 488 | Office Hours: Mon–Sat (8am – 6pm)</p>
+              <p className="flex items-center gap-2">
+                <MapPin size={14} className="text-accent" /> 1st Floor, CNM Centre, Ruiru Eastern
+                Bypass, Nairobi
+              </p>
+              <p className="flex items-center gap-2">
+                <Phone size={14} className="text-accent" /> +254 799 488 488 | Office Hours: Mon–Sat
+                (8am – 6pm)
+              </p>
             </div>
           </div>
 

@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Facebook, Instagram, Music2, Phone, Mail, Building2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { supabase } from "@/lib/supabase";
 import logoIcon from "@/assets/logo-icon.png";
 
 const locations = [
@@ -17,7 +19,50 @@ const locations = [
   "Nanyuki",
 ];
 
+const DEFAULT_CONTACT = {
+  phone: "+254 799 488 488",
+  email: "info@gatepathrealtors.com",
+  addressLine1: "1st Floor, CNM Centre,",
+  addressLine2: "Ruiru Eastern Bypass, Nairobi",
+  hours: "Mon–Fri: 8am–6pm | Sat: 9am–4pm",
+  facebookUrl: "#",
+  instagramUrl: "#",
+  tiktokUrl: "#",
+};
+
 export function Footer() {
+  const [contact, setContact] = useState(DEFAULT_CONTACT);
+
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("site_banners")
+          .select("data")
+          .eq("id", "contact_info")
+          .maybeSingle();
+        // Only override a field if the CEO has actually set it — otherwise
+        // keep the matching default, no flash-to-empty.
+        const d = data?.data;
+        if (d) {
+          setContact({
+            phone: d.phone || DEFAULT_CONTACT.phone,
+            email: d.email || DEFAULT_CONTACT.email,
+            addressLine1: d.address_line1 || DEFAULT_CONTACT.addressLine1,
+            addressLine2: d.address_line2 || DEFAULT_CONTACT.addressLine2,
+            hours: d.hours || DEFAULT_CONTACT.hours,
+            facebookUrl: d.facebook_url || DEFAULT_CONTACT.facebookUrl,
+            instagramUrl: d.instagram_url || DEFAULT_CONTACT.instagramUrl,
+            tiktokUrl: d.tiktok_url || DEFAULT_CONTACT.tiktokUrl,
+          });
+        }
+      } catch {
+        // Defaults are already showing — nothing to do.
+      }
+    };
+    fetchContactInfo();
+  }, []);
+
   return (
     <footer id="contact" className="bg-footer-deep text-white">
       <div className="mx-auto max-w-7xl px-6 lg:px-10 pt-20 pb-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
@@ -54,10 +99,16 @@ export function Footer() {
             piece of Kenya.
           </p>
           <div className="mt-6 flex gap-3">
-            {[Facebook, Instagram, Music2].map((Icon, i) => (
+            {[
+              { Icon: Facebook, href: contact.facebookUrl },
+              { Icon: Instagram, href: contact.instagramUrl },
+              { Icon: Music2, href: contact.tiktokUrl },
+            ].map(({ Icon, href }, i) => (
               <a
                 key={i}
-                href="#"
+                href={href}
+                target={href === "#" ? undefined : "_blank"}
+                rel={href === "#" ? undefined : "noopener noreferrer"}
                 className="h-10 w-10 rounded-full border border-accent flex items-center justify-center text-white hover:bg-accent hover:text-primary transition-colors"
               >
                 <Icon size={16} strokeWidth={1.5} />
@@ -119,29 +170,29 @@ export function Footer() {
           <ul className="mt-5 space-y-4">
             <li>
               <a
-                href="tel:+254799488488"
+                href={`tel:${contact.phone.replace(/\s/g, "")}`}
                 className="inline-flex items-center gap-2 text-[15px] font-medium text-white hover:text-accent"
               >
-                <Phone size={14} className="shrink-0" /> +254 799 488 488
+                <Phone size={14} className="shrink-0" /> {contact.phone}
               </a>
             </li>
             <li>
               <a
-                href="mailto:info@gatepathrealtors.com"
+                href={`mailto:${contact.email}`}
                 className="inline-flex items-center gap-2 text-[14px] text-accent hover:underline"
               >
-                <Mail size={14} className="shrink-0" /> info@gatepathrealtors.com
+                <Mail size={14} className="shrink-0" /> {contact.email}
               </a>
             </li>
             <li className="flex items-start gap-2 text-[13px] text-white/60 leading-relaxed">
               <Building2 size={14} className="shrink-0 mt-0.5" />
               <span>
-                1st Floor, CNM Centre,
+                {contact.addressLine1}
                 <br />
-                Ruiru Eastern Bypass, Nairobi
+                {contact.addressLine2}
               </span>
             </li>
-            <li className="text-[13px] text-white/50">Mon–Fri: 8am–6pm | Sat: 9am–4pm</li>
+            <li className="text-[13px] text-white/50">{contact.hours}</li>
           </ul>
         </div>
       </div>
