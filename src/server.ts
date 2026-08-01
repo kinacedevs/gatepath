@@ -165,7 +165,7 @@ export default {
             !cacheHeader ||
             (!cacheHeader.includes("private") && !cacheHeader.includes("no-store"))
           ) {
-            const responseToCache = new Response(normalized.body, normalized);
+            const responseToCache = new Response(normalized.clone().body, normalized);
             // Cache for 60 seconds at the edge
             responseToCache.headers.set("Cache-Control", "public, max-age=60");
 
