@@ -13,7 +13,7 @@
  * derived 5th column was rejected).
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   useDraggable,
@@ -23,10 +23,18 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { GripVertical, Search, CalendarCheck } from "lucide-react";
+import { GripVertical, Search, CalendarCheck, UserPlus, UserX, TrendingUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { updateInquiryStatusFn } from "@/lib/leadsActions";
 import { StatusBadge, INQUIRY_STATUS_TONE } from "@/components/admin/StatusBadge";
+import { KpiCard } from "@/components/admin/KpiCard";
+import { SectionCard } from "@/components/admin/SectionCard";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { FreshnessStamp } from "@/components/admin/FreshnessStamp";
+import { FunnelChart } from "@/components/admin/charts/FunnelChart";
+import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
+import { TrendChart } from "@/components/admin/charts/TrendChart";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Inquiry } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/leads")({
@@ -146,7 +154,9 @@ function KanbanColumn({
     <div
       ref={setNodeRef}
       className={`flex-none w-[300px] flex flex-col rounded-xl border transition-colors ${
-        isOver ? "border-secondary bg-secondary-fixed/20" : "border-outline-variant/30 bg-surface-container-low/40"
+        isOver
+          ? "border-secondary bg-secondary-fixed/20"
+          : "border-outline-variant/30 bg-surface-container-low/40"
       }`}
     >
       <div className="px-4 py-3.5 border-b border-outline-variant/20 flex items-center justify-between">
@@ -174,6 +184,7 @@ function LeadsPipeline() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
@@ -190,11 +201,57 @@ function LeadsPipeline() {
         new Set(bookingRows.map((b) => b.inquiry_id).filter(Boolean) as string[]),
       );
       setLoading(false);
+      setLastUpdated(new Date());
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // ── Insights layer (VIZ_BLUEPRINT Phase 2, Slice 2) — derived entirely
+  // from the same `inquiries` fetch above, no extra queries. Only real,
+  // schema-backed metrics (docs/VIZ_SPEC.md §2) — speed-to-lead, hot-lead
+  // scoring and an SLA gauge all need an interaction log that doesn't exist
+  // yet, so they're not built here rather than faked.
+  const insights = useMemo(() => {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const newToday = inquiries.filter((i) => i.created_at.slice(0, 10) === todayKey).length;
+    const unassigned = inquiries.filter((i) => !i.cro_name).length;
+    const won = inquiries.filter((i) => i.status === "approved").length;
+    const conversionPct = inquiries.length > 0 ? Math.round((won / inquiries.length) * 100) : 0;
+
+    const funnelData = COLUMNS.map((col) => ({
+      name: col.label,
+      value: inquiries.filter((i) => i.status === col.status).length,
+    }));
+
+    const sourceCounts = new Map<string, number>();
+    for (const i of inquiries) {
+      const source = i.heard_from?.trim() || "Unknown";
+      sourceCounts.set(source, (sourceCounts.get(source) ?? 0) + 1);
+    }
+    const sourceData = Array.from(sourceCounts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+
+    const dayBuckets = new Map<string, number>();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dayBuckets.set(d.toISOString().slice(0, 10), 0);
+    }
+    for (const inq of inquiries) {
+      const key = inq.created_at.slice(0, 10);
+      if (dayBuckets.has(key)) dayBuckets.set(key, (dayBuckets.get(key) ?? 0) + 1);
+    }
+    const trendData = Array.from(dayBuckets.entries()).map(([date, value]) => ({
+      day: new Date(date).toLocaleDateString("en-KE", { day: "numeric", month: "short" }),
+      value,
+    }));
+
+    return { newToday, unassigned, conversionPct, funnelData, sourceData, trendData };
+  }, [inquiries]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -206,9 +263,7 @@ function LeadsPipeline() {
     if (!current || current.status === newStatus) return;
 
     // Optimistic update, rolled back on server error.
-    setInquiries((prev) =>
-      prev.map((i) => (i.id === inquiryId ? { ...i, status: newStatus } : i)),
-    );
+    setInquiries((prev) => prev.map((i) => (i.id === inquiryId ? { ...i, status: newStatus } : i)));
     setError(null);
 
     const { data: sessionData } = await supabase.auth.getSession();
@@ -240,7 +295,7 @@ function LeadsPipeline() {
 
   return (
     <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="mb-6 flex justify-between items-end shrink-0">
+      <div className="mb-6 flex justify-between items-end shrink-0 flex-wrap gap-3">
         <div>
           <h1 className="font-headline-md text-headline-md text-primary font-bold">
             Leads &amp; Pipeline
@@ -249,20 +304,75 @@ function LeadsPipeline() {
             Drag a card to move it through the pipeline.
           </p>
         </div>
-        <div className="relative w-[260px]">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search leads..."
-            className="w-full pl-9 pr-3 py-2.5 border border-outline-variant/40 rounded-lg text-[13px] text-primary-container outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
-          />
+        <div className="flex items-center gap-3">
+          <FreshnessStamp updatedAt={lastUpdated} />
+          <div className="relative w-[260px]">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search leads..."
+              className="w-full pl-9 pr-3 py-2.5 border border-outline-variant/40 rounded-lg text-[13px] text-primary-container outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
+            />
+          </div>
         </div>
       </div>
+
+      {!loading && (
+        <div className="mb-6 shrink-0 flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <KpiCard label="New Today" value={String(insights.newToday)} icon={UserPlus} />
+            <KpiCard
+              label="Unassigned"
+              value={String(insights.unassigned)}
+              icon={UserX}
+              tone={insights.unassigned > 0 ? "warning" : "default"}
+            />
+            <KpiCard
+              label="Conversion Rate"
+              value={`${insights.conversionPct}%`}
+              icon={TrendingUp}
+              tone="success"
+            />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <SectionCard title="Pipeline Snapshot">
+              {insights.funnelData.every((f) => f.value === 0) ? (
+                <EmptyState title="No leads yet" />
+              ) : (
+                <FunnelChart data={insights.funnelData} height={180} />
+              )}
+            </SectionCard>
+            <SectionCard title="Leads by Source">
+              {insights.sourceData.length === 0 ? (
+                <EmptyState title="No source data yet" />
+              ) : (
+                <CategoryBarChart
+                  data={insights.sourceData}
+                  xKey="name"
+                  yKey="value"
+                  height={180}
+                  horizontal
+                />
+              )}
+            </SectionCard>
+            <SectionCard title="Leads — Last 30 Days">
+              <TrendChart data={insights.trendData} xKey="day" yKey="value" height={180} />
+            </SectionCard>
+          </div>
+        </div>
+      )}
+      {loading && (
+        <div className="mb-6 shrink-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Skeleton className="h-45 rounded-xl" />
+          <Skeleton className="h-45 rounded-xl" />
+          <Skeleton className="h-45 rounded-xl" />
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 px-4 py-2.5 bg-error/10 text-error text-[13px] rounded-lg shrink-0">
