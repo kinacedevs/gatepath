@@ -34,6 +34,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminPropertyMatchingRouteImport } from './routes/admin.property-matching'
 import { Route as AdminPlotsRouteImport } from './routes/admin.plots'
+import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMeetingsRouteImport } from './routes/admin.meetings'
 import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
 import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
@@ -175,6 +176,11 @@ const AdminPlotsRoute = AdminPlotsRouteImport.update({
   path: '/plots',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMeetingsRoute = AdminMeetingsRouteImport.update({
   id: '/meetings',
   path: '/meetings',
@@ -276,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -360,6 +368,7 @@ export interface FileRoutesById {
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -404,6 +413,7 @@ export interface FileRouteTypes {
     | '/admin/installments'
     | '/admin/leads'
     | '/admin/meetings'
+    | '/admin/notifications'
     | '/admin/plots'
     | '/admin/property-matching'
     | '/admin/reports'
@@ -445,6 +455,7 @@ export interface FileRouteTypes {
     | '/admin/installments'
     | '/admin/leads'
     | '/admin/meetings'
+    | '/admin/notifications'
     | '/admin/plots'
     | '/admin/property-matching'
     | '/admin/reports'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/admin/installments'
     | '/admin/leads'
     | '/admin/meetings'
+    | '/admin/notifications'
     | '/admin/plots'
     | '/admin/property-matching'
     | '/admin/reports'
@@ -705,6 +717,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPlotsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/notifications': {
+      id: '/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AdminNotificationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/meetings': {
       id: '/admin/meetings'
       path: '/meetings'
@@ -837,6 +856,7 @@ interface AdminRouteChildren {
   AdminInstallmentsRoute: typeof AdminInstallmentsRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
   AdminMeetingsRoute: typeof AdminMeetingsRoute
+  AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPlotsRoute: typeof AdminPlotsRouteWithChildren
   AdminPropertyMatchingRoute: typeof AdminPropertyMatchingRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -859,6 +879,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminInstallmentsRoute: AdminInstallmentsRoute,
   AdminLeadsRoute: AdminLeadsRoute,
   AdminMeetingsRoute: AdminMeetingsRoute,
+  AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPlotsRoute: AdminPlotsRouteWithChildren,
   AdminPropertyMatchingRoute: AdminPropertyMatchingRoute,
   AdminReportsRoute: AdminReportsRoute,
