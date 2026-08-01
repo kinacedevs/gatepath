@@ -230,6 +230,18 @@ export type Faq = {
   created_at: string;
 };
 
+export type InteractionLog = {
+  id: string;
+  inquiry_id: string;
+  channel: "call" | "email" | "whatsapp" | "sms" | "site_visit" | "other";
+  direction: "outbound" | "inbound";
+  notes: string | null;
+  logged_by_name: string | null;
+  logged_by_email: string | null;
+  occurred_at: string;
+  created_at: string;
+};
+
 export type BlogPost = {
   id: string;
   title: string;
@@ -338,6 +350,11 @@ export type Database = {
         Row: Faq;
         Insert: Omit<Faq, "id" | "created_at">;
         Update: Partial<Omit<Faq, "id" | "created_at">>;
+      };
+      interaction_log: {
+        Row: InteractionLog;
+        Insert: Omit<InteractionLog, "id" | "created_at">;
+        Update: Partial<Omit<InteractionLog, "id" | "created_at">>;
       };
     };
     Views: {
