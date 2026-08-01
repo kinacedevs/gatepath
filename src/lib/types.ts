@@ -192,6 +192,44 @@ export type Affiliate = {
   created_at: string;
 };
 
+export type SiteBanner = {
+  id: string;
+  data: Record<string, any>;
+  updated_at: string;
+};
+
+export type Testimonial = {
+  id: string;
+  client_name: string;
+  client_initials: string;
+  quote: string;
+  tag: string | null;
+  is_published: boolean;
+  display_order: number;
+  created_at: string;
+};
+
+export type TeamProfile = {
+  id: string;
+  full_name: string;
+  role_title: string;
+  photo_url: string | null;
+  bio: string | null;
+  is_published: boolean;
+  display_order: number;
+  created_at: string;
+};
+
+export type Faq = {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  is_published: boolean;
+  display_order: number;
+  created_at: string;
+};
+
 export type BlogPost = {
   id: string;
   title: string;
@@ -282,9 +320,24 @@ export type Database = {
         Update: Partial<Omit<Affiliate, "id" | "created_at">>;
       };
       site_banners: {
-        Row: { id: string; data: Record<string, any>; updated_at: string };
+        Row: SiteBanner;
         Insert: { id: string; data: Record<string, any> };
         Update: { data?: Record<string, any>; updated_at?: string };
+      };
+      testimonials: {
+        Row: Testimonial;
+        Insert: Omit<Testimonial, "id" | "created_at">;
+        Update: Partial<Omit<Testimonial, "id" | "created_at">>;
+      };
+      team_profiles: {
+        Row: TeamProfile;
+        Insert: Omit<TeamProfile, "id" | "created_at">;
+        Update: Partial<Omit<TeamProfile, "id" | "created_at">>;
+      };
+      faqs: {
+        Row: Faq;
+        Insert: Omit<Faq, "id" | "created_at">;
+        Update: Partial<Omit<Faq, "id" | "created_at">>;
       };
     };
     Views: {

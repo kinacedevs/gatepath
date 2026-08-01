@@ -24,6 +24,7 @@ import {
   LogOut,
   Plus,
   BarChart2,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -76,6 +77,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "CONTENT & ADMIN",
     items: [
       { to: "/admin/campaigns", label: "Campaigns & Blog", icon: Megaphone },
+      { to: "/admin/site-content", label: "Site Content", icon: Globe },
       { to: "/admin/staff", label: "Staff Accounts", icon: UserCheck },
       { to: "/admin/settings", label: "System Settings", icon: Settings },
     ],

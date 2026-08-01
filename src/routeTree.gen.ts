@@ -28,6 +28,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PropertiesSlugRouteImport } from './routes/properties.$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
+import { Route as AdminSiteContentRouteImport } from './routes/admin.site-content'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminPlotsRouteImport } from './routes/admin.plots'
 import { Route as AdminMeetingsRouteImport } from './routes/admin.meetings'
@@ -140,6 +141,11 @@ const AdminStaffRoute = AdminStaffRouteImport.update({
   path: '/staff',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSiteContentRoute = AdminSiteContentRouteImport.update({
+  id: '/site-content',
+  path: '/site-content',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -247,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
@@ -283,6 +290,7 @@ export interface FileRoutesByTo {
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
@@ -360,6 +369,7 @@ export interface FileRouteTypes {
     | '/admin/meetings'
     | '/admin/plots'
     | '/admin/settings'
+    | '/admin/site-content'
     | '/admin/staff'
     | '/blog/$slug'
     | '/properties/$slug'
@@ -396,6 +406,7 @@ export interface FileRouteTypes {
     | '/admin/meetings'
     | '/admin/plots'
     | '/admin/settings'
+    | '/admin/site-content'
     | '/admin/staff'
     | '/blog/$slug'
     | '/properties/$slug'
@@ -433,6 +444,7 @@ export interface FileRouteTypes {
     | '/admin/meetings'
     | '/admin/plots'
     | '/admin/settings'
+    | '/admin/site-content'
     | '/admin/staff'
     | '/blog/$slug'
     | '/properties/$slug'
@@ -603,6 +615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStaffRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/site-content': {
+      id: '/admin/site-content'
+      path: '/site-content'
+      fullPath: '/admin/site-content'
+      preLoaderRoute: typeof AdminSiteContentRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/settings'
@@ -743,6 +762,7 @@ interface AdminRouteChildren {
   AdminMeetingsRoute: typeof AdminMeetingsRoute
   AdminPlotsRoute: typeof AdminPlotsRouteWithChildren
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminSiteContentRoute: typeof AdminSiteContentRoute
   AdminStaffRoute: typeof AdminStaffRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -760,6 +780,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMeetingsRoute: AdminMeetingsRoute,
   AdminPlotsRoute: AdminPlotsRouteWithChildren,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminSiteContentRoute: AdminSiteContentRoute,
   AdminStaffRoute: AdminStaffRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
