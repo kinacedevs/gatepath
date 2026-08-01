@@ -187,6 +187,9 @@ export type AdminUser = {
   email: string;
   full_name: string | null;
   role: "ceo" | "manager" | "agent";
+  /** 0–1 decimal (e.g. 0.03 = 3%). Nullable — not set = "not configured
+   * yet", never a fabricated 0%. Added migration 0015. */
+  commission_rate: number | null;
   created_at: string;
 };
 
@@ -281,6 +284,19 @@ export type BuyerPreference = {
   created_by_name: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type CommissionPayout = {
+  id: string;
+  inquiry_id: string;
+  agent_email: string;
+  agent_name: string | null;
+  commission_rate_applied: number;
+  commission_amount_kes: number;
+  paid_at: string;
+  paid_by_email: string | null;
+  paid_by_name: string | null;
+  created_at: string;
 };
 
 export type Task = {
@@ -447,6 +463,11 @@ export type Database = {
         Row: AuditLog;
         Insert: Omit<AuditLog, "id" | "created_at">;
         Update: Partial<Omit<AuditLog, "id" | "created_at">>;
+      };
+      commission_payouts: {
+        Row: CommissionPayout;
+        Insert: Omit<CommissionPayout, "id" | "created_at">;
+        Update: Partial<Omit<CommissionPayout, "id" | "created_at">>;
       };
     };
     Views: {
