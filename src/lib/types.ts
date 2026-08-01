@@ -230,6 +230,22 @@ export type Faq = {
   created_at: string;
 };
 
+export type DocumentType =
+  "agreement" | "offer" | "receipt" | "title_deed" | "id_copy" | "poa" | "other";
+
+export type DocumentRecord = {
+  id: string;
+  inquiry_id: string | null;
+  document_type: DocumentType;
+  storage_path: string;
+  file_name: string;
+  file_size_bytes: number | null;
+  notes: string | null;
+  uploaded_by_email: string | null;
+  uploaded_by_name: string | null;
+  created_at: string;
+};
+
 export type BuyerPreference = {
   id: string;
   client_name: string;
@@ -399,6 +415,11 @@ export type Database = {
         Row: BuyerPreference;
         Insert: Omit<BuyerPreference, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<BuyerPreference, "id" | "created_at" | "updated_at">>;
+      };
+      document_records: {
+        Row: DocumentRecord;
+        Insert: Omit<DocumentRecord, "id" | "created_at">;
+        Update: Partial<Omit<DocumentRecord, "id" | "created_at">>;
       };
     };
     Views: {
