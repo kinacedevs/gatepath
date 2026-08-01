@@ -17,6 +17,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { sendResendEmail } from "./notifications";
 import { findMatchingPlots } from "./propertyMatching";
+import { logAuditEvent } from "./auditLog";
 import type { Phase, Plot } from "./types";
 
 async function verifyStaffCaller(callerAccessToken: string) {
@@ -74,6 +75,15 @@ export const createBuyerPreferenceFn = createServerFn({ method: "POST" })
     });
 
     if (error) return { success: false, error: error.message };
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: "buyer_preference.create",
+      entityType: "buyer_preferences",
+      details: { clientName: data.clientName },
+    });
+
     return { success: true };
   });
 
@@ -104,6 +114,16 @@ export const updateBuyerPreferenceFn = createServerFn({ method: "POST" })
       .eq("id", data.preferenceId);
 
     if (error) return { success: false, error: error.message };
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: "buyer_preference.update",
+      entityType: "buyer_preferences",
+      entityId: data.preferenceId,
+      details: patch,
+    });
+
     return { success: true };
   });
 

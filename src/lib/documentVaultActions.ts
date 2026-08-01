@@ -16,6 +16,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
+import { logAuditEvent } from "./auditLog";
 import type { DocumentType } from "./types";
 
 const BUCKET = "documents";
@@ -95,6 +96,16 @@ export const createDocumentRecordFn = createServerFn({ method: "POST" })
     });
 
     if (error) return { success: false, error: error.message };
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: "document.upload",
+      entityType: "document_records",
+      entityId: data.storagePath,
+      details: { documentType: data.documentType, fileName: data.fileName },
+    });
+
     return { success: true };
   });
 
@@ -147,5 +158,14 @@ export const deleteDocumentRecordFn = createServerFn({ method: "POST" })
       .eq("id", data.documentId);
 
     if (error) return { success: false, error: error.message };
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: "document.delete",
+      entityType: "document_records",
+      entityId: data.documentId,
+    });
+
     return { success: true };
   });

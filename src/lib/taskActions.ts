@@ -17,6 +17,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { sendResendEmail } from "./notifications";
+import { logAuditEvent } from "./auditLog";
 
 async function verifyStaffCaller(callerAccessToken: string) {
   const anonClient = getAnonClient();
@@ -69,6 +70,15 @@ export const createTaskFn = createServerFn({ method: "POST" })
     });
 
     if (error) return { success: false, error: error.message };
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: "task.create",
+      entityType: "tasks",
+      details: { title: data.title },
+    });
+
     return { success: true };
   });
 
@@ -98,6 +108,16 @@ export const updateTaskFn = createServerFn({ method: "POST" })
 
     const { error } = await caller.serviceClient.from("tasks").update(patch).eq("id", data.taskId);
     if (error) return { success: false, error: error.message };
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: "task.update",
+      entityType: "tasks",
+      entityId: data.taskId,
+      details: patch,
+    });
+
     return { success: true };
   });
 
