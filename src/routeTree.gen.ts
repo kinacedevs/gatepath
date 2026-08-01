@@ -38,6 +38,7 @@ import { Route as AdminMeetingsRouteImport } from './routes/admin.meetings'
 import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
 import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
 import { Route as AdminInquiriesRouteImport } from './routes/admin.inquiries'
+import { Route as AdminDocumentsRouteImport } from './routes/admin.documents'
 import { Route as AdminDealsRouteImport } from './routes/admin.deals'
 import { Route as AdminContactsRouteImport } from './routes/admin.contacts'
 import { Route as AdminCampaignsRouteImport } from './routes/admin.campaigns'
@@ -194,6 +195,11 @@ const AdminInquiriesRoute = AdminInquiriesRouteImport.update({
   path: '/inquiries',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDocumentsRoute = AdminDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDealsRoute = AdminDealsRouteImport.update({
   id: '/deals',
   path: '/deals',
@@ -265,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/contacts': typeof AdminContactsRoute
   '/admin/deals': typeof AdminDealsRoute
+  '/admin/documents': typeof AdminDocumentsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/contacts': typeof AdminContactsRoute
   '/admin/deals': typeof AdminDealsRoute
+  '/admin/documents': typeof AdminDocumentsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/admin/campaigns': typeof AdminCampaignsRoute
   '/admin/contacts': typeof AdminContactsRoute
   '/admin/deals': typeof AdminDealsRoute
+  '/admin/documents': typeof AdminDocumentsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -390,6 +399,7 @@ export interface FileRouteTypes {
     | '/admin/campaigns'
     | '/admin/contacts'
     | '/admin/deals'
+    | '/admin/documents'
     | '/admin/inquiries'
     | '/admin/installments'
     | '/admin/leads'
@@ -430,6 +440,7 @@ export interface FileRouteTypes {
     | '/admin/campaigns'
     | '/admin/contacts'
     | '/admin/deals'
+    | '/admin/documents'
     | '/admin/inquiries'
     | '/admin/installments'
     | '/admin/leads'
@@ -471,6 +482,7 @@ export interface FileRouteTypes {
     | '/admin/campaigns'
     | '/admin/contacts'
     | '/admin/deals'
+    | '/admin/documents'
     | '/admin/inquiries'
     | '/admin/installments'
     | '/admin/leads'
@@ -721,6 +733,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInquiriesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/documents': {
+      id: '/admin/documents'
+      path: '/documents'
+      fullPath: '/admin/documents'
+      preLoaderRoute: typeof AdminDocumentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/deals': {
       id: '/admin/deals'
       path: '/deals'
@@ -813,6 +832,7 @@ interface AdminRouteChildren {
   AdminCampaignsRoute: typeof AdminCampaignsRoute
   AdminContactsRoute: typeof AdminContactsRoute
   AdminDealsRoute: typeof AdminDealsRoute
+  AdminDocumentsRoute: typeof AdminDocumentsRoute
   AdminInquiriesRoute: typeof AdminInquiriesRoute
   AdminInstallmentsRoute: typeof AdminInstallmentsRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
@@ -834,6 +854,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCampaignsRoute: AdminCampaignsRoute,
   AdminContactsRoute: AdminContactsRoute,
   AdminDealsRoute: AdminDealsRoute,
+  AdminDocumentsRoute: AdminDocumentsRoute,
   AdminInquiriesRoute: AdminInquiriesRoute,
   AdminInstallmentsRoute: AdminInstallmentsRoute,
   AdminLeadsRoute: AdminLeadsRoute,
