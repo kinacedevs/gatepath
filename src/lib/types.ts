@@ -230,6 +230,22 @@ export type Faq = {
   created_at: string;
 };
 
+export type Task = {
+  id: string;
+  title: string;
+  description: string | null;
+  due_at: string | null;
+  assigned_to_email: string | null;
+  assigned_to_name: string | null;
+  related_inquiry_id: string | null;
+  priority: "low" | "medium" | "high";
+  status: "pending" | "completed" | "cancelled";
+  created_by_email: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
+
 export type InteractionLog = {
   id: string;
   inquiry_id: string;
@@ -355,6 +371,11 @@ export type Database = {
         Row: InteractionLog;
         Insert: Omit<InteractionLog, "id" | "created_at">;
         Update: Partial<Omit<InteractionLog, "id" | "created_at">>;
+      };
+      tasks: {
+        Row: Task;
+        Insert: Omit<Task, "id" | "created_at">;
+        Update: Partial<Omit<Task, "id" | "created_at">>;
       };
     };
     Views: {
