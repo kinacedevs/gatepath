@@ -25,6 +25,7 @@ import {
   Plus,
   BarChart2,
   Globe,
+  ListTodo,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -70,6 +71,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/inquiries", label: "Inquiries Queue", icon: FileText, showPendingBadge: true },
       { to: "/admin/bookings", label: "Site Visits", icon: Calendar },
+      { to: "/admin/tasks", label: "Tasks & Follow-ups", icon: ListTodo },
       { to: "/admin/plots", label: "Plot Inventory", icon: MapPin },
     ],
   },

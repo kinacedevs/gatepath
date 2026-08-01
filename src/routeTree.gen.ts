@@ -27,6 +27,7 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PropertiesSlugRouteImport } from './routes/properties.$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AdminTasksRouteImport } from './routes/admin.tasks'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSiteContentRouteImport } from './routes/admin.site-content'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -135,6 +136,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTasksRoute = AdminTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminStaffRoute = AdminStaffRouteImport.update({
   id: '/staff',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
+  '/admin/tasks': typeof AdminTasksRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -292,6 +299,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
+  '/admin/tasks': typeof AdminTasksRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
   '/admin': typeof AdminIndexRoute
@@ -331,6 +339,7 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
   '/admin/staff': typeof AdminStaffRoute
+  '/admin/tasks': typeof AdminTasksRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/properties/$slug': typeof PropertiesSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -371,6 +380,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/site-content'
     | '/admin/staff'
+    | '/admin/tasks'
     | '/blog/$slug'
     | '/properties/$slug'
     | '/admin/'
@@ -408,6 +418,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/site-content'
     | '/admin/staff'
+    | '/admin/tasks'
     | '/blog/$slug'
     | '/properties/$slug'
     | '/admin'
@@ -446,6 +457,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/site-content'
     | '/admin/staff'
+    | '/admin/tasks'
     | '/blog/$slug'
     | '/properties/$slug'
     | '/admin/'
@@ -608,6 +620,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/tasks': {
+      id: '/admin/tasks'
+      path: '/tasks'
+      fullPath: '/admin/tasks'
+      preLoaderRoute: typeof AdminTasksRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/staff': {
       id: '/admin/staff'
       path: '/staff'
@@ -764,6 +783,7 @@ interface AdminRouteChildren {
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSiteContentRoute: typeof AdminSiteContentRoute
   AdminStaffRoute: typeof AdminStaffRoute
+  AdminTasksRoute: typeof AdminTasksRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -782,6 +802,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSiteContentRoute: AdminSiteContentRoute,
   AdminStaffRoute: AdminStaffRoute,
+  AdminTasksRoute: AdminTasksRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
