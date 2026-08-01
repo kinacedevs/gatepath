@@ -1,17 +1,29 @@
 /**
- * Gatepath Realtors — Client Directory (Phase 5C redesign)
- * Replaces the Phase 5A mechanical split of the old "contacts" tab. Real
- * additions: lifetime value (real sum of successful payments per client),
- * plots owned (count of that client's approved inquiries), and a "Pending
- * Approvals" panel wired to the plot_title_verifications table added in
- * Phase 5B — booked/sold plots with no verification check logged yet. The
- * search bar is now real (the original had no onChange handler at all).
+ * Gatepath Realtors — Client Directory (VIZ_BLUEPRINT Phase 2, Slice 6)
+ * Builds on Phase 5C (real lifetime-value/plots-owned aggregation, working
+ * search, real "Pending Title Verifications" panel). Most of VIZ_SPEC.md
+ * §4's ambitions (segments, opt-in %, engagement heatmap, interaction
+ * timeline) need an interaction-log/consent schema that doesn't exist —
+ * skipped, not faked. The one genuinely new real metric: a Diaspora vs
+ * Local split from inquiries.client_country (added migration 0005), built
+ * as an honest 3-way split including "Not Recorded" for the many historical
+ * inquiries that predate the field, rather than silently defaulting nulls
+ * to "Local".
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, PhoneCall, Mail, ShieldAlert } from "lucide-react";
+import { Search, PhoneCall, Mail, ShieldAlert, Users, DollarSign, Globe } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatFromKes } from "@/lib/currency";
+import { KpiCard } from "@/components/admin/KpiCard";
+import { SectionCard } from "@/components/admin/SectionCard";
+import { AdminDataTable } from "@/components/admin/AdminDataTable";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { FreshnessStamp } from "@/components/admin/FreshnessStamp";
+import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
+import { SplitDonutChart } from "@/components/admin/charts/SplitDonutChart";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { ColumnDef } from "@tanstack/react-table";
 import type { Inquiry, Plot } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/contacts")({
@@ -40,6 +52,7 @@ function ClientDirectory() {
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
   const [pendingError, setPendingError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -80,6 +93,7 @@ function ClientDirectory() {
       }
 
       setLoading(false);
+      setLastUpdated(new Date());
     })();
   }, []);
 
@@ -115,15 +129,177 @@ function ClientDirectory() {
       .sort((a, b) => b.lifetimeValue - a.lifetimeValue);
   }, [inquiries, paidByInquiry, search]);
 
+  const totalLifetimeValue = useMemo(
+    () => clients.reduce((sum, c) => sum + c.lifetimeValue, 0),
+    [clients],
+  );
+
+  // Diaspora vs Local — honest 3-way split. client_country is only
+  // populated for inquiries submitted after Phase 7B extended the form, so
+  // most historical rows are legitimately "Not Recorded", not "Local".
+  const diasporaSplit = useMemo(() => {
+    let diaspora = 0;
+    let local = 0;
+    let notRecorded = 0;
+    const seen = new Set<string>();
+    for (const inq of inquiries) {
+      if (seen.has(inq.client_email)) continue;
+      seen.add(inq.client_email);
+      const country = inq.client_country?.trim();
+      if (!country) notRecorded += 1;
+      else if (country.toLowerCase() === "kenya") local += 1;
+      else diaspora += 1;
+    }
+    return [
+      { name: "Local", value: local },
+      { name: "Diaspora", value: diaspora },
+      { name: "Not Recorded", value: notRecorded },
+    ];
+  }, [inquiries]);
+
+  const diasporaCount = diasporaSplit.find((d) => d.name === "Diaspora")?.value ?? 0;
+
+  const topClients = useMemo(
+    () =>
+      clients
+        .slice(0, 6)
+        .map((c) => ({ name: c.name, value: c.lifetimeValue }))
+        .filter((c) => c.value > 0),
+    [clients],
+  );
+
+  const columns: ColumnDef<ClientRow, any>[] = [
+    {
+      id: "client",
+      header: "Client Details",
+      accessorFn: (row) => row.name,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-primary-deep font-bold text-sm shrink-0">
+            {row.original.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="font-semibold text-[14px] text-primary-container">
+              {row.original.name}
+            </div>
+            <div className="text-[12px] text-on-surface-variant">{row.original.email}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "phone",
+      header: "Phone",
+      accessorFn: (row) => row.phone,
+      cell: (info) => (
+        <span className="text-[14px] text-on-surface">{info.getValue() as string}</span>
+      ),
+    },
+    {
+      id: "plotsOwned",
+      header: "Plots Owned",
+      accessorFn: (row) => row.plotsOwned,
+      cell: (info) => (
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-bold text-xs">
+          {info.getValue() as number}
+        </span>
+      ),
+    },
+    {
+      id: "lifetimeValue",
+      header: "Lifetime Value",
+      accessorFn: (row) => row.lifetimeValue,
+      cell: (info) => (
+        <span className="font-semibold text-secondary">
+          {formatFromKes(info.getValue() as number, "KES")}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <span className="block text-right">Actions</span>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-2">
+          <a
+            href={`tel:${row.original.phone}`}
+            className="p-2 bg-surface-container-low rounded-lg text-primary-container hover:bg-primary hover:text-white transition-colors"
+          >
+            <PhoneCall size={15} />
+          </a>
+          <a
+            href={`mailto:${row.original.email}`}
+            className="p-2 bg-surface-container-low rounded-lg text-primary-container hover:bg-primary hover:text-white transition-colors"
+          >
+            <Mail size={15} />
+          </a>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div>
-        <h1 className="font-headline-lg text-headline-lg text-primary font-bold">
-          Client Directory
-        </h1>
-        <p className="text-body-md text-on-surface-variant">
-          Centralized directory of all clients who have submitted inquiries or booked plots.
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="font-headline-lg text-headline-lg text-primary font-bold">
+            Client Directory
+          </h1>
+          <p className="text-body-md text-on-surface-variant">
+            Centralized directory of all clients who have submitted inquiries or booked plots.
+          </p>
+        </div>
+        <FreshnessStamp updatedAt={lastUpdated} />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          label="Total Contacts"
+          value={loading ? "…" : String(clients.length)}
+          icon={Users}
+        />
+        <KpiCard
+          label="Total Lifetime Value"
+          value={loading ? "…" : formatFromKes(totalLifetimeValue, "KES")}
+          icon={DollarSign}
+          tone="success"
+        />
+        <KpiCard
+          label="Diaspora Clients"
+          value={loading ? "…" : String(diasporaCount)}
+          icon={Globe}
+        />
+        <KpiCard
+          label="Pending Verifications"
+          value={loading ? "…" : String(pendingApprovals.length)}
+          icon={ShieldAlert}
+          tone={pendingApprovals.length > 0 ? "warning" : "default"}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SectionCard title="Diaspora vs Local">
+          {loading ? (
+            <Skeleton className="h-45 rounded-xl" />
+          ) : (
+            <SplitDonutChart data={diasporaSplit} height={200} />
+          )}
+        </SectionCard>
+        <SectionCard title="Top Clients by Lifetime Value">
+          {loading ? (
+            <Skeleton className="h-45 rounded-xl" />
+          ) : topClients.length === 0 ? (
+            <EmptyState title="No paid clients yet" />
+          ) : (
+            <CategoryBarChart
+              data={topClients}
+              xKey="name"
+              yKey="value"
+              height={200}
+              horizontal
+              valueFormatter={(v) => formatFromKes(v, "KES")}
+            />
+          )}
+        </SectionCard>
       </div>
 
       <div className="luxury-card rounded-xl shadow-sm overflow-hidden bg-white">
@@ -142,80 +318,15 @@ function ClientDirectory() {
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-surface-container-low border-b border-outline-variant/30">
-              <tr>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant uppercase text-[11px]">
-                  Client Details
-                </th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant uppercase text-[11px]">
-                  Phone
-                </th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant uppercase text-[11px]">
-                  Plots Owned
-                </th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant uppercase text-[11px]">
-                  Lifetime Value
-                </th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant uppercase text-[11px] text-right">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/10">
-              {clients.slice(0, 25).map((c) => (
-                <tr key={c.email} className="hover:bg-surface-container-low/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-primary-deep font-bold text-sm shrink-0">
-                        {c.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-[14px] text-primary-container">
-                          {c.name}
-                        </div>
-                        <div className="text-[12px] text-on-surface-variant">{c.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-[14px] text-on-surface">{c.phone}</td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-bold text-xs">
-                      {c.plotsOwned}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-secondary">
-                    {formatFromKes(c.lifetimeValue, "KES")}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <a
-                        href={`tel:${c.phone}`}
-                        className="p-2 bg-surface-container-low rounded-lg text-primary-container hover:bg-primary hover:text-white transition-colors"
-                      >
-                        <PhoneCall size={15} />
-                      </a>
-                      <a
-                        href={`mailto:${c.email}`}
-                        className="p-2 bg-surface-container-low rounded-lg text-primary-container hover:bg-primary hover:text-white transition-colors"
-                      >
-                        <Mail size={15} />
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!loading && clients.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center py-8 text-on-surface-variant">
-                    No clients found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {loading ? (
+          <Skeleton className="h-64 rounded-xl m-4" />
+        ) : (
+          <AdminDataTable
+            columns={columns}
+            data={clients.slice(0, 25)}
+            emptyMessage="No clients found."
+          />
+        )}
       </div>
 
       <div className="luxury-card rounded-xl p-6 bg-white space-y-3">
