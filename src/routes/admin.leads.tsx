@@ -11,6 +11,11 @@
  * cards with a matching bookings row instead, since that's a genuinely
  * different signal from pipeline stage (see the Phase 5A plan for why a
  * derived 5th column was rejected).
+ *
+ * Lead score badge (Part 2, Module 4) added on each card — rules-based,
+ * computed live from real data via src/lib/leadScoring.ts (source/budget/
+ * engagement/response), not stored. See that file's header for why a
+ * stored inquiries.score column was deliberately avoided.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -23,9 +28,23 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { GripVertical, Search, CalendarCheck, UserPlus, UserX, TrendingUp } from "lucide-react";
+import {
+  GripVertical,
+  Search,
+  CalendarCheck,
+  UserPlus,
+  UserX,
+  TrendingUp,
+  Flame,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { updateInquiryStatusFn } from "@/lib/leadsActions";
+import {
+  computeSourceRates,
+  computeLeadScore,
+  scoreTier,
+  type LeadScoreBreakdown,
+} from "@/lib/leadScoring";
 import { StatusBadge, INQUIRY_STATUS_TONE } from "@/components/admin/StatusBadge";
 import { KpiCard } from "@/components/admin/KpiCard";
 import { SectionCard } from "@/components/admin/SectionCard";
@@ -67,10 +86,29 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-function LeadCard({ lead, hasSiteVisit }: { lead: Inquiry; hasSiteVisit: boolean }) {
+const TIER_CLASSES = {
+  hot: "bg-success-container/15 text-on-success-container",
+  warm: "bg-warning-container/15 text-on-warning-container",
+  cool: "bg-surface-container-high text-on-surface-variant",
+} as const;
+
+function LeadCard({
+  lead,
+  hasSiteVisit,
+  score,
+}: {
+  lead: Inquiry;
+  hasSiteVisit: boolean;
+  score?: { total: number; breakdown: LeadScoreBreakdown };
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
   });
+
+  const tier = score ? scoreTier(score.total) : null;
+  const scoreTitle = score
+    ? `Lead Score ${score.total}/100 — Source ${score.breakdown.source}/25 · Budget ${score.breakdown.budget}/25 · Engagement ${score.breakdown.engagement}/25 · Response ${score.breakdown.response}/25`
+    : undefined;
 
   return (
     <div
@@ -98,14 +136,24 @@ function LeadCard({ lead, hasSiteVisit }: { lead: Inquiry; hasSiteVisit: boolean
             </div>
           </div>
         </div>
-        <button
-          {...attributes}
-          {...listeners}
-          aria-label="Drag to change status"
-          className="p-1 text-on-surface-variant hover:text-primary-container cursor-grab active:cursor-grabbing touch-none shrink-0"
-        >
-          <GripVertical size={16} />
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {tier && (
+            <span
+              title={scoreTitle}
+              className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${TIER_CLASSES[tier]}`}
+            >
+              {score!.total}
+            </span>
+          )}
+          <button
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to change status"
+            className="p-1 text-on-surface-variant hover:text-primary-container cursor-grab active:cursor-grabbing touch-none"
+          >
+            <GripVertical size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="px-2.5 py-2 bg-surface-container-low rounded-md mb-3">
@@ -150,11 +198,13 @@ function KanbanColumn({
   label,
   leads,
   bookedInquiryIds,
+  leadScores,
 }: {
   status: InquiryStatus;
   label: string;
   leads: Inquiry[];
   bookedInquiryIds: Set<string>;
+  leadScores: Map<string, { total: number; breakdown: LeadScoreBreakdown }>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -178,7 +228,12 @@ function KanbanColumn({
           </div>
         ) : (
           leads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} hasSiteVisit={bookedInquiryIds.has(lead.id)} />
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              hasSiteVisit={bookedInquiryIds.has(lead.id)}
+              score={leadScores.get(lead.id)}
+            />
           ))
         )}
       </div>
@@ -219,12 +274,55 @@ function LeadsPipeline() {
     };
   }, []);
 
+  // ── Lead scoring (Part 2, Module 4) — rules-based, computed live from
+  // the same `inquiries`/`bookings`/`interaction_log` fetch above. See
+  // src/lib/leadScoring.ts for the formula and why it's computed here
+  // rather than stored.
+  const leadScores = useMemo(() => {
+    const sourceRates = computeSourceRates(inquiries);
+    const prices = inquiries
+      .map((i) => i.price)
+      .filter((p): p is number => typeof p === "number" && p > 0);
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+
+    const interactionCountByInquiry = new Map<string, number>();
+    const inboundByInquiry = new Set<string>();
+    for (const entry of interactions) {
+      interactionCountByInquiry.set(
+        entry.inquiry_id,
+        (interactionCountByInquiry.get(entry.inquiry_id) ?? 0) + 1,
+      );
+      if (entry.direction === "inbound") inboundByInquiry.add(entry.inquiry_id);
+    }
+
+    const scores = new Map<string, { total: number; breakdown: LeadScoreBreakdown }>();
+    for (const inq of inquiries) {
+      scores.set(
+        inq.id,
+        computeLeadScore(inq, {
+          sourceRates,
+          minPrice,
+          maxPrice,
+          hasSiteVisit: bookedInquiryIds.has(inq.id),
+          interactionCount: interactionCountByInquiry.get(inq.id) ?? 0,
+          hasInboundInteraction: inboundByInquiry.has(inq.id),
+        }),
+      );
+    }
+    return scores;
+  }, [inquiries, interactions, bookedInquiryIds]);
+
+  const hotLeadsCount = useMemo(
+    () => Array.from(leadScores.values()).filter((s) => scoreTier(s.total) === "hot").length,
+    [leadScores],
+  );
+
   // ── Insights layer (VIZ_BLUEPRINT Phase 2, Slice 2 + Phase 10 follow-up)
   // — derived entirely from the same `inquiries`/`interaction_log` fetch
-  // above, no extra queries. Hot-lead scoring and an SLA gauge still need
-  // schema that doesn't exist (a score column, an SLA target config) — not
-  // built here. Avg speed-to-lead is now real, backed by interaction_log
-  // (Phase 10): the earliest logged interaction per inquiry vs. its
+  // above, no extra queries. An SLA gauge still needs a target-time config
+  // that doesn't exist — not built here. Avg speed-to-lead is now real,
+  // backed by interaction_log (Phase 10): the earliest logged interaction per inquiry vs. its
   // created_at, averaged only across inquiries with at least one logged
   // interaction. Shows "No data yet" rather than a fabricated number while
   // the log is still empty.
@@ -364,7 +462,7 @@ function LeadsPipeline() {
 
       {!loading && (
         <div className="mb-6 shrink-0 flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <KpiCard label="New Today" value={String(insights.newToday)} icon={UserPlus} />
             <KpiCard
               label="Unassigned"
@@ -386,6 +484,12 @@ function LeadsPipeline() {
                   : formatDuration(insights.avgSpeedToLeadMs)
               }
               icon={CalendarCheck}
+            />
+            <KpiCard
+              label="Hot Leads"
+              value={String(hotLeadsCount)}
+              icon={Flame}
+              tone={hotLeadsCount > 0 ? "success" : "default"}
             />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -443,6 +547,7 @@ function LeadsPipeline() {
                 label={col.label}
                 leads={filtered.filter((i) => i.status === col.status)}
                 bookedInquiryIds={bookedInquiryIds}
+                leadScores={leadScores}
               />
             ))}
           </div>
