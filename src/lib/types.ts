@@ -110,6 +110,10 @@ export type Inquiry = {
   questions: string | null;
   heard_from: string | null;
   referred_by: string | null;
+  /** null = never asked (historical rows); true/false = an actual answer.
+   * Added migration 0013 — never defaults to false, since that would
+   * falsely imply "asked and declined." */
+  marketing_opt_in: boolean | null;
   status: "pending" | "reviewed" | "approved" | "rejected";
   created_at: string;
   updated_at: string;
@@ -247,6 +251,17 @@ export type DocumentRecord = {
   notes: string | null;
   uploaded_by_email: string | null;
   uploaded_by_name: string | null;
+  created_at: string;
+};
+
+export type AuditLog = {
+  id: string;
+  actor_email: string | null;
+  actor_name: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Record<string, unknown> | null;
   created_at: string;
 };
 
@@ -424,6 +439,11 @@ export type Database = {
         Row: DocumentRecord;
         Insert: Omit<DocumentRecord, "id" | "created_at">;
         Update: Partial<Omit<DocumentRecord, "id" | "created_at">>;
+      };
+      audit_log: {
+        Row: AuditLog;
+        Insert: Omit<AuditLog, "id" | "created_at">;
+        Update: Partial<Omit<AuditLog, "id" | "created_at">>;
       };
     };
     Views: {
