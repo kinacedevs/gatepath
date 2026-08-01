@@ -1,14 +1,17 @@
 /**
- * Gatepath Realtors — Land Inventory (Phase 5B redesign)
- * Replaces the Phase 5A mechanical split of the old "plots" tab. Two real
- * fixes over the original: (1) plots are now fetched with a real
- * `plot_sizes` embed (`select("*, plot_sizes(*)")`) instead of the bare
- * `select("*")` that made every price/dimension display fall through to a
- * hardcoded fallback; (2) the "Deep Dive" plot detail view is now a real
- * route (admin.plots.$plotId.tsx) instead of a conditional sub-view stuffed
- * into this same file's state.
+ * Gatepath Realtors — Land Inventory (VIZ_BLUEPRINT Phase 2, Slice 5)
+ * Builds on the Phase 5B redesign (real plot_sizes embed, real TanStack
+ * table, shadcn Dialog). Two real changes this pass:
+ * (1) handleUpdatePlotStatus now writes through updatePlotStatusFn
+ * (src/lib/plotActions.ts) instead of a direct client update — the old
+ * (supabase as any).from("plots").update(...) call violated CLAUDE.md's
+ * explicit "never mutate plots.status from client-side code" rule.
+ * (2) the "Grid Map" toggle now renders the real PlotMap SVG (masterplan
+ * layout, compass rose, hover tooltips) via usePhase(slug) — the same hook
+ * and component the public site uses, including its Realtime subscription
+ * on plot status changes — instead of a flat grid of colored boxes.
  */
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   useReactTable,
@@ -18,11 +21,20 @@ import {
   flexRender,
   type SortingState,
 } from "@tanstack/react-table";
-import { Layers, ArrowUpDown, Eye, PenTool } from "lucide-react";
+import { Layers, ArrowUpDown, Eye, PenTool, MapPin, TrendingUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAdminSession } from "@/context/AdminSessionContext";
 import { formatFromKes } from "@/lib/currency";
+import { updatePlotStatusFn } from "@/lib/plotActions";
+import { usePhase, type Plot as MapPlot } from "@/lib/phases";
+import { PlotMap } from "@/components/properties/PlotMap";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { KpiCard } from "@/components/admin/KpiCard";
+import { SectionCard } from "@/components/admin/SectionCard";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { FreshnessStamp } from "@/components/admin/FreshnessStamp";
+import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -52,10 +64,12 @@ function plotDimensions(size: PlotSize | null): string {
 
 function LandInventory() {
   const { adminRole } = useAdminSession();
+  const navigate = useNavigate();
 
   const [phases, setPhases] = useState<Phase[]>([]);
   const [plots, setPlots] = useState<PlotWithSize[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>("");
   const [inventoryStatusFilter, setInventoryStatusFilter] = useState<
@@ -66,6 +80,7 @@ function LandInventory() {
 
   const [editingPlot, setEditingPlot] = useState<PlotWithSize | null>(null);
   const [newPlotStatus, setNewPlotStatus] = useState<"available" | "booked" | "sold">("available");
+  const [statusSaveError, setStatusSaveError] = useState<string | null>(null);
 
   const [editingPhaseYoutube, setEditingPhaseYoutube] = useState("");
   const [phaseSaveLoading, setPhaseSaveLoading] = useState(false);
@@ -90,6 +105,7 @@ function LandInventory() {
       console.error("Error loading plots data:", err);
     } finally {
       setDataLoading(false);
+      setLastUpdated(new Date());
     }
   };
 
@@ -102,6 +118,10 @@ function LandInventory() {
     () => phases.find((p) => p.id === selectedPhaseId),
     [phases, selectedPhaseId],
   );
+
+  // Real masterplan grid for the active phase — same hook + Realtime
+  // subscription the public site uses (src/lib/phases.ts's usePhase).
+  const { phase: mapPhase, loading: mapLoading } = usePhase(activePhase?.slug ?? "");
 
   useEffect(() => {
     if (activePhase) {
@@ -116,22 +136,64 @@ function LandInventory() {
       .filter((p) => inventoryStatusFilter === "all" || p.status === inventoryStatusFilter);
   }, [plots, selectedPhaseId, inventoryStatusFilter]);
 
+  // ── Global KPIs (all phases) ──
+  const globalTotals = useMemo(
+    () =>
+      phases.reduce(
+        (acc, p) => ({
+          available: acc.available + (p.available_count ?? 0),
+          booked: acc.booked + (p.booked_count ?? 0),
+          sold: acc.sold + (p.sold_count ?? 0),
+        }),
+        { available: 0, booked: 0, sold: 0 },
+      ),
+    [phases],
+  );
+  const globalTotal = globalTotals.available + globalTotals.booked + globalTotals.sold;
+  const absorptionRate = globalTotal > 0 ? Math.round((globalTotals.sold / globalTotal) * 100) : 0;
+
+  // ── Inventory by Phase (% sold, all phases) ──
+  const inventoryByPhase = useMemo(
+    () =>
+      phases.map((p) => {
+        const total = (p.available_count ?? 0) + (p.booked_count ?? 0) + (p.sold_count ?? 0);
+        return {
+          name: p.name,
+          value: total > 0 ? Math.round(((p.sold_count ?? 0) / total) * 100) : 0,
+        };
+      }),
+    [phases],
+  );
+
+  // ── Price Distribution (active phase only — price context is phase-specific) ──
+  const priceDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of plots) {
+      if (p.phase_id !== selectedPhaseId || !p.plot_sizes) continue;
+      const label = p.plot_sizes.label;
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).map(([name, value]) => ({ name, value }));
+  }, [plots, selectedPhaseId]);
+
   const handleUpdatePlotStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPlot) return;
+    setStatusSaveError(null);
 
-    if (adminRole === "agent") {
-      alert("Access Denied: Agents cannot manually modify plot statuses.");
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+      setStatusSaveError("Session expired — please refresh and sign in again.");
       return;
     }
 
-    const { error } = await (supabase as any)
-      .from("plots")
-      .update({ status: newPlotStatus })
-      .eq("id", editingPlot.id);
+    const result = await updatePlotStatusFn({
+      data: { callerAccessToken: accessToken, plotId: editingPlot.id, status: newPlotStatus },
+    });
 
-    if (error) {
-      alert("Error updating plot status: " + error.message);
+    if (!result.success) {
+      setStatusSaveError(result.error ?? "Error updating plot status.");
     } else {
       setEditingPlot(null);
       loadData();
@@ -156,6 +218,15 @@ function LandInventory() {
       loadData();
     }
     setPhaseSaveLoading(false);
+  };
+
+  // PlotMap's `id` is the plot NUMBER (see src/lib/phases.ts's adaptPhase),
+  // not the database row id — look up the real plot to get a routable UUID.
+  const handleMapPlotSelect = (mapPlot: MapPlot) => {
+    const real = activePhasePlots.find((p) => p.plot_number === mapPlot.id);
+    if (real) {
+      navigate({ to: "/admin/plots/$plotId", params: { plotId: real.id } });
+    }
   };
 
   const columnHelper = createColumnHelper<PlotWithSize>();
@@ -247,21 +318,62 @@ function LandInventory() {
             Manage masterplan plot inventory, statuses, and phase overrides
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-white border border-outline-variant/30 rounded-xl px-5 py-3 flex items-center gap-4 shadow-sm">
-            <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
-              <Layers size={20} />
-            </div>
-            <div>
-              <p className="text-[10px] text-on-surface-variant uppercase font-bold">
-                Total Plots Tracked
-              </p>
-              <p className="font-stat-lg text-stat-lg text-primary">
-                {dataLoading ? "…" : plots.length}
-              </p>
-            </div>
-          </div>
-        </div>
+        <FreshnessStamp updatedAt={lastUpdated} />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <KpiCard
+          label="Total Plots Tracked"
+          value={dataLoading ? "…" : String(plots.length)}
+          icon={Layers}
+        />
+        <KpiCard
+          label="Available"
+          value={dataLoading ? "…" : String(globalTotals.available)}
+          icon={MapPin}
+          tone="success"
+        />
+        <KpiCard
+          label="Booked"
+          value={dataLoading ? "…" : String(globalTotals.booked)}
+          icon={MapPin}
+          tone="warning"
+        />
+        <KpiCard label="Sold" value={dataLoading ? "…" : String(globalTotals.sold)} icon={MapPin} />
+        <KpiCard
+          label="Absorption Rate"
+          value={dataLoading ? "…" : `${absorptionRate}%`}
+          icon={TrendingUp}
+          tone="success"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SectionCard title="Inventory by Phase (% Sold)">
+          {dataLoading ? (
+            <Skeleton className="h-45 rounded-xl" />
+          ) : inventoryByPhase.length === 0 ? (
+            <EmptyState title="No phases yet" />
+          ) : (
+            <CategoryBarChart
+              data={inventoryByPhase}
+              xKey="name"
+              yKey="value"
+              height={200}
+              horizontal
+              valueFormatter={(v) => `${v}%`}
+            />
+          )}
+        </SectionCard>
+        <SectionCard title="Price Distribution — Active Phase">
+          {dataLoading ? (
+            <Skeleton className="h-45 rounded-xl" />
+          ) : priceDistribution.length === 0 ? (
+            <EmptyState title="No plot sizes for this phase" />
+          ) : (
+            <CategoryBarChart data={priceDistribution} xKey="name" yKey="value" height={200} />
+          )}
+        </SectionCard>
       </div>
 
       <div className="luxury-card rounded-xl p-5 shadow-sm space-y-4 bg-white">
@@ -377,7 +489,7 @@ function LandInventory() {
         <div className="luxury-card rounded-xl p-6 bg-white space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-headline-md text-headline-md text-primary font-bold">
-              Interactive Plot Map Grid
+              Interactive Plot Map — {activePhase?.name ?? "Select a phase"}
             </h3>
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
@@ -391,30 +503,18 @@ function LandInventory() {
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3 pt-2">
-            {activePhasePlots.map((plot) => {
-              const bg =
-                plot.status === "available"
-                  ? "bg-green-100 border-green-300 text-green-800"
-                  : plot.status === "booked"
-                    ? "bg-yellow-100 border-yellow-300 text-yellow-800"
-                    : "bg-red-100 border-red-300 text-red-800";
-              return (
-                <Link
-                  key={plot.id}
-                  to="/admin/plots/$plotId"
-                  params={{ plotId: plot.id }}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center hover:scale-105 transition-all shadow-sm ${bg}`}
-                >
-                  <span className="text-[10px] font-bold opacity-70">PLOT</span>
-                  <span className="font-stat-lg text-lg font-bold">#{plot.plot_number}</span>
-                  <span className="text-[9px] uppercase font-bold mt-1 opacity-80">
-                    {plot.status}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
+          {mapLoading || dataLoading ? (
+            <Skeleton className="h-96 rounded-xl" />
+          ) : !mapPhase || mapPhase.plots.length === 0 ? (
+            <EmptyState title="No masterplan grid for this phase" />
+          ) : (
+            <PlotMap
+              plots={mapPhase.plots}
+              selectedId={null}
+              onSelect={handleMapPlotSelect}
+              showAvailableOnly={false}
+            />
+          )}
         </div>
       )}
 
@@ -463,6 +563,11 @@ function LandInventory() {
             Override this plot's status in the inventory system.
           </p>
           <form onSubmit={handleUpdatePlotStatus} className="flex flex-col gap-4">
+            {statusSaveError && (
+              <div className="p-2.5 rounded-lg bg-error/10 text-error text-xs font-semibold">
+                {statusSaveError}
+              </div>
+            )}
             <div>
               <label className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide block mb-1.5">
                 New Status
