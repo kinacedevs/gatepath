@@ -1,17 +1,21 @@
 /**
- * Gatepath Realtors — Agent Performance (VIZ_BLUEPRINT Phase 2, Slice 7)
+ * Gatepath Realtors — Agent Performance (VIZ_BLUEPRINT Phase 2, Slice 7;
+ * interaction-log KPIs added Phase 10 follow-up)
  * First token migration off the Phase 5A mechanical-split residue (raw
  * inline style={{}}, hardcoded NAVY/GOLD/CANVAS/CARD_BORDER hex) — same
- * situation Closed Deals was in before its redesign. Per docs/VIZ_SPEC.md
- * §3, this is honestly one of the thinner slices: team conversion % and
+ * situation Closed Deals was in before its redesign. Team conversion % and
  * revenue contribution are real (via the existing cro_name-to-admin_users
- * text match already used here), but avg response time, composite score,
- * activity heatmap, and goal-vs-actual all need an interaction-log/goals
- * schema that doesn't exist — skipped, not faked.
+ * text match already used here). Avg response time and Total Activities
+ * are now also real, backed by interaction_log (Phase 10): response time
+ * is measured from an inquiry's created_at to whichever staff member's
+ * interaction_log entry is earliest for that inquiry — matched by email,
+ * a real join, not the fragile cro_name text match. Composite score and
+ * goal-vs-actual still need a scoring formula / agent_goals table that
+ * doesn't exist — skipped, not faked.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Users, CheckCircle, Trophy, TrendingUp, DollarSign } from "lucide-react";
+import { Users, CheckCircle, Trophy, TrendingUp, DollarSign, Clock, Activity } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatFromKes } from "@/lib/currency";
 import { KpiCard } from "@/components/admin/KpiCard";
@@ -24,7 +28,15 @@ import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
 import { TrendChart } from "@/components/admin/charts/TrendChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { AdminUser, Inquiry, Agreement } from "@/lib/types";
+import type { AdminUser, Inquiry, Agreement, InteractionLog } from "@/lib/types";
+
+function formatDuration(ms: number): string {
+  const mins = ms / 60000;
+  if (mins < 60) return `${Math.round(mins)}m`;
+  const hours = mins / 60;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  return `${Math.round(hours / 24)}d`;
+}
 
 export const Route = createFileRoute("/admin/agents")({
   component: AgentPerformance,
@@ -36,6 +48,8 @@ interface AgentRow {
   closedDeals: number;
   revenue: number;
   conversionRate: number;
+  totalActivities: number;
+  avgResponseMs: number | null;
 }
 
 function monthLabel(d: Date) {
@@ -49,23 +63,30 @@ function AgentPerformance() {
   const [payments, setPayments] = useState<
     { inquiry_id: string | null; amount: number; created_at: string }[]
   >([]);
+  const [interactions, setInteractions] = useState<InteractionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [staffRes, inquiriesRes, agreementsRes, paymentsRes] = await Promise.all([
-        supabase.from("admin_users").select("*").order("role"),
-        supabase.from("inquiries").select("*"),
-        supabase.from("agreements").select("*"),
-        supabase.from("payments").select("inquiry_id, amount, created_at").eq("status", "success"),
-      ]);
+      const [staffRes, inquiriesRes, agreementsRes, paymentsRes, interactionsRes] =
+        await Promise.all([
+          supabase.from("admin_users").select("*").order("role"),
+          supabase.from("inquiries").select("*"),
+          supabase.from("agreements").select("*"),
+          supabase
+            .from("payments")
+            .select("inquiry_id, amount, created_at")
+            .eq("status", "success"),
+          supabase.from("interaction_log").select("*"),
+        ]);
 
       setStaff((staffRes.data as AdminUser[]) ?? []);
       setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
       setAgreements((agreementsRes.data as Agreement[]) ?? []);
       setPayments((paymentsRes.data as typeof payments) ?? []);
+      setInteractions((interactionsRes.data as InteractionLog[]) ?? []);
     } catch (err) {
       console.error("Error loading agent performance data:", err);
     } finally {
@@ -88,6 +109,20 @@ function AgentPerformance() {
     return m;
   }, [payments]);
 
+  // First-touch per inquiry (earliest interaction_log row) — who responded
+  // first and how long it took, keyed by email (a real join, unlike the
+  // fragile cro_name text match used for lead assignment above).
+  const firstTouchByInquiry = useMemo(() => {
+    const m = new Map<string, InteractionLog>();
+    for (const entry of interactions) {
+      const existing = m.get(entry.inquiry_id);
+      if (!existing || entry.occurred_at < existing.occurred_at) {
+        m.set(entry.inquiry_id, entry);
+      }
+    }
+    return m;
+  }, [interactions]);
+
   const agentRows: AgentRow[] = useMemo(() => {
     return staff
       .filter((s) => s.role === "agent")
@@ -101,16 +136,51 @@ function AgentPerformance() {
         const revenue = agentLeads.reduce((sum, inq) => sum + (paidByInquiry.get(inq.id) ?? 0), 0);
         const conversionRate =
           agentLeads.length > 0 ? Math.round((closed.length / agentLeads.length) * 100) : 0;
+
+        const totalActivities = interactions.filter(
+          (i) => i.logged_by_email === agent.email,
+        ).length;
+
+        const responseDeltas: number[] = [];
+        for (const inq of inquiries) {
+          const firstTouch = firstTouchByInquiry.get(inq.id);
+          if (!firstTouch || firstTouch.logged_by_email !== agent.email) continue;
+          const delta =
+            new Date(firstTouch.occurred_at).getTime() - new Date(inq.created_at).getTime();
+          if (delta >= 0) responseDeltas.push(delta);
+        }
+        const avgResponseMs =
+          responseDeltas.length > 0
+            ? responseDeltas.reduce((a, b) => a + b, 0) / responseDeltas.length
+            : null;
+
         return {
           agent,
           assignedLeads: agentLeads.length,
           closedDeals: closed.length,
           revenue,
           conversionRate,
+          totalActivities,
+          avgResponseMs,
         };
       })
       .sort((a, b) => b.revenue - a.revenue);
-  }, [staff, inquiries, agreements, paidByInquiry]);
+  }, [staff, inquiries, agreements, paidByInquiry, interactions, firstTouchByInquiry]);
+
+  // Flat average across every agent-attributed first-touch delta — not an
+  // average of per-agent averages, which would be skewed by agents with
+  // very different first-touch counts.
+  const teamAvgResponseMs = useMemo(() => {
+    const agentEmails = new Set(agentRows.map((a) => a.agent.email));
+    const deltas: number[] = [];
+    for (const inq of inquiries) {
+      const firstTouch = firstTouchByInquiry.get(inq.id);
+      if (!firstTouch?.logged_by_email || !agentEmails.has(firstTouch.logged_by_email)) continue;
+      const delta = new Date(firstTouch.occurred_at).getTime() - new Date(inq.created_at).getTime();
+      if (delta >= 0) deltas.push(delta);
+    }
+    return deltas.length > 0 ? deltas.reduce((a, b) => a + b, 0) / deltas.length : null;
+  }, [agentRows, inquiries, firstTouchByInquiry]);
 
   const totalAgents = agentRows.length;
   const teamRevenue = agentRows.reduce((sum, a) => sum + a.revenue, 0);
@@ -223,6 +293,28 @@ function AgentPerformance() {
         </div>
       ),
     },
+    {
+      id: "totalActivities",
+      header: "Total Activities",
+      accessorFn: (row) => row.totalActivities,
+      cell: (info) => (
+        <div className="flex items-center gap-2 text-on-surface">
+          <Activity size={15} className="text-on-surface-variant" /> {info.getValue() as number}
+        </div>
+      ),
+    },
+    {
+      id: "avgResponseMs",
+      header: "Avg Response Time",
+      accessorFn: (row) => row.avgResponseMs ?? -1,
+      cell: ({ row }) => (
+        <span className="text-[13px] text-on-surface-variant">
+          {row.original.avgResponseMs === null
+            ? "No data yet"
+            : formatDuration(row.original.avgResponseMs)}
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -239,7 +331,7 @@ function AgentPerformance() {
         <FreshnessStamp updatedAt={lastUpdated} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard label="Total Agents" value={loading ? "…" : String(totalAgents)} icon={Users} />
         <KpiCard
           label="Team Conversion Rate"
@@ -257,6 +349,17 @@ function AgentPerformance() {
           value={loading ? "…" : topPerformer?.agent.full_name || topPerformer?.agent.email || "—"}
           icon={Trophy}
           tone="success"
+        />
+        <KpiCard
+          label="Avg Response Time"
+          value={
+            loading
+              ? "…"
+              : teamAvgResponseMs === null
+                ? "No data yet"
+                : formatDuration(teamAvgResponseMs)
+          }
+          icon={Clock}
         />
       </div>
 

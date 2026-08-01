@@ -35,7 +35,15 @@ import { FunnelChart } from "@/components/admin/charts/FunnelChart";
 import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
 import { TrendChart } from "@/components/admin/charts/TrendChart";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Inquiry } from "@/lib/types";
+import type { Inquiry, InteractionLog } from "@/lib/types";
+
+function formatDuration(ms: number): string {
+  const mins = ms / 60000;
+  if (mins < 60) return `${Math.round(mins)}m`;
+  const hours = mins / 60;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  return `${Math.round(hours / 24)}d`;
+}
 
 export const Route = createFileRoute("/admin/leads")({
   component: LeadsPipeline,
@@ -181,6 +189,7 @@ function KanbanColumn({
 function LeadsPipeline() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [bookedInquiryIds, setBookedInquiryIds] = useState<Set<string>>(new Set());
+  const [interactions, setInteractions] = useState<InteractionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -190,9 +199,10 @@ function LeadsPipeline() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [inquiriesRes, bookingsRes] = await Promise.all([
+      const [inquiriesRes, bookingsRes, interactionsRes] = await Promise.all([
         supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
         supabase.from("bookings").select("inquiry_id"),
+        supabase.from("interaction_log").select("*"),
       ]);
       if (cancelled) return;
       setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
@@ -200,6 +210,7 @@ function LeadsPipeline() {
       setBookedInquiryIds(
         new Set(bookingRows.map((b) => b.inquiry_id).filter(Boolean) as string[]),
       );
+      setInteractions((interactionsRes.data as InteractionLog[]) ?? []);
       setLoading(false);
       setLastUpdated(new Date());
     })();
@@ -208,11 +219,15 @@ function LeadsPipeline() {
     };
   }, []);
 
-  // ── Insights layer (VIZ_BLUEPRINT Phase 2, Slice 2) — derived entirely
-  // from the same `inquiries` fetch above, no extra queries. Only real,
-  // schema-backed metrics (docs/VIZ_SPEC.md §2) — speed-to-lead, hot-lead
-  // scoring and an SLA gauge all need an interaction log that doesn't exist
-  // yet, so they're not built here rather than faked.
+  // ── Insights layer (VIZ_BLUEPRINT Phase 2, Slice 2 + Phase 10 follow-up)
+  // — derived entirely from the same `inquiries`/`interaction_log` fetch
+  // above, no extra queries. Hot-lead scoring and an SLA gauge still need
+  // schema that doesn't exist (a score column, an SLA target config) — not
+  // built here. Avg speed-to-lead is now real, backed by interaction_log
+  // (Phase 10): the earliest logged interaction per inquiry vs. its
+  // created_at, averaged only across inquiries with at least one logged
+  // interaction. Shows "No data yet" rather than a fabricated number while
+  // the log is still empty.
   const insights = useMemo(() => {
     const todayKey = new Date().toISOString().slice(0, 10);
     const newToday = inquiries.filter((i) => i.created_at.slice(0, 10) === todayKey).length;
@@ -250,8 +265,33 @@ function LeadsPipeline() {
       value,
     }));
 
-    return { newToday, unassigned, conversionPct, funnelData, sourceData, trendData };
-  }, [inquiries]);
+    const firstInteractionByInquiry = new Map<string, string>();
+    for (const entry of interactions) {
+      const existing = firstInteractionByInquiry.get(entry.inquiry_id);
+      if (!existing || entry.occurred_at < existing) {
+        firstInteractionByInquiry.set(entry.inquiry_id, entry.occurred_at);
+      }
+    }
+    const speedDeltas: number[] = [];
+    for (const inq of inquiries) {
+      const firstTouch = firstInteractionByInquiry.get(inq.id);
+      if (!firstTouch) continue;
+      const delta = new Date(firstTouch).getTime() - new Date(inq.created_at).getTime();
+      if (delta >= 0) speedDeltas.push(delta);
+    }
+    const avgSpeedToLeadMs =
+      speedDeltas.length > 0 ? speedDeltas.reduce((a, b) => a + b, 0) / speedDeltas.length : null;
+
+    return {
+      newToday,
+      unassigned,
+      conversionPct,
+      funnelData,
+      sourceData,
+      trendData,
+      avgSpeedToLeadMs,
+    };
+  }, [inquiries, interactions]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -324,7 +364,7 @@ function LeadsPipeline() {
 
       {!loading && (
         <div className="mb-6 shrink-0 flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard label="New Today" value={String(insights.newToday)} icon={UserPlus} />
             <KpiCard
               label="Unassigned"
@@ -337,6 +377,15 @@ function LeadsPipeline() {
               value={`${insights.conversionPct}%`}
               icon={TrendingUp}
               tone="success"
+            />
+            <KpiCard
+              label="Avg Speed-to-Lead"
+              value={
+                insights.avgSpeedToLeadMs === null
+                  ? "No data yet"
+                  : formatDuration(insights.avgSpeedToLeadMs)
+              }
+              icon={CalendarCheck}
             />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
