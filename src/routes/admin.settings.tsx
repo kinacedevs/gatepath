@@ -1,89 +1,159 @@
 /**
- * Gatepath Realtors — System Settings (Phase 5A mechanical split)
- * Relocated verbatim from the old "settings" tab (admin.tsx, previously
- * ~2607-2671). Same JSX, same inline styles, same NAVY hex — copied as-is,
- * not redesigned. No data fetch: this tab is entirely static/hardcoded
- * placeholder content (disabled form fields, fake toggle switches) in the
- * original, so nothing needed relocating beyond the JSX itself.
+ * Gatepath Realtors — System Settings (VIZ_BLUEPRINT Phase 2, Slice 11 — last)
+ * Token migration off the Phase 5A inline-style residue. Per docs/VIZ_SPEC.md
+ * §12, every one of this screen's blueprint ambitions (integration health
+ * dots, audit-log viewer, backup/FX-refresh status, pipeline/template
+ * editors) is 🔴 Needs schema/build — none are buildable today, so this is
+ * the one slice with no new KPIs or charts: there is nothing real to count
+ * or chart here, and fabricating fake widgets would break the same
+ * no-fabrication discipline followed on every prior slice. Instead: real
+ * session data now backs "My Profile" (was hardcoded), the two decorative
+ * toggles are honestly labeled "Coming soon" instead of implying they work,
+ * and a roadmap card names the four real gaps in plain language.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { UserCheck, Shield } from "lucide-react";
+import { UserCheck, Shield, Rocket } from "lucide-react";
+import { useAdminSession } from "@/context/AdminSessionContext";
+import { SectionCard } from "@/components/admin/SectionCard";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 
 export const Route = createFileRoute("/admin/settings")({
   component: SystemSettings,
 });
 
-const NAVY = "#0C1A30";
-const GOLD = "var(--accent)";
-const CANVAS = "var(--stone)";
-const CARD_BORDER = "#E5E0D8";
+const ROLE_TONE = {
+  ceo: "warning",
+  manager: "info",
+  agent: "success",
+} as const;
+
+const ROADMAP_ITEMS = [
+  "Integration health monitoring (Paystack, Africa's Talking, Resend, n8n, WhatsApp/Meta)",
+  "Audit-log viewer for staff and system activity",
+  "Scheduled-backup and FX-rate refresh status",
+  "Pipeline stage and message-template editors",
+];
 
 function SystemSettings() {
+  const { adminName, adminRole, sessionUser } = useAdminSession();
+
   return (
-    <div style={{ animation: "fadeIn 0.3s ease" }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 24, color: NAVY, margin: 0 }}>System Settings</h1>
-        <p style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#6B7280", marginTop: 4 }}>
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div>
+        <h1 className="font-headline-lg text-headline-lg text-primary font-bold">
+          System Settings
+        </h1>
+        <p className="text-body-md text-on-surface-variant">
           Configure your Gatepath CRM preferences.
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-        <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${CARD_BORDER}`, padding: 32, boxShadow: "0 2px 12px rgba(12,26,48,0.05)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: CANVAS, display: "flex", alignItems: "center", justifyContent: "center", color: NAVY }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SectionCard>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
               <UserCheck size={20} />
             </div>
-            <div>
-              <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 18, color: NAVY, margin: 0 }}>My Profile</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-headline-md text-lg text-primary font-bold">My Profile</h2>
+              <StatusBadge tone={ROLE_TONE[adminRole]}>{adminRole}</StatusBadge>
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex flex-col gap-4">
             <div>
-              <label style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "#6B7280", display: "block", marginBottom: 6 }}>Full Name</label>
-              <input type="text" defaultValue="Gatepath CEO" readOnly style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: `1px solid ${CARD_BORDER}`, background: CANVAS, fontFamily: "Inter, sans-serif", fontSize: 14, color: NAVY }} />
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={adminName || "—"}
+                readOnly
+                className="w-full px-4 py-3 rounded-lg border border-outline-variant/40 bg-surface-container-low text-[14px] text-primary"
+              />
             </div>
             <div>
-              <label style={{ fontFamily: "Inter, sans-serif", fontSize: 12, fontWeight: 600, color: "#6B7280", display: "block", marginBottom: 6 }}>Email Address</label>
-              <input type="email" defaultValue="ceo@gatepathrealtors.com" readOnly style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: `1px solid ${CARD_BORDER}`, background: CANVAS, fontFamily: "Inter, sans-serif", fontSize: 14, color: NAVY }} />
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={sessionUser.email}
+                readOnly
+                className="w-full px-4 py-3 rounded-lg border border-outline-variant/40 bg-surface-container-low text-[14px] text-primary"
+              />
             </div>
-            <button disabled style={{ padding: "12px", background: NAVY, color: "#fff", borderRadius: 8, border: "none", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, opacity: 0.5, cursor: "not-allowed" }}>Update Profile (Auth Disabled)</button>
+            <button
+              disabled
+              className="p-3 bg-primary-container text-white rounded-lg font-semibold text-sm opacity-50 cursor-not-allowed"
+            >
+              Profile editing coming soon
+            </button>
           </div>
-        </div>
+        </SectionCard>
 
-        <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${CARD_BORDER}`, padding: 32, boxShadow: "0 2px 12px rgba(12,26,48,0.05)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: CANVAS, display: "flex", alignItems: "center", justifyContent: "center", color: NAVY }}>
+        <SectionCard>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
               <Shield size={20} />
             </div>
-            <div>
-              <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: 18, color: NAVY, margin: 0 }}>Security Preferences</h2>
+            <h2 className="font-headline-md text-lg text-primary font-bold">
+              Security Preferences
+            </h2>
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center pb-4 border-b border-outline-variant/30">
+              <div>
+                <div className="font-semibold text-[14px] text-primary">
+                  Two-Factor Authentication
+                </div>
+                <div className="text-xs text-on-surface-variant">
+                  Require OTP for all admin logins.
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <StatusBadge tone="neutral">Coming soon</StatusBadge>
+                <div className="w-11 h-6 rounded-full bg-accent/40 relative cursor-not-allowed">
+                  <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 right-0.5 shadow-sm" />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="font-semibold text-[14px] text-primary">Email Notifications</div>
+                <div className="text-xs text-on-surface-variant">
+                  Alert on new bookings &amp; payments.
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <StatusBadge tone="neutral">Coming soon</StatusBadge>
+                <div className="w-11 h-6 rounded-full bg-accent/40 relative cursor-not-allowed">
+                  <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 right-0.5 shadow-sm" />
+                </div>
+              </div>
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 16, borderBottom: `1px solid ${CARD_BORDER}` }}>
-              <div>
-                <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: NAVY }}>Two-Factor Authentication</div>
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#6B7280" }}>Require OTP for all admin logins.</div>
-              </div>
-              <div style={{ width: 44, height: 24, borderRadius: 12, background: GOLD, position: "relative", cursor: "pointer" }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, right: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }} />
-              </div>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 14, color: NAVY }}>Email Notifications</div>
-                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#6B7280" }}>Alert on new bookings & payments.</div>
-              </div>
-              <div style={{ width: 44, height: 24, borderRadius: 12, background: GOLD, position: "relative", cursor: "pointer" }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, right: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }} />
-              </div>
-            </div>
-          </div>
-        </div>
+        </SectionCard>
       </div>
 
-      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      <SectionCard title="Coming to Settings">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-surface-container-low flex items-center justify-center text-accent-dark shrink-0">
+            <Rocket size={18} />
+          </div>
+          <p className="text-[13px] text-on-surface-variant pt-1.5">
+            These need real backing data or a dedicated build before they can ship honestly —
+            tracked here rather than shown as placeholder widgets.
+          </p>
+        </div>
+        <ul className="flex flex-col gap-2.5">
+          {ROADMAP_ITEMS.map((item) => (
+            <li key={item} className="flex items-center gap-2.5 text-[13px] text-on-surface pl-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-outline-variant shrink-0" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </SectionCard>
     </div>
   );
 }
