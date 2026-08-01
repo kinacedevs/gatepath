@@ -187,6 +187,9 @@ export const getPortalDataFn = createServerFn({ method: "POST" })
       .eq("client_email", email);
 
     const inqIds = (inquiries || []).map((i: any) => i.id);
+    const phaseIds = Array.from(
+      new Set((inquiries || []).map((i: any) => i.phase_id).filter(Boolean)),
+    );
 
     const { data: payments } = inqIds.length
       ? await (service as any).from("payments").select("*").in("inquiry_id", inqIds)
@@ -196,12 +199,82 @@ export const getPortalDataFn = createServerFn({ method: "POST" })
       ? await (service as any).from("bookings").select("*").in("inquiry_id", inqIds)
       : { data: [] };
 
+    const { data: offers } = inqIds.length
+      ? await (service as any).from("offers").select("*").in("inquiry_id", inqIds)
+      : { data: [] };
+
+    const { data: agreements } = inqIds.length
+      ? await (service as any).from("agreements").select("*").in("inquiry_id", inqIds)
+      : { data: [] };
+
+    const { data: interactions } = inqIds.length
+      ? await (service as any).from("interaction_log").select("*").in("inquiry_id", inqIds)
+      : { data: [] };
+
+    const { data: documents } = inqIds.length
+      ? await (service as any).from("document_records").select("*").in("inquiry_id", inqIds)
+      : { data: [] };
+
+    const { data: phases } = phaseIds.length
+      ? await (service as any).from("phases").select("id, youtube_video_url").in("id", phaseIds)
+      : { data: [] };
+
     return {
       success: true as const,
       inquiries: inquiries || [],
       payments: payments || [],
       bookings: bookings || [],
+      offers: offers || [],
+      agreements: agreements || [],
+      interactions: interactions || [],
+      documents: documents || [],
+      phases: phases || [],
     };
+  });
+
+/**
+ * Portal-side counterpart to documentVaultActions.ts's getDocumentSignedUrlFn
+ * — same signed-URL mechanism, but ownership is verified against the
+ * caller's own portal session (their client_email) rather than a staff
+ * admin_users row, since portal clients have no Supabase Auth JWT at all.
+ */
+export const getPortalDocumentSignedUrlFn = createServerFn({ method: "POST" })
+  .validator((d: { sessionToken: string; documentId: string }) => d)
+  .handler(async ({ data }) => {
+    const email = await resolveSessionEmail(data.sessionToken);
+    if (!email) {
+      return { success: false as const, error: "Your session expired. Please sign in again." };
+    }
+
+    const service = getServiceClient();
+
+    const { data: record } = await (service as any)
+      .from("document_records")
+      .select("storage_path, inquiry_id")
+      .eq("id", data.documentId)
+      .maybeSingle();
+
+    if (!record) return { success: false as const, error: "Document not found." };
+
+    const { data: inquiry } = await (service as any)
+      .from("inquiries")
+      .select("client_email")
+      .eq("id", record.inquiry_id)
+      .maybeSingle();
+
+    if (!inquiry || inquiry.client_email?.toLowerCase() !== email) {
+      return { success: false as const, error: "This document doesn't belong to your account." };
+    }
+
+    const { data: signed, error } = await service.storage
+      .from("documents")
+      .createSignedUrl(record.storage_path, 300);
+
+    if (error || !signed) {
+      return { success: false as const, error: error?.message ?? "Could not sign URL." };
+    }
+
+    return { success: true as const, signedUrl: signed.signedUrl };
   });
 
 /**

@@ -8,10 +8,15 @@ import {
   requestPortalOtpFn,
   verifyPortalOtpFn,
   getPortalDataFn,
+  getPortalDocumentSignedUrlFn,
   assertPortalOwnsInquiryFn,
 } from "@/lib/portalActions";
 import { verifyPaymentFn } from "@/lib/paymentActions";
-import { CONVEYANCING_STAGES } from "@/lib/conveyancing";
+import {
+  resolveDealStage,
+  CONVEYANCING_13_STAGES,
+  NEXT_ACTION_BY_STAGE,
+} from "@/lib/conveyancingStages";
 import {
   ShieldCheck,
   User,
@@ -33,6 +38,8 @@ import {
   Clock,
   X,
   Check,
+  Video,
+  Eye,
 } from "lucide-react";
 
 export const Route = createFileRoute("/portal")({
@@ -51,6 +58,7 @@ export const Route = createFileRoute("/portal")({
 
 interface InquiryData {
   id: string;
+  phase_id: string;
   phase_name: string;
   plot_number_ref: number;
   plot_size: string;
@@ -63,6 +71,8 @@ interface InquiryData {
   client_full_name: string;
   client_email: string;
   client_phone: string;
+  cro_name: string | null;
+  terms_of_payment: string | null;
 }
 
 interface PaymentData {
@@ -83,6 +93,45 @@ interface BookingData {
   pickup_location?: string;
   transport_required: boolean;
 }
+
+interface OfferData {
+  id: string;
+  inquiry_id: string;
+  ceo_signed: boolean;
+}
+
+interface AgreementData {
+  id: string;
+  inquiry_id: string;
+}
+
+interface InteractionData {
+  id: string;
+  inquiry_id: string;
+}
+
+interface DocumentData {
+  id: string;
+  inquiry_id: string | null;
+  document_type: string;
+  file_name: string;
+  created_at: string;
+}
+
+interface PhaseVideoData {
+  id: string;
+  youtube_video_url: string | null;
+}
+
+const DOCUMENT_TYPE_LABEL: Record<string, string> = {
+  agreement: "Agreement",
+  offer: "Offer Letter",
+  receipt: "Receipt",
+  title_deed: "Title Deed",
+  id_copy: "ID Copy",
+  poa: "Power of Attorney",
+  other: "Document",
+};
 
 const PORTAL_SESSION_KEY = "gatepath_portal_session";
 
@@ -115,6 +164,12 @@ function ClientPortalPage() {
   const [inquiries, setInquiries] = useState<InquiryData[]>([]);
   const [payments, setPayments] = useState<PaymentData[]>([]);
   const [bookings, setBookings] = useState<BookingData[]>([]);
+  const [offers, setOffers] = useState<OfferData[]>([]);
+  const [agreements, setAgreements] = useState<AgreementData[]>([]);
+  const [interactions, setInteractions] = useState<InteractionData[]>([]);
+  const [documents, setDocuments] = useState<DocumentData[]>([]);
+  const [phases, setPhases] = useState<PhaseVideoData[]>([]);
+  const [viewingDocId, setViewingDocId] = useState<string | null>(null);
 
   // In-Portal Installment Payment Modal State
   const [payingInquiry, setPayingInquiry] = useState<InquiryData | null>(null);
@@ -167,6 +222,11 @@ function ClientPortalPage() {
       setInquiries(result.inquiries);
       setPayments(result.payments || []);
       setBookings(result.bookings || []);
+      setOffers(result.offers || []);
+      setAgreements(result.agreements || []);
+      setInteractions(result.interactions || []);
+      setDocuments(result.documents || []);
+      setPhases(result.phases || []);
       setSessionToken(token);
       setSessionEmail(result.inquiries[0]?.client_email || null);
     } catch (err: any) {
@@ -248,6 +308,11 @@ function ClientPortalPage() {
     setInquiries([]);
     setPayments([]);
     setBookings([]);
+    setOffers([]);
+    setAgreements([]);
+    setInteractions([]);
+    setDocuments([]);
+    setPhases([]);
     setEmailInput("");
     setPhoneInput("");
     setOtpInput("");
@@ -330,6 +395,29 @@ function ClientPortalPage() {
       },
     });
     handler.openIframe();
+  };
+
+  // Opens a staff-uploaded vault document (Module 7) in a new tab via a
+  // short-lived signed URL — ownership is re-verified server-side against
+  // this portal session, never trusted from the client.
+  const viewPortalDocument = async (documentId: string) => {
+    if (!sessionToken) return;
+    setViewingDocId(documentId);
+    try {
+      const result = await (getPortalDocumentSignedUrlFn as any)({
+        data: { sessionToken, documentId },
+      });
+      if (result?.success) {
+        window.open(result.signedUrl, "_blank", "noopener,noreferrer");
+      } else {
+        setError(result?.error || "Could not open this document.");
+      }
+    } catch (err: any) {
+      console.error("[Portal] Document view failed:", err);
+      setError("Could not open this document.");
+    } finally {
+      setViewingDocId(null);
+    }
   };
 
   return (
@@ -515,11 +603,31 @@ function ClientPortalPage() {
                       ? Math.min(100, Math.round((totalPaid / inq.price) * 100))
                       : 0;
 
-                    // Calculate 5-Stage Conveyancing Stage based on payment status & approval
-                    let currentStage = 1;
-                    if (paidPct >= 100) currentStage = 5;
-                    else if (paidPct >= 50) currentStage = 3;
-                    else if (paidPct > 0) currentStage = 2;
+                    // Real 13-stage resolver (Part 2, Module 8) — checks each
+                    // stage's actual backing signal instead of the old
+                    // payment-percentage-only heuristic. See
+                    // src/lib/conveyancingStages.ts.
+                    const inqOffers = offers.filter((o) => o.inquiry_id === inq.id);
+                    const inqAgreements = agreements.filter((a) => a.inquiry_id === inq.id);
+                    const inqInteractions = interactions.filter((i) => i.inquiry_id === inq.id);
+                    const inqBookings = bookings.filter((b) => b.inquiry_id === inq.id);
+                    const inqDocuments = documents.filter((d) => d.inquiry_id === inq.id);
+                    const inqPhase = phases.find((p) => p.id === inq.phase_id);
+
+                    const { currentStage, reachedStages } = resolveDealStage(
+                      {
+                        cro_name: inq.cro_name,
+                        terms_of_payment: inq.terms_of_payment,
+                        status: inq.status,
+                      },
+                      {
+                        payments: plotPayments,
+                        bookings: inqBookings,
+                        offers: inqOffers,
+                        agreements: inqAgreements,
+                        interactions: inqInteractions,
+                      },
+                    );
 
                     return (
                       <div
@@ -580,15 +688,57 @@ function ClientPortalPage() {
                           </div>
                         </div>
 
-                        {/* 5-STAGE TITLE DEED CONVEYANCING PROGRESS RAIL */}
+                        {/* Payment History — itemized, same successful payments already
+                            summed above */}
+                        {plotPayments.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-xs font-bold text-primary-deep uppercase tracking-wider block">
+                              Payment History
+                            </span>
+                            <div className="space-y-1.5">
+                              {plotPayments
+                                .slice()
+                                .sort(
+                                  (a, b) =>
+                                    new Date(b.created_at).getTime() -
+                                    new Date(a.created_at).getTime(),
+                                )
+                                .map((p) => (
+                                  <div
+                                    key={p.id}
+                                    className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-lg border border-slate-100"
+                                  >
+                                    <span className="text-slate-600">
+                                      {new Date(p.created_at).toLocaleDateString()}
+                                    </span>
+                                    <span className="font-mono text-[11px] text-slate-400">
+                                      {p.paystack_reference}
+                                    </span>
+                                    <span className="font-bold text-primary-deep">
+                                      Ksh {p.amount.toLocaleString()}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 13-STAGE TITLE DEED CONVEYANCING PROGRESS RAIL */}
                         <div className="space-y-3 pt-2">
                           <span className="text-xs font-bold text-primary-deep uppercase tracking-wider block">
-                            5-Stage Title Deed Conveyancing Pipeline
+                            Title Deed Conveyancing Pipeline
                           </span>
 
+                          {/* Next Step callout — derived from the same real
+                              resolved stage, not fabricated */}
+                          <div className="p-3.5 bg-accent/10 border border-accent/20 rounded-xl text-xs text-primary-deep font-medium">
+                            <strong className="font-bold">Next step:</strong>{" "}
+                            {NEXT_ACTION_BY_STAGE[currentStage]}
+                          </div>
+
                           <div className="space-y-3">
-                            {CONVEYANCING_STAGES.map((s) => {
-                              const isComplete = s.stage <= currentStage;
+                            {CONVEYANCING_13_STAGES.map((s) => {
+                              const isComplete = reachedStages.has(s.stage);
                               const isCurrent = s.stage === currentStage;
 
                               return (
@@ -654,39 +804,92 @@ function ClientPortalPage() {
                     </h3>
 
                     <div className="space-y-3">
-                      {inquiries.map((inq) => (
-                        <div
-                          key={inq.id}
-                          className="space-y-2 pb-3 border-b border-slate-100 last:border-b-0"
-                        >
-                          <span className="text-[11px] font-bold text-slate-700 block">
-                            Plot #{inq.plot_number_ref} Documents
-                          </span>
-                          <Link
-                            to="/document/agreement/$id"
-                            params={{ id: inq.id }}
-                            className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      {inquiries.map((inq) => {
+                        const inqDocuments = documents.filter((d) => d.inquiry_id === inq.id);
+                        return (
+                          <div
+                            key={inq.id}
+                            className="space-y-2 pb-3 border-b border-slate-100 last:border-b-0"
                           >
-                            <span className="flex items-center gap-2">
-                              <FileText size={16} className="text-primary" /> Purchase Agreement PDF
+                            <span className="text-[11px] font-bold text-slate-700 block">
+                              Plot #{inq.plot_number_ref} Documents
                             </span>
-                            <ArrowRight size={14} />
-                          </Link>
-                          <Link
-                            to="/document/receipt/$id"
-                            params={{ id: inq.id }}
-                            className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                          >
-                            <span className="flex items-center gap-2">
-                              <FileText size={16} className="text-available" /> Official Payment
-                              Receipt
-                            </span>
-                            <ArrowRight size={14} />
-                          </Link>
-                        </div>
-                      ))}
+                            <Link
+                              to="/document/agreement/$id"
+                              params={{ id: inq.id }}
+                              className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                            >
+                              <span className="flex items-center gap-2">
+                                <FileText size={16} className="text-primary" /> Purchase Agreement
+                                PDF
+                              </span>
+                              <ArrowRight size={14} />
+                            </Link>
+                            <Link
+                              to="/document/receipt/$id"
+                              params={{ id: inq.id }}
+                              className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                            >
+                              <span className="flex items-center gap-2">
+                                <FileText size={16} className="text-available" /> Official Payment
+                                Receipt
+                              </span>
+                              <ArrowRight size={14} />
+                            </Link>
+                            {inqDocuments.map((doc) => (
+                              <button
+                                key={doc.id}
+                                onClick={() => viewPortalDocument(doc.id)}
+                                disabled={viewingDocId === doc.id}
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <FileText size={16} className="text-primary-deep" />{" "}
+                                  {DOCUMENT_TYPE_LABEL[doc.document_type] ?? "Document"}
+                                </span>
+                                {viewingDocId === doc.id ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <Eye size={14} />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+
+                  {/* Virtual Tour — only if a real video exists for this
+                      phase, no fabricated placeholder */}
+                  {inquiries.some(
+                    (inq) => phases.find((p) => p.id === inq.phase_id)?.youtube_video_url,
+                  ) && (
+                    <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+                      <h3 className="font-serif font-bold text-xl text-primary-deep flex items-center gap-2">
+                        <Video size={20} className="text-accent" /> Virtual Tour
+                      </h3>
+                      {inquiries.map((inq) => {
+                        const video = phases.find((p) => p.id === inq.phase_id)?.youtube_video_url;
+                        if (!video) return null;
+                        return (
+                          <a
+                            key={inq.id}
+                            href={video}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Video size={16} className="text-accent" /> {inq.phase_name} Virtual
+                              Tour
+                            </span>
+                            <ArrowRight size={14} />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Scheduled Site Visits */}
                   <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
