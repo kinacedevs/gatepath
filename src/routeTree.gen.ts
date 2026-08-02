@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ThankYouRouteImport } from './routes/thank-you'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PaymentRouteImport } from './routes/payment'
@@ -61,6 +62,11 @@ import { Route as AdminPlotsPlotIdRouteImport } from './routes/admin.plots.$plot
 const ThankYouRoute = ThankYouRouteImport.update({
   id: '/thank-you',
   path: '/thank-you',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -313,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/payment': typeof PaymentRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/admin/agents': typeof AdminAgentsRoute
   '/admin/blog': typeof AdminBlogRoute
@@ -362,6 +369,7 @@ export interface FileRoutesByTo {
   '/payment': typeof PaymentRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/admin/agents': typeof AdminAgentsRoute
   '/admin/blog': typeof AdminBlogRoute
@@ -413,6 +421,7 @@ export interface FileRoutesById {
   '/payment': typeof PaymentRoute
   '/portal': typeof PortalRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/admin/agents': typeof AdminAgentsRoute
   '/admin/blog': typeof AdminBlogRoute
@@ -465,6 +474,7 @@ export interface FileRouteTypes {
     | '/payment'
     | '/portal'
     | '/privacy'
+    | '/terms'
     | '/thank-you'
     | '/admin/agents'
     | '/admin/blog'
@@ -514,6 +524,7 @@ export interface FileRouteTypes {
     | '/payment'
     | '/portal'
     | '/privacy'
+    | '/terms'
     | '/thank-you'
     | '/admin/agents'
     | '/admin/blog'
@@ -564,6 +575,7 @@ export interface FileRouteTypes {
     | '/payment'
     | '/portal'
     | '/privacy'
+    | '/terms'
     | '/thank-you'
     | '/admin/agents'
     | '/admin/blog'
@@ -615,6 +627,7 @@ export interface RootRouteChildren {
   PaymentRoute: typeof PaymentRoute
   PortalRoute: typeof PortalRoute
   PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   ThankYouRoute: typeof ThankYouRoute
   BlogSlugRoute: typeof BlogSlugRoute
   PropertiesSlugRoute: typeof PropertiesSlugRoute
@@ -632,6 +645,13 @@ declare module '@tanstack/react-router' {
       path: '/thank-you'
       fullPath: '/thank-you'
       preLoaderRoute: typeof ThankYouRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -1053,6 +1073,7 @@ const rootRouteChildren: RootRouteChildren = {
   PaymentRoute: PaymentRoute,
   PortalRoute: PortalRoute,
   PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   ThankYouRoute: ThankYouRoute,
   BlogSlugRoute: BlogSlugRoute,
   PropertiesSlugRoute: PropertiesSlugRoute,

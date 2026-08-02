@@ -201,12 +201,12 @@ export function Footer() {
         <div className="mx-auto max-w-7xl px-6 lg:px-10 py-6 flex flex-col md:flex-row justify-between gap-2 text-[13px] text-white/50">
           <span>© {new Date().getFullYear()} Gatepath Realtors. All rights reserved.</span>
           <div className="flex gap-5">
-            <a href="#" className="hover:text-accent">
+            <Link to="/privacy" className="hover:text-accent">
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-accent">
+            </Link>
+            <Link to="/terms" className="hover:text-accent">
               Terms of Use
-            </a>
+            </Link>
           </div>
         </div>
       </div>

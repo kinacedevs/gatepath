@@ -48,30 +48,39 @@ function PrivacyPage() {
       content: (
         <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            <strong className="text-foreground">Gatepath Realtors Limited</strong> (hereinafter "Gatepath Realtors",
-            "we", "us", or "our") is the registered Data Controller for all personal data processed through this
-            website and associated services. Our registration details are:
+            <strong className="text-foreground">Gatepath Realtors Limited</strong> (hereinafter
+            "Gatepath Realtors", "we", "us", or "our") is the registered Data Controller for all
+            personal data processed through this website and associated services. Our registration
+            details are:
           </p>
           <ul className="list-none space-y-2 pl-0">
             <li className="flex items-center gap-3">
               <Globe size={14} className="text-primary shrink-0" />
-              <span><strong>Website:</strong> www.gatepathrealtors.com</span>
+              <span>
+                <strong>Website:</strong> www.gatepathrealtors.com
+              </span>
             </li>
             <li className="flex items-center gap-3">
               <Mail size={14} className="text-primary shrink-0" />
-              <span><strong>Data Protection Email:</strong> info@gatepathrealtors.com</span>
+              <span>
+                <strong>Data Protection Email:</strong> info@gatepathrealtors.com
+              </span>
             </li>
             <li className="flex items-center gap-3">
               <Phone size={14} className="text-primary shrink-0" />
-              <span><strong>Phone:</strong> +254 700 000 000</span>
+              <span>
+                <strong>Phone:</strong> +254 799 488 488
+              </span>
             </li>
           </ul>
           <p>
             We are committed to compliance with the{" "}
-            <strong className="text-foreground">Kenya Data Protection Act No. 24 of 2019</strong> and the
-            regulations published by the{" "}
-            <strong className="text-foreground">Office of the Data Protection Commissioner (ODPC)</strong> of Kenya.
-            This Privacy Notice is issued pursuant to Section 25 of that Act.
+            <strong className="text-foreground">Kenya Data Protection Act No. 24 of 2019</strong>{" "}
+            and the regulations published by the{" "}
+            <strong className="text-foreground">
+              Office of the Data Protection Commissioner (ODPC)
+            </strong>{" "}
+            of Kenya. This Privacy Notice is issued pursuant to Section 25 of that Act.
           </p>
         </div>
       ),
@@ -84,8 +93,9 @@ function PrivacyPage() {
       content: (
         <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            We collect personal data only to the extent necessary to deliver our real estate services and comply with
-            applicable law. The categories of personal data we process include:
+            We collect personal data only to the extent necessary to deliver our real estate
+            services and comply with applicable law. The categories of personal data we process
+            include:
           </p>
           <div className="space-y-4">
             {[
@@ -124,7 +134,10 @@ function PrivacyPage() {
                 ],
               },
             ].map((cat) => (
-              <div key={cat.label} className="bg-ivory rounded-xl px-5 py-4 border border-[#EAE4DC]">
+              <div
+                key={cat.label}
+                className="bg-ivory rounded-xl px-5 py-4 border border-[#EAE4DC]"
+              >
                 <h4 className="font-semibold text-foreground text-[14px] mb-2">{cat.label}</h4>
                 <ul className="list-disc pl-5 space-y-1 text-[14px]">
                   {cat.items.map((item) => (
@@ -135,9 +148,9 @@ function PrivacyPage() {
             ))}
           </div>
           <p className="text-[13px] italic text-[#8A8179]">
-            We do not collect biometric data, health data, ethnic origin, or any other special category of personal
-            data as defined under Section 45 of the Kenya Data Protection Act, unless you explicitly provide it and
-            give written consent.
+            We do not collect biometric data, health data, ethnic origin, or any other special
+            category of personal data as defined under Section 45 of the Kenya Data Protection Act,
+            unless you explicitly provide it and give written consent.
           </p>
         </div>
       ),
@@ -150,38 +163,65 @@ function PrivacyPage() {
       content: (
         <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            Under Section 30 of the Kenya Data Protection Act, we process your personal data only where a lawful
-            basis exists. The table below maps each purpose to its corresponding legal ground:
+            Under Section 30 of the Kenya Data Protection Act, we process your personal data only
+            where a lawful basis exists. The table below maps each purpose to its corresponding
+            legal ground:
           </p>
           <div className="overflow-x-auto rounded-xl border border-[#E5E0D8]">
             <table className="w-full text-[13px]">
               <thead className="bg-stone">
                 <tr>
                   <th className="text-left px-4 py-3 font-bold text-foreground">Purpose</th>
-                  <th className="text-left px-4 py-3 font-bold text-foreground">Lawful Basis (KDPA S.30)</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">
+                    Lawful Basis (KDPA S.30)
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EBE3]">
                 {[
                   ["Processing property inquiries and booking site visits", "Consent (S.30(a))"],
-                  ["Drafting and executing Sale Agreements (Purchase Agreements)", "Performance of contract (S.30(b))"],
-                  ["Processing payments through our Paystack integration", "Performance of contract (S.30(b))"],
-                  ["Conducting KRA PIN verification and stamp duty compliance", "Legal obligation (S.30(c))"],
-                  ["Filing title transfer documents at the Ministry of Lands", "Legal obligation (S.30(c))"],
-                  ["Performing anti-fraud screening and land registry searches", "Legitimate interests (S.30(f))"],
-                  ["Sending property alerts and marketing communications (opt-in only)", "Consent (S.30(a))"],
-                  ["Succession planning for next-of-kin registration", "Consent + Legal obligation (S.30(a)/(c))"],
+                  [
+                    "Drafting and executing Sale Agreements (Purchase Agreements)",
+                    "Performance of contract (S.30(b))",
+                  ],
+                  [
+                    "Processing payments through our Paystack integration",
+                    "Performance of contract (S.30(b))",
+                  ],
+                  [
+                    "Conducting KRA PIN verification and stamp duty compliance",
+                    "Legal obligation (S.30(c))",
+                  ],
+                  [
+                    "Filing title transfer documents at the Ministry of Lands",
+                    "Legal obligation (S.30(c))",
+                  ],
+                  [
+                    "Performing anti-fraud screening and land registry searches",
+                    "Legitimate interests (S.30(f))",
+                  ],
+                  [
+                    "Sending property alerts and marketing communications (opt-in only)",
+                    "Consent (S.30(a))",
+                  ],
+                  [
+                    "Succession planning for next-of-kin registration",
+                    "Consent + Legal obligation (S.30(a)/(c))",
+                  ],
                 ].map(([purpose, basis]) => (
                   <tr key={purpose} className="hover:bg-[#FAFAF8]">
                     <td className="px-4 py-3 text-muted-foreground">{purpose}</td>
-                    <td className="px-4 py-3 font-semibold text-primary whitespace-nowrap">{basis}</td>
+                    <td className="px-4 py-3 font-semibold text-primary whitespace-nowrap">
+                      {basis}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <p className="text-[14px] font-medium text-foreground">
-            We will never sell, rent, or lease your personal information to third parties for their commercial use.
+            We will never sell, rent, or lease your personal information to third parties for their
+            commercial use.
           </p>
         </div>
       ),
@@ -194,19 +234,21 @@ function PrivacyPage() {
       content: (
         <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            We only share your data with third parties to the extent strictly necessary, and always within the
-            framework of Section 38 of the Kenya Data Protection Act:
+            We only share your data with third parties to the extent strictly necessary, and always
+            within the framework of Section 38 of the Kenya Data Protection Act:
           </p>
           <div className="space-y-3">
             {[
               {
                 party: "Paystack Inc.",
                 purpose: "Secure online payment processing for deposits and installments",
-                safeguard: "Paystack is PCI DSS Level 1 compliant. Raw card data is never stored by Gatepath.",
+                safeguard:
+                  "Paystack is PCI DSS Level 1 compliant. Raw card data is never stored by Gatepath.",
               },
               {
                 party: "Ministry of Lands & Physical Planning (Kenya)",
-                purpose: "Submission of title transfer instruments and official land registration documents",
+                purpose:
+                  "Submission of title transfer instruments and official land registration documents",
                 safeguard: "Mandatory disclosure under the Land Registration Act, 2012 (Kenya).",
               },
               {
@@ -222,7 +264,8 @@ function PrivacyPage() {
               {
                 party: "Supabase Inc. (Cloud Infrastructure)",
                 purpose: "Secure encrypted database hosting for all client records and documents",
-                safeguard: "Data stored in ISO 27001-certified data centres. GDPR-compliant data processor agreements in place.",
+                safeguard:
+                  "Data stored in ISO 27001-certified data centres. GDPR-compliant data processor agreements in place.",
               },
             ].map((r) => (
               <div key={r.party} className="rounded-xl border border-[#E5E0D8] p-5 bg-white">
@@ -247,26 +290,49 @@ function PrivacyPage() {
       content: (
         <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            We retain personal data only for as long as necessary to fulfil the purpose for which it was collected,
-            or as required by applicable law (Section 39 of the Kenya Data Protection Act):
+            We retain personal data only for as long as necessary to fulfil the purpose for which it
+            was collected, or as required by applicable law (Section 39 of the Kenya Data Protection
+            Act):
           </p>
           <div className="overflow-x-auto rounded-xl border border-[#E5E0D8]">
             <table className="w-full text-[13px]">
               <thead className="bg-stone">
                 <tr>
                   <th className="text-left px-4 py-3 font-bold text-foreground">Data Category</th>
-                  <th className="text-left px-4 py-3 font-bold text-foreground">Retention Period</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">
+                    Retention Period
+                  </th>
                   <th className="text-left px-4 py-3 font-bold text-foreground">Basis</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EBE3]">
                 {[
-                  ["Inquiry / lead data (no purchase completed)", "12 months from last interaction", "Marketing consent withdrawal period"],
-                  ["Purchase Agreement & title deed records", "Minimum 30 years", "Land Registration Act requirements"],
-                  ["Payment receipts & transaction data", "7 years", "KRA / Finance Act audit requirements"],
-                  ["KRA PIN and ID copies", "Duration of title holding + 7 years post-transfer", "Tax compliance"],
+                  [
+                    "Inquiry / lead data (no purchase completed)",
+                    "12 months from last interaction",
+                    "Marketing consent withdrawal period",
+                  ],
+                  [
+                    "Purchase Agreement & title deed records",
+                    "Minimum 30 years",
+                    "Land Registration Act requirements",
+                  ],
+                  [
+                    "Payment receipts & transaction data",
+                    "7 years",
+                    "KRA / Finance Act audit requirements",
+                  ],
+                  [
+                    "KRA PIN and ID copies",
+                    "Duration of title holding + 7 years post-transfer",
+                    "Tax compliance",
+                  ],
                   ["Next-of-kin data", "Duration of title holding", "Succession Act obligations"],
-                  ["Website usage / analytics data", "24 months (anonymised after 12 months)", "Legitimate interest"],
+                  [
+                    "Website usage / analytics data",
+                    "24 months (anonymised after 12 months)",
+                    "Legitimate interest",
+                  ],
                 ].map(([cat, period, basis]) => (
                   <tr key={cat} className="hover:bg-[#FAFAF8]">
                     <td className="px-4 py-3 text-muted-foreground">{cat}</td>
@@ -288,17 +354,35 @@ function PrivacyPage() {
       content: (
         <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            Pursuant to Part IV of the Kenya Data Protection Act No. 24 of 2019, you have the following enforceable
-            rights as a data subject:
+            Pursuant to Part IV of the Kenya Data Protection Act No. 24 of 2019, you have the
+            following enforceable rights as a data subject:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { right: "Right of Access (S.26)", desc: "Request a copy of all personal data we hold about you, free of charge within 21 days of your request." },
-              { right: "Right to Rectification (S.27)", desc: "Request correction of inaccurate or incomplete personal data (e.g., wrong KRA PIN, misspelled name)." },
-              { right: "Right to Erasure (S.28)", desc: "Request deletion of your personal data where processing is no longer necessary, subject to our legal retention obligations." },
-              { right: "Right to Object (S.29)", desc: "Object to processing of your data for direct marketing purposes at any time, with immediate effect." },
-              { right: "Right to Data Portability (S.31)", desc: "Receive your personal data in a structured, machine-readable format to transfer to another service provider." },
-              { right: "Right to Withdraw Consent (S.30)", desc: "Where processing is based on consent, withdraw it at any time without affecting the lawfulness of prior processing." },
+              {
+                right: "Right of Access (S.26)",
+                desc: "Request a copy of all personal data we hold about you, free of charge within 21 days of your request.",
+              },
+              {
+                right: "Right to Rectification (S.27)",
+                desc: "Request correction of inaccurate or incomplete personal data (e.g., wrong KRA PIN, misspelled name).",
+              },
+              {
+                right: "Right to Erasure (S.28)",
+                desc: "Request deletion of your personal data where processing is no longer necessary, subject to our legal retention obligations.",
+              },
+              {
+                right: "Right to Object (S.29)",
+                desc: "Object to processing of your data for direct marketing purposes at any time, with immediate effect.",
+              },
+              {
+                right: "Right to Data Portability (S.31)",
+                desc: "Receive your personal data in a structured, machine-readable format to transfer to another service provider.",
+              },
+              {
+                right: "Right to Withdraw Consent (S.30)",
+                desc: "Where processing is based on consent, withdraw it at any time without affecting the lawfulness of prior processing.",
+              },
             ].map((r) => (
               <div key={r.right} className="bg-ivory rounded-xl p-4 border border-[#EAE4DC]">
                 <h4 className="font-bold text-[13px] text-primary mb-1">{r.right}</h4>
@@ -320,9 +404,18 @@ function PrivacyPage() {
           <div className="bg-[#FFF8EC] border border-accent/30 rounded-xl p-4 flex gap-3">
             <AlertTriangle size={18} className="text-accent shrink-0 mt-0.5" />
             <p className="text-[13px] text-muted-foreground">
-              If you believe your rights have been violated, you have the right to lodge a complaint with the{" "}
-              <strong className="text-foreground">Office of the Data Protection Commissioner (ODPC)</strong> of Kenya at{" "}
-              <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              If you believe your rights have been violated, you have the right to lodge a complaint
+              with the{" "}
+              <strong className="text-foreground">
+                Office of the Data Protection Commissioner (ODPC)
+              </strong>{" "}
+              of Kenya at{" "}
+              <a
+                href="https://www.odpc.go.ke"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
                 www.odpc.go.ke
               </a>{" "}
               or call <strong>+254 20 222 2222</strong>.
@@ -339,9 +432,9 @@ function PrivacyPage() {
       content: (
         <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            We implement appropriate technical and organisational measures under Section 41 of the Kenya Data
-            Protection Act to protect your personal data against loss, unauthorised access, disclosure, or
-            destruction:
+            We implement appropriate technical and organisational measures under Section 41 of the
+            Kenya Data Protection Act to protect your personal data against loss, unauthorised
+            access, disclosure, or destruction:
           </p>
           <ul className="space-y-3">
             {[
@@ -368,24 +461,40 @@ function PrivacyPage() {
       title: "8. Cookies & Tracking Technologies",
       content: (
         <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
-          <p>
-            Our website uses minimal, privacy-respecting cookies and similar technologies:
-          </p>
+          <p>Our website uses minimal, privacy-respecting cookies and similar technologies:</p>
           <div className="overflow-x-auto rounded-xl border border-[#E5E0D8]">
             <table className="w-full text-[13px]">
               <thead className="bg-stone">
                 <tr>
-                  <th className="text-left px-4 py-3 font-bold text-foreground">Cookie Name / Type</th>
+                  <th className="text-left px-4 py-3 font-bold text-foreground">
+                    Cookie Name / Type
+                  </th>
                   <th className="text-left px-4 py-3 font-bold text-foreground">Purpose</th>
                   <th className="text-left px-4 py-3 font-bold text-foreground">Duration</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EBE3]">
                 {[
-                  ["Session Cookie (Supabase Auth)", "Maintains your login session in the Client Hub", "Session (deleted on browser close)"],
-                  ["CSRF Token", "Protects form submissions against cross-site request forgery attacks", "Session"],
-                  ["Analytics (anonymised)", "Aggregate, non-identifying website usage statistics to improve UX", "24 months"],
-                  ["Paystack Payment Cookie", "Tracks payment flow integrity during checkout. Set by Paystack, not Gatepath.", "Session"],
+                  [
+                    "Session Cookie (Supabase Auth)",
+                    "Maintains your login session in the Client Hub",
+                    "Session (deleted on browser close)",
+                  ],
+                  [
+                    "CSRF Token",
+                    "Protects form submissions against cross-site request forgery attacks",
+                    "Session",
+                  ],
+                  [
+                    "Analytics (anonymised)",
+                    "Aggregate, non-identifying website usage statistics to improve UX",
+                    "24 months",
+                  ],
+                  [
+                    "Paystack Payment Cookie",
+                    "Tracks payment flow integrity during checkout. Set by Paystack, not Gatepath.",
+                    "Session",
+                  ],
                 ].map(([name, purpose, duration]) => (
                   <tr key={name} className="hover:bg-[#FAFAF8]">
                     <td className="px-4 py-3 font-medium text-foreground">{name}</td>
@@ -397,8 +506,9 @@ function PrivacyPage() {
             </table>
           </div>
           <p className="text-[13px]">
-            You may disable non-essential cookies through your browser settings. Please note that disabling certain
-            cookies may affect functionality such as the Client Hub login and payment processing.
+            You may disable non-essential cookies through your browser settings. Please note that
+            disabling certain cookies may affect functionality such as the Client Hub login and
+            payment processing.
           </p>
         </div>
       ),
@@ -411,22 +521,23 @@ function PrivacyPage() {
       content: (
         <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            Gatepath Realtors uses cloud infrastructure (Supabase, Paystack) that may process data in data centres
-            outside Kenya, including within the EU and United States. Any such transfer is conducted in strict
-            compliance with Section 48 of the Kenya Data Protection Act, specifically:
+            Gatepath Realtors uses cloud infrastructure (Supabase, Paystack) that may process data
+            in data centres outside Kenya, including within the EU and United States. Any such
+            transfer is conducted in strict compliance with Section 48 of the Kenya Data Protection
+            Act, specifically:
           </p>
           <ul className="space-y-2 list-disc pl-5">
             <li>
-              Transfers to Supabase are protected by Standard Contractual Clauses (SCCs) and their ISO 27001
-              certification, providing adequate safeguards.
+              Transfers to Supabase are protected by Standard Contractual Clauses (SCCs) and their
+              ISO 27001 certification, providing adequate safeguards.
             </li>
             <li>
-              Paystack holds PCI DSS Level 1 certification and is regulated under Central Bank of Nigeria and
-              operates in compliance with applicable data protection laws across Africa.
+              Paystack holds PCI DSS Level 1 certification and is regulated under Central Bank of
+              Nigeria and operates in compliance with applicable data protection laws across Africa.
             </li>
             <li>
-              No personal data is transferred to any country that does not afford an adequate level of protection
-              without appropriate contractual safeguards in place.
+              No personal data is transferred to any country that does not afford an adequate level
+              of protection without appropriate contractual safeguards in place.
             </li>
           </ul>
         </div>
@@ -440,14 +551,15 @@ function PrivacyPage() {
       content: (
         <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            Our real estate services are directed exclusively to adults aged 18 years and above. We do not
-            knowingly collect personal data from persons under 18. If you believe a minor has submitted data
-            through our platform, please contact us immediately at{" "}
+            Our real estate services are directed exclusively to adults aged 18 years and above. We
+            do not knowingly collect personal data from persons under 18. If you believe a minor has
+            submitted data through our platform, please contact us immediately at{" "}
             <a href="mailto:info@gatepathrealtors.com" className="text-primary hover:underline">
               info@gatepathrealtors.com
             </a>{" "}
-            and we will delete that data promptly. Property ownership by minors may only be facilitated through
-            their legal guardians in compliance with the Law of Succession Act (Kenya).
+            and we will delete that data promptly. Property ownership by minors may only be
+            facilitated through their legal guardians in compliance with the Law of Succession Act
+            (Kenya).
           </p>
         </div>
       ),
@@ -460,19 +572,24 @@ function PrivacyPage() {
       content: (
         <div className="space-y-3 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            We reserve the right to update this Privacy Notice from time to time to reflect changes in our data
-            practices, legal requirements, or business operations. When we make material changes, we will:
+            We reserve the right to update this Privacy Notice from time to time to reflect changes
+            in our data practices, legal requirements, or business operations. When we make material
+            changes, we will:
           </p>
           <ul className="list-disc pl-5 space-y-2">
-            <li>Update the <strong className="text-foreground">Effective Date</strong> at the top of this notice</li>
+            <li>
+              Update the <strong className="text-foreground">Effective Date</strong> at the top of
+              this notice
+            </li>
             <li>Display a prominent notice on our homepage for at least 30 days</li>
             <li>
-              Email registered clients who have opted into communications with a summary of what has changed
+              Email registered clients who have opted into communications with a summary of what has
+              changed
             </li>
           </ul>
           <p>
-            Continued use of our website or services after a material change constitutes acceptance of the revised
-            Privacy Notice.
+            Continued use of our website or services after a material change constitutes acceptance
+            of the revised Privacy Notice.
           </p>
         </div>
       ),
@@ -485,26 +602,31 @@ function PrivacyPage() {
       content: (
         <div className="space-y-4 text-muted-foreground text-[15px] leading-[1.9]">
           <p>
-            For all data protection inquiries, rights requests, or complaints about how we handle your personal
-            data, please contact our designated Data Protection Officer:
+            For all data protection inquiries, rights requests, or complaints about how we handle
+            your personal data, please contact our designated Data Protection Officer:
           </p>
           <div className="bg-[#F0F8FF] rounded-xl border border-primary/20 p-6 space-y-3">
             <div className="flex items-center gap-3">
               <UserCheck size={18} className="text-primary" />
               <div>
-                <div className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Data Protection Officer</div>
+                <div className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Data Protection Officer
+                </div>
                 <div className="font-semibold text-foreground">Gatepath Realtors — DPO Desk</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Mail size={16} className="text-primary shrink-0" />
-              <a href="mailto:info@gatepathrealtors.com" className="text-primary hover:underline font-medium">
+              <a
+                href="mailto:info@gatepathrealtors.com"
+                className="text-primary hover:underline font-medium"
+              >
                 info@gatepathrealtors.com
               </a>
             </div>
             <div className="flex items-center gap-3">
               <Phone size={16} className="text-primary shrink-0" />
-              <span>+254 700 000 000</span>
+              <span>+254 799 488 488</span>
             </div>
             <div className="flex items-center gap-3">
               <Globe size={16} className="text-primary shrink-0" />
@@ -513,13 +635,23 @@ function PrivacyPage() {
           </div>
           <p className="text-[14px]">
             If you are not satisfied with our response, you may file a complaint with the{" "}
-            <strong className="text-foreground">Office of the Data Protection Commissioner (ODPC)</strong>:
+            <strong className="text-foreground">
+              Office of the Data Protection Commissioner (ODPC)
+            </strong>
+            :
           </p>
           <div className="bg-[#FFF8EC] border border-accent/30 rounded-xl p-5 space-y-2">
-            <p className="font-bold text-foreground text-[14px]">Office of the Data Protection Commissioner</p>
+            <p className="font-bold text-foreground text-[14px]">
+              Office of the Data Protection Commissioner
+            </p>
             <p className="text-[13px]">
               Website:{" "}
-              <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              <a
+                href="https://www.odpc.go.ke"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
                 www.odpc.go.ke
               </a>
             </p>
@@ -551,9 +683,10 @@ function PrivacyPage() {
               Privacy &amp; Data Protection Notice
             </h1>
             <p className="mt-5 text-white/75 text-[16px] max-w-2xl mx-auto leading-relaxed">
-              This notice explains how Gatepath Realtors processes your personal data in compliance with the{" "}
-              <strong className="text-white">Kenya Data Protection Act No. 24 of 2019</strong> and the regulations
-              of the Office of the Data Protection Commissioner (ODPC).
+              This notice explains how Gatepath Realtors processes your personal data in compliance
+              with the{" "}
+              <strong className="text-white">Kenya Data Protection Act No. 24 of 2019</strong> and
+              the regulations of the Office of the Data Protection Commissioner (ODPC).
             </p>
             <div className="mt-8 inline-flex items-center gap-3 bg-white/10 border border-white/20 rounded-xl px-6 py-3 text-[13px]">
               <Scale size={16} className="text-accent" />
@@ -569,7 +702,9 @@ function PrivacyPage() {
         <section className="py-10 px-6">
           <div className="mx-auto max-w-4xl">
             <div className="bg-white rounded-2xl border border-[#E5E0D8] shadow-sm p-6">
-              <h2 className="font-serif font-semibold text-[16px] text-foreground mb-4">Table of Contents</h2>
+              <h2 className="font-serif font-semibold text-[16px] text-foreground mb-4">
+                Table of Contents
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {sections.map((s, i) => (
                   <a
@@ -626,17 +761,27 @@ function PrivacyPage() {
                   </h3>
                   <div className="space-y-2 text-[14px] leading-relaxed text-white/90">
                     <p>
-                      <strong className="text-white">Gatepath Realtors will NEVER request direct bank transfers to personal accounts</strong>{" "}
-                      from clients. All legitimate property payments must be processed exclusively through:
+                      <strong className="text-white">
+                        Gatepath Realtors will NEVER request direct bank transfers to personal
+                        accounts
+                      </strong>{" "}
+                      from clients. All legitimate property payments must be processed exclusively
+                      through:
                     </p>
                     <ul className="list-disc pl-5 space-y-1 mt-2">
-                      <li>Our official <strong>Paystack-powered</strong> online checkout (accessible from our verified website only)</li>
-                      <li>Our officially published <strong>M-Pesa Paybill</strong> numbers as communicated in writing by staff</li>
+                      <li>
+                        Our official <strong>Paystack-powered</strong> online checkout (accessible
+                        from our verified website only)
+                      </li>
+                      <li>
+                        Our officially published <strong>M-Pesa Paybill</strong> numbers as
+                        communicated in writing by staff
+                      </li>
                     </ul>
                     <p className="mt-3">
-                      If you receive any request to transfer money to a personal phone number or bank account claiming
-                      to be from Gatepath Realtors, please report it immediately to{" "}
-                      <strong>+254 700 000 000</strong> and the{" "}
+                      If you receive any request to transfer money to a personal phone number or
+                      bank account claiming to be from Gatepath Realtors, please report it
+                      immediately to <strong>+254 799 488 488</strong> and the{" "}
                       <strong>Kenya DCI Cybercrime Unit</strong>.
                     </p>
                   </div>
