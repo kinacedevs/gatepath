@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   PhoneCall,
   Banknote,
+  Goal,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -74,6 +75,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/admin/property-matching", label: "Property Matching", icon: Target },
       { to: "/admin/reports", label: "Reports & Analytics", icon: BarChart3 },
       { to: "/admin/commissions", label: "Commission & Payouts", icon: Banknote },
+      { to: "/admin/goals", label: "Goals & Quotas", icon: Goal },
     ],
   },
   {
