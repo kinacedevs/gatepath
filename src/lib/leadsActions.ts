@@ -59,3 +59,46 @@ export const updateInquiryStatusFn = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+/**
+ * Manual lead assignment (Phase 33). Same "any signed-in admin" gate as
+ * updateInquiryStatusFn — assigning a lead to a CRO is the same weight of
+ * routine day-to-day work as dragging a status. Sets cro_name only:
+ * admin_users has no phone column, and cro_phone is a dead/legacy field
+ * (read once, in document.offer.$id.tsx, never written anywhere) that this
+ * function deliberately leaves untouched rather than guessing a value for it.
+ */
+export const assignLeadFn = createServerFn({ method: "POST" })
+  .validator((d: { callerAccessToken: string; inquiryId: string; croName: string | null }) => d)
+  .handler(async ({ data }) => {
+    const anonClient = getAnonClient();
+    const { data: callerData, error: callerErr } = await anonClient.auth.getUser(
+      data.callerAccessToken,
+    );
+    if (callerErr || !callerData.user?.email) {
+      return { success: false, error: "Not authenticated." };
+    }
+
+    const serviceClient = getServiceClient();
+
+    const { data: callerRow } = await serviceClient
+      .from("admin_users")
+      .select("role")
+      .eq("email", callerData.user.email.toLowerCase())
+      .maybeSingle();
+
+    if (!callerRow) {
+      return { success: false, error: "Not recognised as Gatepath staff." };
+    }
+
+    const { error: updateErr } = await serviceClient
+      .from("inquiries")
+      .update({ cro_name: data.croName })
+      .eq("id", data.inquiryId);
+
+    if (updateErr) {
+      return { success: false, error: updateErr.message };
+    }
+
+    return { success: true };
+  });

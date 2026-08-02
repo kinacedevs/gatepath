@@ -36,15 +36,17 @@ import {
   UserX,
   TrendingUp,
   Flame,
+  Plus,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { updateInquiryStatusFn } from "@/lib/leadsActions";
+import { updateInquiryStatusFn, assignLeadFn } from "@/lib/leadsActions";
 import {
   computeSourceRates,
   computeLeadScore,
   scoreTier,
   type LeadScoreBreakdown,
 } from "@/lib/leadScoring";
+import { computeLifecycleStage, LIFECYCLE_LABELS, type LifecycleStage } from "@/lib/leadLifecycle";
 import { StatusBadge, INQUIRY_STATUS_TONE } from "@/components/admin/StatusBadge";
 import { DEFAULT_PIPELINE_LABELS } from "@/lib/pipelineLabelsActions";
 import { KpiCard } from "@/components/admin/KpiCard";
@@ -55,7 +57,19 @@ import { FunnelChart } from "@/components/admin/charts/FunnelChart";
 import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
 import { TrendChart } from "@/components/admin/charts/TrendChart";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Inquiry, InteractionLog } from "@/lib/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import type { Inquiry, InteractionLog, AdminUser } from "@/lib/types";
+
+const LABEL_CLS =
+  "text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide block mb-1.5";
+const INPUT_CLS =
+  "w-full p-2.5 border border-outline-variant/40 rounded-lg text-sm bg-white outline-none";
 
 function formatDuration(ms: number): string {
   const mins = ms / 60000;
@@ -93,14 +107,28 @@ const TIER_CLASSES = {
   cool: "bg-surface-container-high text-on-surface-variant",
 } as const;
 
+const LIFECYCLE_CLASSES: Record<LifecycleStage, string> = {
+  lead: "bg-surface-container-high text-on-surface-variant",
+  contact: "bg-info-container/15 text-on-info-container",
+  deal: "bg-warning-container/15 text-on-warning-container",
+  won: "bg-success-container/15 text-on-success-container",
+  lost: "bg-error/10 text-error",
+};
+
 function LeadCard({
   lead,
   hasSiteVisit,
   score,
+  lifecycleStage,
+  staff,
+  onAssign,
 }: {
   lead: Inquiry;
   hasSiteVisit: boolean;
   score?: { total: number; breakdown: LeadScoreBreakdown };
+  lifecycleStage: LifecycleStage;
+  staff: AdminUser[];
+  onAssign: (inquiryId: string, croName: string | null) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
@@ -138,6 +166,12 @@ function LeadCard({
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <span
+            title="Lead lifecycle stage — how far this lead has progressed toward money"
+            className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${LIFECYCLE_CLASSES[lifecycleStage]}`}
+          >
+            {LIFECYCLE_LABELS[lifecycleStage]}
+          </span>
           {tier && (
             <span
               title={scoreTitle}
@@ -166,10 +200,10 @@ function LeadCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-outline-variant/20 pt-2.5">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between border-t border-outline-variant/20 pt-2.5 gap-2">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <div
-            className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${
+            className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 ${
               lead.cro_name
                 ? "bg-info-container/15 text-on-info-container"
                 : "bg-surface-container-high text-on-surface-variant"
@@ -177,13 +211,25 @@ function LeadCard({
           >
             {getInitials(lead.cro_name || "UA")}
           </div>
-          <span className="text-[11px] text-on-surface-variant">
-            {lead.cro_name || "Unassigned"}
-          </span>
+          <select
+            value={lead.cro_name ?? ""}
+            onChange={(e) => onAssign(lead.id, e.target.value || null)}
+            className="min-w-0 flex-1 bg-transparent text-[11px] text-on-surface-variant outline-none cursor-pointer hover:text-primary-container truncate"
+          >
+            <option value="">Unassigned</option>
+            {staff.map((s) => {
+              const name = s.full_name || s.email;
+              return (
+                <option key={s.id} value={name}>
+                  {name}
+                </option>
+              );
+            })}
+          </select>
         </div>
         {hasSiteVisit && (
           <span
-            className="flex items-center gap-1 text-[10px] font-semibold text-on-success-container"
+            className="shrink-0 flex items-center gap-1 text-[10px] font-semibold text-on-success-container"
             title="Has a scheduled or completed site visit"
           >
             <CalendarCheck size={12} /> Site visit
@@ -200,12 +246,18 @@ function KanbanColumn({
   leads,
   bookedInquiryIds,
   leadScores,
+  lifecycleStages,
+  staff,
+  onAssign,
 }: {
   status: InquiryStatus;
   label: string;
   leads: Inquiry[];
   bookedInquiryIds: Set<string>;
   leadScores: Map<string, { total: number; breakdown: LeadScoreBreakdown }>;
+  lifecycleStages: Map<string, LifecycleStage>;
+  staff: AdminUser[];
+  onAssign: (inquiryId: string, croName: string | null) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -234,6 +286,9 @@ function KanbanColumn({
               lead={lead}
               hasSiteVisit={bookedInquiryIds.has(lead.id)}
               score={leadScores.get(lead.id)}
+              lifecycleStage={lifecycleStages.get(lead.id) ?? "lead"}
+              staff={staff}
+              onAssign={onAssign}
             />
           ))
         )}
@@ -246,6 +301,9 @@ function LeadsPipeline() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [bookedInquiryIds, setBookedInquiryIds] = useState<Set<string>>(new Set());
   const [interactions, setInteractions] = useState<InteractionLog[]>([]);
+  const [staff, setStaff] = useState<AdminUser[]>([]);
+  const [offerInquiryIds, setOfferInquiryIds] = useState<Set<string>>(new Set());
+  const [agreementInquiryIds, setAgreementInquiryIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -254,28 +312,58 @@ function LeadsPipeline() {
     useState<Record<InquiryStatus, string>>(DEFAULT_PIPELINE_LABELS);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
+  const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
+  const [walkInName, setWalkInName] = useState("");
+  const [walkInPhone, setWalkInPhone] = useState("");
+  const [walkInEmail, setWalkInEmail] = useState("");
+  const [walkInIdPassport, setWalkInIdPassport] = useState("");
+  const [walkInNotes, setWalkInNotes] = useState("");
+  const [walkInAssignTo, setWalkInAssignTo] = useState("");
+  const [walkInSubmitting, setWalkInSubmitting] = useState(false);
+  const [walkInError, setWalkInError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    const [
+      inquiriesRes,
+      bookingsRes,
+      interactionsRes,
+      labelsRes,
+      staffRes,
+      offersRes,
+      agreementsRes,
+    ] = await Promise.all([
+      supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
+      supabase.from("bookings").select("inquiry_id"),
+      supabase.from("interaction_log").select("*"),
+      supabase.from("site_banners").select("data").eq("id", "pipeline_labels").maybeSingle(),
+      supabase.from("admin_users").select("*").order("full_name", { ascending: true }),
+      supabase.from("offers").select("inquiry_id"),
+      supabase.from("agreements").select("inquiry_id"),
+    ]);
+    setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
+    const bookingRows = (bookingsRes.data ?? []) as { inquiry_id: string | null }[];
+    setBookedInquiryIds(new Set(bookingRows.map((b) => b.inquiry_id).filter(Boolean) as string[]));
+    setInteractions((interactionsRes.data as InteractionLog[]) ?? []);
+    const labelOverrides = (labelsRes.data as { data: Record<string, string> } | null)?.data;
+    if (labelOverrides) {
+      setPipelineLabels({ ...DEFAULT_PIPELINE_LABELS, ...labelOverrides });
+    }
+    setStaff((staffRes.data as AdminUser[]) ?? []);
+    const offerRows = (offersRes.data ?? []) as { inquiry_id: string | null }[];
+    setOfferInquiryIds(new Set(offerRows.map((o) => o.inquiry_id).filter(Boolean) as string[]));
+    const agreementRows = (agreementsRes.data ?? []) as { inquiry_id: string | null }[];
+    setAgreementInquiryIds(
+      new Set(agreementRows.map((a) => a.inquiry_id).filter(Boolean) as string[]),
+    );
+    setLoading(false);
+    setLastUpdated(new Date());
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [inquiriesRes, bookingsRes, interactionsRes, labelsRes] = await Promise.all([
-        supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
-        supabase.from("bookings").select("inquiry_id"),
-        supabase.from("interaction_log").select("*"),
-        supabase.from("site_banners").select("data").eq("id", "pipeline_labels").maybeSingle(),
-      ]);
       if (cancelled) return;
-      setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
-      const bookingRows = (bookingsRes.data ?? []) as { inquiry_id: string | null }[];
-      setBookedInquiryIds(
-        new Set(bookingRows.map((b) => b.inquiry_id).filter(Boolean) as string[]),
-      );
-      setInteractions((interactionsRes.data as InteractionLog[]) ?? []);
-      const labelOverrides = (labelsRes.data as { data: Record<string, string> } | null)?.data;
-      if (labelOverrides) {
-        setPipelineLabels({ ...DEFAULT_PIPELINE_LABELS, ...labelOverrides });
-      }
-      setLoading(false);
-      setLastUpdated(new Date());
+      await loadData();
     })();
     return () => {
       cancelled = true;
@@ -332,6 +420,42 @@ function LeadsPipeline() {
     () => Array.from(leadScores.values()).filter((s) => scoreTier(s.total) === "hot").length,
     [leadScores],
   );
+
+  // ── Lead → Contact → Deal lifecycle (Phase 33) — computed live from the
+  // same interaction_log/bookings fetch above, plus offers/agreements. See
+  // src/lib/leadLifecycle.ts for why this is a deliberately different axis
+  // from inquiries.status (the Kanban columns already claim "Won"/"Lost").
+  const lifecycleStages = useMemo(() => {
+    const interactionInquiryIds = new Set(interactions.map((e) => e.inquiry_id));
+    const stages = new Map<string, LifecycleStage>();
+    for (const inq of inquiries) {
+      stages.set(
+        inq.id,
+        computeLifecycleStage(inq, {
+          hasInteraction: interactionInquiryIds.has(inq.id),
+          hasBooking: bookedInquiryIds.has(inq.id),
+          hasOffer: offerInquiryIds.has(inq.id),
+          hasAgreement: agreementInquiryIds.has(inq.id),
+        }),
+      );
+    }
+    return stages;
+  }, [inquiries, interactions, bookedInquiryIds, offerInquiryIds, agreementInquiryIds]);
+
+  const lifecycleFunnelData = useMemo(() => {
+    const counts: Record<LifecycleStage, number> = {
+      lead: 0,
+      contact: 0,
+      deal: 0,
+      won: 0,
+      lost: 0,
+    };
+    for (const stage of lifecycleStages.values()) counts[stage] += 1;
+    return (["lead", "contact", "deal", "won"] as const).map((stage) => ({
+      name: LIFECYCLE_LABELS[stage],
+      value: counts[stage],
+    }));
+  }, [lifecycleStages]);
 
   // ── Insights layer (VIZ_BLUEPRINT Phase 2, Slice 2 + Phase 10 follow-up)
   // — derived entirely from the same `inquiries`/`interaction_log` fetch
@@ -441,6 +565,93 @@ function LeadsPipeline() {
     }
   };
 
+  // Manual lead assignment (Phase 33) — any staff role, same server-verified
+  // pattern as handleDragEnd, calling assignLeadFn instead of
+  // updateInquiryStatusFn.
+  const handleAssign = async (inquiryId: string, croName: string | null) => {
+    const current = inquiries.find((i) => i.id === inquiryId);
+    if (!current) return;
+    const previousCroName = current.cro_name;
+
+    setInquiries((prev) => prev.map((i) => (i.id === inquiryId ? { ...i, cro_name: croName } : i)));
+    setError(null);
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+      setError("Session expired — please refresh and sign in again.");
+      setInquiries((prev) =>
+        prev.map((i) => (i.id === inquiryId ? { ...i, cro_name: previousCroName } : i)),
+      );
+      return;
+    }
+
+    const result = await assignLeadFn({
+      data: { callerAccessToken: accessToken, inquiryId, croName },
+    });
+
+    if (!result.success) {
+      setError(result.error ?? "Failed to assign lead.");
+      setInquiries((prev) =>
+        prev.map((i) => (i.id === inquiryId ? { ...i, cro_name: previousCroName } : i)),
+      );
+    }
+  };
+
+  const resetWalkInForm = () => {
+    setWalkInName("");
+    setWalkInPhone("");
+    setWalkInEmail("");
+    setWalkInIdPassport("");
+    setWalkInNotes("");
+    setWalkInAssignTo("");
+    setWalkInError(null);
+  };
+
+  // Walk-in capture (Phase 33) — direct client insert into inquiries,
+  // matching inquire.tsx/diaspora.tsx's established precedent: inquiries
+  // isn't one of CLAUDE.md's protected tables and already has an open
+  // public-insert RLS policy. client_full_name/client_phone/client_email/
+  // client_id_passport are the real NOT NULL columns (confirmed against
+  // apiRoutes.ts's own required-field list) — all four are collected here,
+  // unlike a KYC-light lead capture form, since there's no schema-safe way
+  // to omit client_id_passport.
+  const handleAddWalkIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !walkInName.trim() ||
+      !walkInPhone.trim() ||
+      !walkInEmail.trim() ||
+      !walkInIdPassport.trim()
+    ) {
+      setWalkInError("Full name, phone, email, and ID/Passport are required.");
+      return;
+    }
+    setWalkInSubmitting(true);
+    setWalkInError(null);
+
+    const { error: insertErr } = await (supabase as any).from("inquiries").insert({
+      client_full_name: walkInName.trim(),
+      client_phone: walkInPhone.trim(),
+      client_email: walkInEmail.trim().toLowerCase(),
+      client_id_passport: walkInIdPassport.trim().toUpperCase(),
+      questions: walkInNotes.trim() || null,
+      cro_name: walkInAssignTo || null,
+      heard_from: "Walk-In",
+      status: "pending",
+    });
+
+    setWalkInSubmitting(false);
+    if (insertErr) {
+      setWalkInError(insertErr.message);
+      return;
+    }
+
+    setWalkInDialogOpen(false);
+    resetWalkInForm();
+    await loadData();
+  };
+
   const filtered = inquiries.filter(
     (i) =>
       searchQuery === "" || i.client_full_name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -472,6 +683,15 @@ function LeadsPipeline() {
               className="w-full pl-9 pr-3 py-2.5 border border-outline-variant/40 rounded-lg text-[13px] text-primary-container outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary"
             />
           </div>
+          <button
+            onClick={() => {
+              resetWalkInForm();
+              setWalkInDialogOpen(true);
+            }}
+            className="px-4 py-2.5 bg-primary text-white font-label-md text-xs rounded-lg hover:opacity-90 inline-flex items-center gap-1.5 shrink-0"
+          >
+            <Plus size={14} /> Add Walk-In
+          </button>
         </div>
       </div>
 
@@ -532,6 +752,15 @@ function LeadsPipeline() {
               <TrendChart data={insights.trendData} xKey="day" yKey="value" height={180} />
             </SectionCard>
           </div>
+          <div className="grid grid-cols-1 gap-4">
+            <SectionCard title="Lead → Contact → Deal">
+              {lifecycleFunnelData.every((f) => f.value === 0) ? (
+                <EmptyState title="No leads yet" />
+              ) : (
+                <FunnelChart data={lifecycleFunnelData} height={180} />
+              )}
+            </SectionCard>
+          </div>
         </div>
       )}
       {loading && (
@@ -563,11 +792,122 @@ function LeadsPipeline() {
                 leads={filtered.filter((i) => i.status === col.status)}
                 bookedInquiryIds={bookedInquiryIds}
                 leadScores={leadScores}
+                lifecycleStages={lifecycleStages}
+                staff={staff}
+                onAssign={handleAssign}
               />
             ))}
           </div>
         </DndContext>
       )}
+
+      <Dialog
+        open={walkInDialogOpen}
+        onOpenChange={(open) => {
+          setWalkInDialogOpen(open);
+          if (!open) resetWalkInForm();
+        }}
+      >
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>Add Walk-In</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddWalkIn} className="flex flex-col gap-3">
+            {walkInError && (
+              <div className="p-2.5 rounded-lg bg-error/10 text-error text-xs font-semibold">
+                {walkInError}
+              </div>
+            )}
+            <div>
+              <label className={LABEL_CLS}>Full Name *</label>
+              <input
+                required
+                value={walkInName}
+                onChange={(e) => setWalkInName(e.target.value)}
+                className={INPUT_CLS}
+                placeholder="Jane Wanjiru"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={LABEL_CLS}>Phone *</label>
+                <input
+                  required
+                  value={walkInPhone}
+                  onChange={(e) => setWalkInPhone(e.target.value)}
+                  className={INPUT_CLS}
+                  placeholder="07XX XXX XXX"
+                />
+              </div>
+              <div>
+                <label className={LABEL_CLS}>ID / Passport No. *</label>
+                <input
+                  required
+                  value={walkInIdPassport}
+                  onChange={(e) => setWalkInIdPassport(e.target.value)}
+                  className={INPUT_CLS}
+                  placeholder="12345678"
+                />
+              </div>
+            </div>
+            <div>
+              <label className={LABEL_CLS}>Email *</label>
+              <input
+                required
+                type="email"
+                value={walkInEmail}
+                onChange={(e) => setWalkInEmail(e.target.value)}
+                className={INPUT_CLS}
+                placeholder="jane@example.com"
+              />
+            </div>
+            <div>
+              <label className={LABEL_CLS}>Assign To</label>
+              <select
+                value={walkInAssignTo}
+                onChange={(e) => setWalkInAssignTo(e.target.value)}
+                className={INPUT_CLS}
+              >
+                <option value="">Unassigned</option>
+                {staff.map((s) => {
+                  const name = s.full_name || s.email;
+                  return (
+                    <option key={s.id} value={name}>
+                      {name}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            <div>
+              <label className={LABEL_CLS}>Notes</label>
+              <textarea
+                value={walkInNotes}
+                onChange={(e) => setWalkInNotes(e.target.value)}
+                className={INPUT_CLS}
+                rows={3}
+                placeholder="What are they interested in?"
+              />
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <button
+                type="button"
+                onClick={() => setWalkInDialogOpen(false)}
+                className="px-4 py-2.5 border border-outline-variant/40 rounded-lg text-xs font-semibold text-on-surface-variant hover:bg-surface-container-low"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={walkInSubmitting}
+                className="px-4 py-2.5 bg-primary text-white font-label-md text-xs rounded-lg hover:opacity-90 disabled:opacity-60"
+              >
+                {walkInSubmitting ? "Adding…" : "Add Lead"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
