@@ -219,6 +219,13 @@ export const getPortalDataFn = createServerFn({ method: "POST" })
       ? await (service as any).from("phases").select("id, youtube_video_url").in("id", phaseIds)
       : { data: [] };
 
+    const { data: testimonials } = inqIds.length
+      ? await (service as any)
+          .from("testimonials")
+          .select("submitted_by_inquiry_id")
+          .in("submitted_by_inquiry_id", inqIds)
+      : { data: [] };
+
     return {
       success: true as const,
       inquiries: inquiries || [],
@@ -229,7 +236,73 @@ export const getPortalDataFn = createServerFn({ method: "POST" })
       interactions: interactions || [],
       documents: documents || [],
       phases: phases || [],
+      testimonials: testimonials || [],
     };
+  });
+
+/**
+ * Lets a client submit their own testimonial from the portal — the real,
+ * novel gap Module 14 fills (every testimonial before this was staff-
+ * authored). Ownership verified the same way assertPortalOwnsInquiryFn
+ * does. One submission per inquiry — a second attempt is rejected rather
+ * than creating a duplicate. Always inserts with is_published: false;
+ * approval happens in admin.site-content.tsx's Testimonials tab, same
+ * mechanism that already gates the public site.
+ */
+export const submitTestimonialFn = createServerFn({ method: "POST" })
+  .validator((d: { sessionToken: string; inquiryId: string; quote: string }) => d)
+  .handler(async ({ data }) => {
+    const email = await resolveSessionEmail(data.sessionToken);
+    if (!email) {
+      return { success: false as const, error: "Your session expired. Please sign in again." };
+    }
+
+    const quote = data.quote.trim().slice(0, 1000);
+    if (quote.length < 10) {
+      return { success: false as const, error: "Please share a few more details." };
+    }
+
+    const service = getServiceClient();
+
+    const { data: inquiry } = await (service as any)
+      .from("inquiries")
+      .select("id, client_email, client_full_name, phase_name")
+      .eq("id", data.inquiryId)
+      .maybeSingle();
+
+    if (!inquiry || inquiry.client_email?.toLowerCase() !== email) {
+      return { success: false as const, error: "This inquiry doesn't belong to your account." };
+    }
+
+    const { data: existing } = await (service as any)
+      .from("testimonials")
+      .select("id")
+      .eq("submitted_by_inquiry_id", data.inquiryId)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false as const, error: "You've already shared a testimonial for this." };
+    }
+
+    const nameParts = (inquiry.client_full_name || "").trim().split(/\s+/);
+    const initials = nameParts
+      .map((p: string) => p[0])
+      .join("")
+      .slice(0, 3)
+      .toUpperCase();
+
+    const { error } = await (service as any).from("testimonials").insert({
+      client_name: inquiry.client_full_name,
+      client_initials: initials || "?",
+      quote,
+      tag: inquiry.phase_name || null,
+      is_published: false,
+      display_order: 0,
+      submitted_by_inquiry_id: data.inquiryId,
+    });
+
+    if (error) return { success: false as const, error: error.message };
+    return { success: true as const };
   });
 
 /**

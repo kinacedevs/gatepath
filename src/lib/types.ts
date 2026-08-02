@@ -114,6 +114,9 @@ export type Inquiry = {
    * Added migration 0013 — never defaults to false, since that would
    * falsely imply "asked and declined." */
   marketing_opt_in: boolean | null;
+  /** Pure annotations, not a status transition. Added migration 0017. */
+  testimonial_requested_at: string | null;
+  referral_invite_sent_at: string | null;
   status: "pending" | "reviewed" | "approved" | "rejected";
   created_at: string;
   updated_at: string;
@@ -217,6 +220,9 @@ export type Testimonial = {
   tag: string | null;
   is_published: boolean;
   display_order: number;
+  /** null = staff-authored (existing behavior); set = submitted by the
+   * client themselves via the portal. Added migration 0017. */
+  submitted_by_inquiry_id: string | null;
   created_at: string;
 };
 
