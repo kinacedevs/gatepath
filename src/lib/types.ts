@@ -299,6 +299,20 @@ export type CommissionPayout = {
   created_at: string;
 };
 
+export type Goal = {
+  id: string;
+  agent_id: string | null;
+  phase_id: string | null;
+  metric: "revenue_kes" | "deals_closed" | "plots_sold";
+  period_type: "month" | "quarter";
+  period_start: string;
+  target_value: number;
+  created_by_email: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -468,6 +482,11 @@ export type Database = {
         Row: CommissionPayout;
         Insert: Omit<CommissionPayout, "id" | "created_at">;
         Update: Partial<Omit<CommissionPayout, "id" | "created_at">>;
+      };
+      goals: {
+        Row: Goal;
+        Insert: Omit<Goal, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<Goal, "id" | "created_at" | "updated_at">>;
       };
     };
     Views: {
