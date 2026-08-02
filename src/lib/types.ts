@@ -325,11 +325,26 @@ export type ApiKey = {
   key_hash: string;
   key_prefix: string;
   scopes: string[];
+  /** Optional external-field -> our-field remap for POST /api/v1/leads,
+   * e.g. { "full_name": "client_full_name" }. Added migration 0020. */
+  field_mapping: Record<string, string> | null;
   created_by_email: string | null;
   created_by_name: string | null;
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
+};
+
+export type MessageTemplate = {
+  id: string;
+  key: string;
+  name: string;
+  channel: string;
+  subject: string | null;
+  body: string;
+  updated_by_email: string | null;
+  updated_by_name: string | null;
+  updated_at: string;
 };
 
 export type Task = {
@@ -515,6 +530,11 @@ export type Database = {
         Row: ApiKey;
         Insert: Omit<ApiKey, "id" | "created_at">;
         Update: Partial<Omit<ApiKey, "id" | "created_at">>;
+      };
+      message_templates: {
+        Row: MessageTemplate;
+        Insert: Omit<MessageTemplate, "id" | "updated_at">;
+        Update: Partial<Omit<MessageTemplate, "id" | "updated_at">>;
       };
     };
     Views: {
