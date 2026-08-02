@@ -15,6 +15,7 @@ import {
   MapPin,
   MoreHorizontal,
   Loader2,
+  LocateFixed,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { logInteractionFn } from "@/lib/interactionLogActions";
@@ -80,6 +81,29 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsCapturing, setGpsCapturing] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  const captureLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGpsError("Location isn't supported on this device/browser.");
+      return;
+    }
+    setGpsCapturing(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGpsCapturing(false);
+      },
+      (err) => {
+        setGpsError(err.message || "Couldn't get your location.");
+        setGpsCapturing(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const loadEntries = async () => {
     setLoading(true);
@@ -123,12 +147,16 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
           direction,
           notes: notes.trim(),
           callOutcome: channel === "call" ? callOutcome : undefined,
+          latitude: channel === "site_visit" ? gpsCoords?.lat : undefined,
+          longitude: channel === "site_visit" ? gpsCoords?.lng : undefined,
         },
       });
       if (!result.success) {
         setSaveMsg("Error logging interaction: " + result.error);
       } else {
         setNotes("");
+        setGpsCoords(null);
+        setGpsError(null);
         loadEntries();
       }
     } catch (err: any) {
@@ -183,6 +211,34 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
             ))}
           </select>
         )}
+        {channel === "site_visit" && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={captureLocation}
+              disabled={gpsCapturing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-outline-variant/40 rounded-lg text-[12px] font-semibold text-primary-container disabled:opacity-50"
+            >
+              {gpsCapturing ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <LocateFixed size={13} />
+              )}
+              {gpsCoords ? "Location Captured" : "Capture My Location"}
+            </button>
+            {gpsCoords && (
+              <a
+                href={`https://maps.google.com/?q=${gpsCoords.lat},${gpsCoords.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[12px] text-secondary underline"
+              >
+                View on Map
+              </a>
+            )}
+            {gpsError && <span className="text-[11px] text-error">{gpsError}</span>}
+          </div>
+        )}
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -231,6 +287,16 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
                     </div>
                     {entry.notes && (
                       <p className="text-on-surface mt-0.5 break-words">{entry.notes}</p>
+                    )}
+                    {entry.latitude != null && entry.longitude != null && (
+                      <a
+                        href={`https://maps.google.com/?q=${entry.latitude},${entry.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-secondary underline inline-flex items-center gap-1 mt-0.5"
+                      >
+                        <MapPin size={11} /> View on Map
+                      </a>
                     )}
                     {entry.logged_by_name && (
                       <p className="text-[11px] text-on-surface-variant mt-0.5">

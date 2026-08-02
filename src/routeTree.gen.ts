@@ -42,6 +42,7 @@ import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
 import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
 import { Route as AdminInquiriesRouteImport } from './routes/admin.inquiries'
 import { Route as AdminGoalsRouteImport } from './routes/admin.goals'
+import { Route as AdminFieldModeRouteImport } from './routes/admin.field-mode'
 import { Route as AdminDocumentsRouteImport } from './routes/admin.documents'
 import { Route as AdminDealsRouteImport } from './routes/admin.deals'
 import { Route as AdminDataGovernanceRouteImport } from './routes/admin.data-governance'
@@ -222,6 +223,11 @@ const AdminGoalsRoute = AdminGoalsRouteImport.update({
   path: '/goals',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFieldModeRoute = AdminFieldModeRouteImport.update({
+  id: '/field-mode',
+  path: '/field-mode',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDocumentsRoute = AdminDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -311,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/admin/data-governance': typeof AdminDataGovernanceRoute
   '/admin/deals': typeof AdminDealsRoute
   '/admin/documents': typeof AdminDocumentsRoute
+  '/admin/field-mode': typeof AdminFieldModeRoute
   '/admin/goals': typeof AdminGoalsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
@@ -358,6 +365,7 @@ export interface FileRoutesByTo {
   '/admin/data-governance': typeof AdminDataGovernanceRoute
   '/admin/deals': typeof AdminDealsRoute
   '/admin/documents': typeof AdminDocumentsRoute
+  '/admin/field-mode': typeof AdminFieldModeRoute
   '/admin/goals': typeof AdminGoalsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
@@ -407,6 +415,7 @@ export interface FileRoutesById {
   '/admin/data-governance': typeof AdminDataGovernanceRoute
   '/admin/deals': typeof AdminDealsRoute
   '/admin/documents': typeof AdminDocumentsRoute
+  '/admin/field-mode': typeof AdminFieldModeRoute
   '/admin/goals': typeof AdminGoalsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
@@ -457,6 +466,7 @@ export interface FileRouteTypes {
     | '/admin/data-governance'
     | '/admin/deals'
     | '/admin/documents'
+    | '/admin/field-mode'
     | '/admin/goals'
     | '/admin/inquiries'
     | '/admin/installments'
@@ -504,6 +514,7 @@ export interface FileRouteTypes {
     | '/admin/data-governance'
     | '/admin/deals'
     | '/admin/documents'
+    | '/admin/field-mode'
     | '/admin/goals'
     | '/admin/inquiries'
     | '/admin/installments'
@@ -552,6 +563,7 @@ export interface FileRouteTypes {
     | '/admin/data-governance'
     | '/admin/deals'
     | '/admin/documents'
+    | '/admin/field-mode'
     | '/admin/goals'
     | '/admin/inquiries'
     | '/admin/installments'
@@ -834,6 +846,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGoalsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/field-mode': {
+      id: '/admin/field-mode'
+      path: '/field-mode'
+      fullPath: '/admin/field-mode'
+      preLoaderRoute: typeof AdminFieldModeRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/documents': {
       id: '/admin/documents'
       path: '/documents'
@@ -950,6 +969,7 @@ interface AdminRouteChildren {
   AdminDataGovernanceRoute: typeof AdminDataGovernanceRoute
   AdminDealsRoute: typeof AdminDealsRoute
   AdminDocumentsRoute: typeof AdminDocumentsRoute
+  AdminFieldModeRoute: typeof AdminFieldModeRoute
   AdminGoalsRoute: typeof AdminGoalsRoute
   AdminInquiriesRoute: typeof AdminInquiriesRoute
   AdminInstallmentsRoute: typeof AdminInstallmentsRoute
@@ -978,6 +998,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDataGovernanceRoute: AdminDataGovernanceRoute,
   AdminDealsRoute: AdminDealsRoute,
   AdminDocumentsRoute: AdminDocumentsRoute,
+  AdminFieldModeRoute: AdminFieldModeRoute,
   AdminGoalsRoute: AdminGoalsRoute,
   AdminInquiriesRoute: AdminInquiriesRoute,
   AdminInstallmentsRoute: AdminInstallmentsRoute,
