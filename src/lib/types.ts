@@ -30,6 +30,9 @@ export type Phase = {
   available_count: number;
   booked_count: number;
   sold_count: number;
+  /** Soft-delete — hides the phase from every public read path and the
+   * admin's default view. Never a hard delete (migration 0022). */
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -45,6 +48,14 @@ export type PlotSize = {
   installment_months: number | null;
   plot_type: "residential" | "commercial" | "agricultural" | "mixed";
   is_default: boolean;
+  /** Deactivate a pricing tier without breaking plots that already
+   * reference it (migration 0022). Never a hard delete. */
+  is_active: boolean;
+  /** Display/marketing-only fields — paymentActions.ts never reads
+   * plot_sizes, so these have zero effect on what's actually charged. */
+  promo_active: boolean;
+  promo_label: string | null;
+  promo_price: number | null;
   created_at: string;
 };
 
@@ -57,6 +68,11 @@ export type Plot = {
   col_num: number;
   status: "available" | "booked" | "sold";
   notes: string | null;
+  /** Pasted photo URLs — matches this codebase's established media
+   * convention (no upload widget exists anywhere). Migration 0022. */
+  photo_urls: string[] | null;
+  /** Soft-delete — see Phase.is_archived. Never a hard delete. */
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
   // Joined
