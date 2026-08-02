@@ -23,6 +23,7 @@ import { PlotSummaryCard } from "@/components/inquiry/PlotSummaryCard";
 import { useInquiry } from "@/context/InquiryContext";
 import { supabase } from "@/lib/supabase";
 import { sendSiteVisitNotificationFn } from "@/lib/notifications";
+import { createFreeSiteVisitBookingFn } from "@/lib/bookingActions";
 
 type BookVisitSearch = {
   inquiry_id?: string;
@@ -159,22 +160,25 @@ function BookVisitPage() {
         throw new Error("No inquiry reference found. Please go back to Step 1.");
       }
 
-      // 1. Save booking to DB
-      const { error: bookingErr } = await (supabase as any).from("bookings").insert({
-        inquiry_id: form.inquiryId,
-        visit_date: skipSiteVisit ? null : form.visitDate || null,
-        visit_time: skipSiteVisit ? null : form.visitTime || null,
-        attendees: skipSiteVisit ? 1 : parseInt(form.attendees) || 1,
-        visit_notes: form.visitNotes || null,
-        visit_type: form.visitMode || "physical",
-        transport_mode: skipSiteVisit ? null : form.transportMode || null,
-        pickup_location:
-          skipSiteVisit || form.transportMode === "self" ? null : form.pickupLocation || null,
-        status: "pending",
+      // 1. Save booking to DB — via the server-verified, capacity-checked
+      // function (never a direct client insert into the protected
+      // `bookings` table).
+      const bookingResult = await createFreeSiteVisitBookingFn({
+        data: {
+          inquiryId: form.inquiryId,
+          visitDate: skipSiteVisit ? null : form.visitDate || null,
+          visitTime: skipSiteVisit ? null : (form.visitTime as "morning" | "afternoon") || null,
+          attendees: skipSiteVisit ? 1 : parseInt(form.attendees) || 1,
+          visitNotes: form.visitNotes || null,
+          visitType: form.visitMode || "physical",
+          transportMode: skipSiteVisit ? null : form.transportMode || null,
+          pickupLocation:
+            skipSiteVisit || form.transportMode === "self" ? null : form.pickupLocation || null,
+        },
       });
 
-      if (bookingErr) {
-        throw new Error(bookingErr.message);
+      if (!bookingResult.success) {
+        throw new Error(bookingResult.error ?? "Failed to save your booking.");
       }
 
       // 2. Dispatch notifications
@@ -190,8 +194,10 @@ function BookVisitPage() {
             visitTime: form.visitTime,
             transportMode: skipSiteVisit ? "self" : form.transportMode,
             pickupLocation:
-              skipSiteVisit || form.transportMode === "self" ? "Self Transport" : form.pickupLocation,
-          }
+              skipSiteVisit || form.transportMode === "self"
+                ? "Self Transport"
+                : form.pickupLocation,
+          },
         });
       } catch (notifErr) {
         console.warn("[Gatepath] Failed to send free visit notifications:", notifErr);
@@ -403,7 +409,12 @@ function BookVisitPage() {
                         });
                       }
                     }}
-                    style={{ width: 18, height: 18, cursor: "pointer", accentColor: "var(--primary)" }}
+                    style={{
+                      width: 18,
+                      height: 18,
+                      cursor: "pointer",
+                      accentColor: "var(--primary)",
+                    }}
                   />
                   <label
                     htmlFor="skipVisitCheck"
@@ -923,7 +934,11 @@ function BookVisitPage() {
                       style={{ color: "var(--available)", marginTop: 2, flexShrink: 0 }}
                     />
                     <div
-                      style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "var(--foreground)" }}
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 14,
+                        color: "var(--foreground)",
+                      }}
                     >
                       {item}
                     </div>

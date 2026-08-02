@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { updateBookingFn } from "@/lib/bookingActions";
+import { useAdminSession } from "@/context/AdminSessionContext";
 import { KpiCard } from "@/components/admin/KpiCard";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { EscalationCard } from "@/components/admin/EscalationCard";
@@ -60,6 +61,7 @@ type BookingPatch = {
 };
 
 function SiteVisits() {
+  const { adminRole } = useAdminSession();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,20 +71,53 @@ function SiteVisits() {
   const [rescheduleTime, setRescheduleTime] = useState<"morning" | "afternoon">("morning");
   const [actionState, setActionState] = useState<Record<string, boolean>>({});
 
+  // ── Daily Visit Capacity (Part 3, Slice E) ──
+  const [dailyCapacity, setDailyCapacity] = useState("8");
+  const [capacitySaving, setCapacitySaving] = useState(false);
+  const [capacityMsg, setCapacityMsg] = useState<string | null>(null);
+
   const loadData = async () => {
     setLoading(true);
-    const [bookingsRes, inquiriesRes] = await Promise.all([
+    const [bookingsRes, inquiriesRes, capacityRes] = await Promise.all([
       supabase.from("bookings").select("*").order("visit_date", { ascending: true }),
       supabase.from("inquiries").select("*"),
+      (supabase as any)
+        .from("site_banners")
+        .select("data")
+        .eq("id", "booking_capacity")
+        .maybeSingle(),
     ]);
     setBookings((bookingsRes.data as Booking[]) ?? []);
     setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
+    const maxPerDay = capacityRes.data?.data?.max_per_day;
+    if (maxPerDay) setDailyCapacity(String(maxPerDay));
     setLoading(false);
   };
 
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleSaveCapacity = async () => {
+    if (adminRole === "agent") {
+      alert("Access Denied: Agents cannot change visit capacity.");
+      return;
+    }
+    setCapacitySaving(true);
+    setCapacityMsg(null);
+
+    const { error } = await (supabase as any).from("site_banners").upsert(
+      {
+        id: "booking_capacity",
+        data: { max_per_day: Number(dailyCapacity) || 8 },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    setCapacitySaving(false);
+    setCapacityMsg(error ? "Error saving: " + error.message : "Saved.");
+  };
 
   const bookedDateObjs = useMemo(() => {
     const keys = new Set<string>();
@@ -170,6 +205,43 @@ function SiteVisits() {
           tone="warning"
         />
       </div>
+
+      <SectionCard title="Daily Visit Capacity">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-on-surface-variant uppercase mb-1">
+              Max Visits Per Day (Company-Wide)
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={dailyCapacity}
+              onChange={(e) => setDailyCapacity(e.target.value)}
+              className="w-28 bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2 px-3 outline-none"
+            />
+          </div>
+          {adminRole !== "agent" && (
+            <button
+              onClick={handleSaveCapacity}
+              disabled={capacitySaving}
+              className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-60"
+            >
+              {capacitySaving ? "Saving..." : "Save"}
+            </button>
+          )}
+          {capacityMsg && (
+            <span
+              className={`text-xs font-semibold ${capacityMsg.includes("Error") ? "text-error" : "text-on-success-container"}`}
+            >
+              {capacityMsg}
+            </span>
+          )}
+        </div>
+        <p className="mt-2 text-xs text-on-surface-variant">
+          The public site-visit booking form enforces this cap in real time — a day at or over
+          capacity is rejected with a "fully booked" message.
+        </p>
+      </SectionCard>
 
       {!loading && overdueBookings.length > 0 && (
         <div className="flex flex-col gap-2">

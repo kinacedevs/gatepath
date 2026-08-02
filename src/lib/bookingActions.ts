@@ -65,3 +65,84 @@ export const updateBookingFn = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+/**
+ * Public-facing (no caller auth — mirrors notifications.ts's
+ * sendSiteVisitNotificationFn, already called from this exact flow with no
+ * admin identity). Replaces book-visit.tsx's previous direct
+ * (supabase as any).from("bookings").insert(...) call, which violated
+ * CLAUDE.md's explicit "never write to bookings from client-side code"
+ * rule — the paid path already goes through the service-role-verified
+ * payment/webhook flow from Phase 1, but the free-visit path never did.
+ *
+ * Also enforces the real, admin-configurable daily capacity (Part 3, Slice
+ * E) — a client-side-only check would be trivially bypassable, so this has
+ * to be the server-side gate regardless of the write-path fix above.
+ */
+export const createFreeSiteVisitBookingFn = createServerFn({ method: "POST" })
+  .validator(
+    (d: {
+      inquiryId: string;
+      visitDate: string | null;
+      visitTime: "morning" | "afternoon" | null;
+      attendees: number;
+      visitNotes: string | null;
+      visitType: string;
+      transportMode: string | null;
+      pickupLocation: string | null;
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const serviceClient = getServiceClient();
+
+    if (data.visitDate) {
+      // Same checks book-visit.tsx already does client-side — restated
+      // here since a public server function can't trust the client ran them.
+      const visit = new Date(`${data.visitDate}T00:00:00`);
+      if (visit.getDay() === 0) {
+        return {
+          success: false,
+          error: "We are closed on Sundays. Please select Monday–Saturday.",
+        };
+      }
+      const maxDate = new Date(Date.now() + 60 * 86400000);
+      if (visit > maxDate) {
+        return { success: false, error: "Please select a date within the next 60 days." };
+      }
+
+      const { data: capacityRow } = await (serviceClient as any)
+        .from("site_banners")
+        .select("data")
+        .eq("id", "booking_capacity")
+        .maybeSingle();
+      const maxPerDay = capacityRow?.data?.max_per_day ?? 8;
+
+      const { count } = await serviceClient
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("visit_date", data.visitDate)
+        .neq("status", "cancelled");
+
+      if ((count ?? 0) >= maxPerDay) {
+        return { success: false, error: "That day is fully booked — please choose another date." };
+      }
+    }
+
+    const { error } = await (serviceClient as any).from("bookings").insert({
+      inquiry_id: data.inquiryId,
+      visit_date: data.visitDate,
+      visit_time: data.visitTime,
+      attendees: data.attendees,
+      visit_notes: data.visitNotes,
+      visit_type: data.visitType,
+      transport_mode: data.transportMode,
+      pickup_location: data.pickupLocation,
+      status: "pending",
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  });
