@@ -1,0 +1,216 @@
+/**
+ * Gatepath Realtors — Internal API (Part 2, Module 16)
+ *
+ * SERVER-ONLY. Imported exclusively by src/server.ts (the Cloudflare
+ * Worker's actual fetch entry, never bundled to the client) — never import
+ * this from a route or component file. That import-graph discipline is
+ * what keeps getServiceClient() (see supabaseAdmin.ts's own warning) from
+ * ever reaching the browser, the same safety boundary createServerFn gets
+ * from build-time stripping, enforced here by hand since this file isn't
+ * a createServerFn (no file-based API-route factory exists in this
+ * TanStack Start version — checked directly in node_modules).
+ *
+ * Auth: `Authorization: Bearer <key>`, hashed and matched against
+ * api_keys.key_hash (src/lib/apiKeyActions.ts issues real keys). Reads are
+ * deliberately redacted — client_id_passport/client_kra_pin/kin_* never
+ * appear here, since an API key could end up inside a third-party
+ * automation tool. Lead creation requires the same NOT NULL fields the
+ * real inquiries schema requires — no fabricated placeholder values for
+ * what a given external source doesn't collect.
+ */
+import { getServiceClient } from "./supabaseAdmin";
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json", "Cache-Control": "private, no-store" },
+  });
+}
+
+async function hashKey(rawKey: string): Promise<string> {
+  const data = new TextEncoder().encode(rawKey);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+type Scope = "leads:read" | "leads:write" | "plots:read";
+
+async function authenticate(
+  request: Request,
+): Promise<{ ok: true; scopes: Scope[]; keyId: string } | { ok: false; response: Response }> {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    return {
+      ok: false,
+      response: json({ error: "Missing Authorization: Bearer <key> header." }, 401),
+    };
+  }
+
+  const service = getServiceClient();
+  const keyHash = await hashKey(match[1].trim());
+
+  const { data: keyRow } = await (service as any)
+    .from("api_keys")
+    .select("id, scopes, revoked_at")
+    .eq("key_hash", keyHash)
+    .maybeSingle();
+
+  if (!keyRow || keyRow.revoked_at) {
+    return { ok: false, response: json({ error: "Invalid or revoked API key." }, 401) };
+  }
+
+  await (service as any)
+    .from("api_keys")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", keyRow.id);
+
+  return { ok: true, scopes: (keyRow.scopes as Scope[]) ?? [], keyId: keyRow.id };
+}
+
+function requireScope(scopes: Scope[], required: Scope): Response | null {
+  if (!scopes.includes(required)) {
+    return json({ error: `This key doesn't have the '${required}' scope.` }, 403);
+  }
+  return null;
+}
+
+const LEAD_SAFE_COLUMNS =
+  "id, client_full_name, client_phone, client_email, status, heard_from, phase_name, price, created_at";
+
+async function handleLeadsList(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 200);
+  const offset = Number(url.searchParams.get("offset")) || 0;
+
+  const service = getServiceClient();
+  const { data, error } = await (service as any)
+    .from("inquiries")
+    .select(LEAD_SAFE_COLUMNS)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) return json({ error: error.message }, 500);
+  return json({ data, limit, offset });
+}
+
+async function handleLeadDetail(id: string): Promise<Response> {
+  const service = getServiceClient();
+  const { data, error } = await (service as any)
+    .from("inquiries")
+    .select(LEAD_SAFE_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) return json({ error: error.message }, 500);
+  if (!data) return json({ error: "Lead not found." }, 404);
+  return json({ data });
+}
+
+async function handleLeadCreate(request: Request): Promise<Response> {
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Request body must be valid JSON." }, 400);
+  }
+
+  const required = ["client_full_name", "client_email", "client_phone", "client_id_passport"];
+  const missing = required.filter((field) => !body[field] || typeof body[field] !== "string");
+  if (missing.length > 0) {
+    return json({ error: `Missing required field(s): ${missing.join(", ")}` }, 400);
+  }
+
+  const service = getServiceClient();
+  const { data, error } = await (service as any)
+    .from("inquiries")
+    .insert({
+      client_full_name: body.client_full_name,
+      client_email: (body.client_email as string).toLowerCase().trim(),
+      client_phone: body.client_phone,
+      client_id_passport: body.client_id_passport,
+      heard_from: typeof body.heard_from === "string" ? body.heard_from : null,
+      questions: typeof body.questions === "string" ? body.questions : null,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (error) return json({ error: error.message }, 500);
+  return json({ data }, 201);
+}
+
+async function handlePlotsList(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const status = url.searchParams.get("status");
+
+  const service = getServiceClient();
+  let query = (service as any)
+    .from("plots")
+    .select("plot_number, status, phases(name), plot_sizes(cash_price)")
+    .order("plot_number", { ascending: true })
+    .limit(200);
+  if (status) query = query.eq("status", status);
+
+  const { data, error } = await query;
+  if (error) return json({ error: error.message }, 500);
+  return json({ data });
+}
+
+/**
+ * Wrapped in try/catch deliberately: this endpoint is reachable by plain
+ * curl with just an API key, no browser session — unlike every other
+ * server function this session, nothing upstream (a login flow, a portal
+ * OTP check) already guarantees a working request shape before this code
+ * runs. Any unexpected failure (a misconfigured secret, a transient DB
+ * error) must still come back as clean JSON, never leak into server.ts's
+ * generic branded HTML error page — a real client of this API only ever
+ * expects JSON.
+ */
+export async function handleApiRequest(request: Request): Promise<Response> {
+  try {
+    const url = new URL(request.url);
+    const segments = url.pathname
+      .replace(/^\/api\/v1\/?/, "")
+      .split("/")
+      .filter(Boolean);
+
+    const auth = await authenticate(request);
+    if (!auth.ok) return auth.response;
+
+    // /leads
+    if (segments[0] === "leads" && segments.length === 1) {
+      if (request.method === "GET") {
+        const scopeErr = requireScope(auth.scopes, "leads:read");
+        if (scopeErr) return scopeErr;
+        return await handleLeadsList(request);
+      }
+      if (request.method === "POST") {
+        const scopeErr = requireScope(auth.scopes, "leads:write");
+        if (scopeErr) return scopeErr;
+        return await handleLeadCreate(request);
+      }
+    }
+
+    // /leads/:id
+    if (segments[0] === "leads" && segments.length === 2 && request.method === "GET") {
+      const scopeErr = requireScope(auth.scopes, "leads:read");
+      if (scopeErr) return scopeErr;
+      return await handleLeadDetail(segments[1]);
+    }
+
+    // /plots
+    if (segments[0] === "plots" && segments.length === 1 && request.method === "GET") {
+      const scopeErr = requireScope(auth.scopes, "plots:read");
+      if (scopeErr) return scopeErr;
+      return await handlePlotsList(request);
+    }
+
+    return json({ error: "Not found." }, 404);
+  } catch (err) {
+    console.error("[API v1] Unhandled error:", err);
+    return json({ error: "Internal server error." }, 500);
+  }
+}

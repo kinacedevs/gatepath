@@ -319,6 +319,19 @@ export type Goal = {
   updated_at: string;
 };
 
+export type ApiKey = {
+  id: string;
+  name: string;
+  key_hash: string;
+  key_prefix: string;
+  scopes: string[];
+  created_by_email: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -497,6 +510,11 @@ export type Database = {
         Row: Goal;
         Insert: Omit<Goal, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<Goal, "id" | "created_at" | "updated_at">>;
+      };
+      api_keys: {
+        Row: ApiKey;
+        Insert: Omit<ApiKey, "id" | "created_at">;
+        Update: Partial<Omit<ApiKey, "id" | "created_at">>;
       };
     };
     Views: {

@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { handleApiRequest } from "./lib/apiRoutes";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -98,8 +99,7 @@ const PRIVATE_ROUTE_PREFIXES = [
 
 function isPublicCacheableRoute(pathname: string): boolean {
   // Normalise a trailing slash so "/about/" matches "/about".
-  const path =
-    pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  const path = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 
   if (isPrivateRoute(path)) return false;
   if (PUBLIC_EXACT_ROUTES.has(path)) return true;
@@ -129,6 +129,15 @@ export default {
   async fetch(request: Request, env: any, ctx: any) {
     try {
       const url = new URL(request.url);
+
+      // Part 2, Module 16 — clean internal API. Dispatched here, before the
+      // TanStack SSR handler, and returned directly: its own responses are
+      // already private/no-store (see apiRoutes.ts's json() helper), so no
+      // further wrapping is needed.
+      if (url.pathname.startsWith("/api/v1/")) {
+        return await handleApiRequest(request);
+      }
+
       const isGet = request.method === "GET";
 
       // Determine if the route is cacheable (anonymous read-only pages).
