@@ -42,6 +42,8 @@ export const logInteractionFn = createServerFn({ method: "POST" })
       notes: string;
       occurredAt?: string;
       callOutcome?: "connected" | "voicemail" | "no_answer" | "wrong_number" | "callback_requested";
+      latitude?: number;
+      longitude?: number;
     }) => d,
   )
   .handler(async ({ data }) => {
@@ -54,6 +56,8 @@ export const logInteractionFn = createServerFn({ method: "POST" })
       direction: data.direction,
       notes: data.notes || null,
       call_outcome: data.callOutcome ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
       logged_by_name: caller.caller.full_name,
       logged_by_email: caller.caller.email,
       occurred_at: data.occurredAt ?? new Date().toISOString(),

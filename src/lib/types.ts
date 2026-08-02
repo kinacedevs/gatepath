@@ -346,6 +346,10 @@ export type InteractionLog = {
   notes: string | null;
   logged_by_name: string | null;
   logged_by_email: string | null;
+  /** Optional GPS capture, meaningful mainly for channel === "site_visit".
+   * Added migration 0018. Never required — capture can fail or not apply. */
+  latitude: number | null;
+  longitude: number | null;
   occurred_at: string;
   created_at: string;
 };
