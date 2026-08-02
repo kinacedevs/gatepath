@@ -17,7 +17,6 @@ import {
   Loader2,
   CheckCircle,
   Search,
-  Download,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import diasporaHeroAsset from "@/assets/diaspora.jpg";
@@ -78,9 +77,9 @@ const TRUST_POINTS = [
     desc: "Our real-time interactive masterplan locks your plot instantly upon reservation deposit.",
   },
   {
-    icon: Download,
-    title: "Power of Attorney Guide",
-    desc: "Download our legal Power of Attorney template to appoint a family representative easily.",
+    icon: HelpCircle,
+    title: "Power of Attorney Guidance",
+    desc: "Ask our team about appointing a trusted representative in Kenya on your behalf — no need to travel.",
   },
   {
     icon: Globe,

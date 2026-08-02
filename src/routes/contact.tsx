@@ -3,7 +3,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { Phone, Mail, MapPin, Clock, MessageCircle, Send, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  MessageCircle,
+  Send,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
+
+function sanitize(val: string): string {
+  return val.replace(/[<>"'&]/g, "").trim();
+}
 
 export const Route = createFileRoute("/contact")({
   component: ContactPage,
@@ -21,6 +35,8 @@ export const Route = createFileRoute("/contact")({
 
 function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
@@ -29,8 +45,27 @@ function ContactPage() {
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
+
+    const { error } = await (supabase as any).from("inquiries").insert({
+      client_full_name: sanitize(formData.fullName),
+      client_email: formData.email.toLowerCase().trim(),
+      client_phone: formData.phone.trim(),
+      heard_from: "Contact Page",
+      questions: `[${formData.subject}] ${sanitize(formData.message)}`,
+      status: "pending",
+    });
+
+    setSubmitting(false);
+    if (error) {
+      setSubmitError(
+        "Something went wrong sending your message. Please call or WhatsApp us directly.",
+      );
+      return;
+    }
     setSubmitted(true);
   };
 
@@ -49,7 +84,8 @@ function ContactPage() {
               Get in Touch with <span className="text-accent">Gatepath Realtors</span>
             </h1>
             <p className="text-base text-slate-300 max-w-2xl leading-relaxed">
-              Have a question about our plots in Malindi, Sagana, Diani, or Matuu? Call us, chat via WhatsApp, or visit our head office in Ruiru, Nairobi.
+              Have a question about our plots in Malindi, Sagana, Diani, or Matuu? Call us, chat via
+              WhatsApp, or visit our head office in Ruiru, Nairobi.
             </p>
           </div>
         </div>
@@ -66,8 +102,12 @@ function ContactPage() {
                 <MessageCircle size={24} />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl text-primary-deep">Direct Phone & WhatsApp</h3>
-                <p className="text-xs text-slate-500 mt-1">Chat directly with a sales advisor or schedule a site visit.</p>
+                <h3 className="font-serif font-bold text-xl text-primary-deep">
+                  Direct Phone & WhatsApp
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Chat directly with a sales advisor or schedule a site visit.
+                </p>
               </div>
               <div className="pt-2 border-t border-slate-100 space-y-2">
                 <a
@@ -90,13 +130,21 @@ function ContactPage() {
                 <MapPin size={24} />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl text-primary-deep">Headquarters & Email</h3>
-                <p className="text-xs text-slate-500 mt-1">Visit our customer operations office in Ruiru.</p>
+                <h3 className="font-serif font-bold text-xl text-primary-deep">
+                  Headquarters & Email
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Visit our customer operations office in Ruiru.
+                </p>
               </div>
               <div className="pt-2 border-t border-slate-100 space-y-2 text-xs text-slate-700">
                 <p className="flex items-start gap-2">
                   <MapPin size={16} className="text-accent shrink-0 mt-0.5" />
-                  <span><strong>CNM Centre, 1st Floor</strong><br />Ruiru Eastern Bypass, Nairobi, Kenya</span>
+                  <span>
+                    <strong>CNM Centre, 1st Floor</strong>
+                    <br />
+                    Ruiru Eastern Bypass, Nairobi, Kenya
+                  </span>
                 </p>
                 <p className="flex items-center gap-2 pt-1">
                   <Mail size={16} className="text-accent shrink-0" />
@@ -112,9 +160,15 @@ function ContactPage() {
                 <h4 className="font-serif font-bold text-base text-primary-deep">Working Hours</h4>
               </div>
               <div className="text-xs text-slate-600 space-y-1 pt-1 border-t border-slate-100">
-                <p className="flex justify-between"><span>Monday – Friday:</span> <strong>8:00 AM – 6:00 PM</strong></p>
-                <p className="flex justify-between"><span>Saturday:</span> <strong>9:00 AM – 4:00 PM</strong></p>
-                <p className="flex justify-between text-slate-400"><span>Sunday & Public Holidays:</span> <span>Closed</span></p>
+                <p className="flex justify-between">
+                  <span>Monday – Friday:</span> <strong>8:00 AM – 6:00 PM</strong>
+                </p>
+                <p className="flex justify-between">
+                  <span>Saturday:</span> <strong>9:00 AM – 4:00 PM</strong>
+                </p>
+                <p className="flex justify-between text-slate-400">
+                  <span>Sunday & Public Holidays:</span> <span>Closed</span>
+                </p>
               </div>
             </div>
           </div>
@@ -123,17 +177,26 @@ function ContactPage() {
           <div className="lg:col-span-7">
             <div className="bg-white p-8 lg:p-10 rounded-3xl border border-slate-200 shadow-sm space-y-6">
               <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-accent">ONLINE INQUIRY</span>
-                <h3 className="font-serif font-bold text-2xl text-primary-deep mt-1">Send Us a Message</h3>
-                <p className="text-xs text-slate-500 mt-1">Our sales team responds within 2 hours during office hours.</p>
+                <span className="text-xs font-bold uppercase tracking-widest text-accent">
+                  ONLINE INQUIRY
+                </span>
+                <h3 className="font-serif font-bold text-2xl text-primary-deep mt-1">
+                  Send Us a Message
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Our sales team responds within 2 hours during office hours.
+                </p>
               </div>
 
               {submitted ? (
                 <div className="p-8 bg-green-50 rounded-2xl border border-green-200 text-center space-y-3">
                   <CheckCircle2 size={48} className="text-green-600 mx-auto" />
-                  <h4 className="font-serif font-bold text-xl text-green-900">Thank You! Message Received</h4>
+                  <h4 className="font-serif font-bold text-xl text-green-900">
+                    Thank You! Message Received
+                  </h4>
                   <p className="text-xs text-green-700 max-w-md mx-auto">
-                    We have received your message. A Gatepath Realtor representative will contact you shortly via phone or WhatsApp.
+                    We have received your message. A Gatepath Realtor representative will contact
+                    you shortly via phone or WhatsApp.
                   </p>
                 </div>
               ) : (
@@ -201,11 +264,24 @@ function ContactPage() {
                     />
                   </div>
 
+                  {submitError && (
+                    <p className="text-xs font-semibold text-red-600">{submitError}</p>
+                  )}
+
                   <button
                     type="submit"
-                    className="w-full py-4 bg-primary-deep hover:bg-footer-deep text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md"
+                    disabled={submitting}
+                    className="w-full py-4 bg-primary-deep hover:bg-footer-deep text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-60"
                   >
-                    <Send size={16} /> Send Message Now
+                    {submitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" /> Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} /> Send Message Now
+                      </>
+                    )}
                   </button>
                 </form>
               )}

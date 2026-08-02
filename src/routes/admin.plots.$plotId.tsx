@@ -36,6 +36,7 @@ import { supabase } from "@/lib/supabase";
 import { useAdminSession } from "@/context/AdminSessionContext";
 import { formatFromKes } from "@/lib/currency";
 import { logPlotTitleVerificationFn } from "@/lib/plotVerificationActions";
+import { updatePlotStatusFn } from "@/lib/plotActions";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { QuickCallLogger } from "@/components/admin/QuickCallLogger";
 import {
@@ -83,6 +84,7 @@ function PlotDetail() {
 
   const [editingStatus, setEditingStatus] = useState(false);
   const [newPlotStatus, setNewPlotStatus] = useState<"available" | "booked" | "sold">("available");
+  const [statusSaveError, setStatusSaveError] = useState<string | null>(null);
 
   const [loggingVerification, setLoggingVerification] = useState(false);
   const [verifyOutcome, setVerifyOutcome] =
@@ -155,12 +157,21 @@ function PlotDetail() {
       alert("Access Denied: Agents cannot manually modify plot statuses.");
       return;
     }
-    const { error } = await (supabase as any)
-      .from("plots")
-      .update({ status: newPlotStatus })
-      .eq("id", plot.id);
-    if (error) {
-      alert("Error updating plot status: " + error.message);
+    setStatusSaveError(null);
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+      setStatusSaveError("Session expired — please refresh and sign in again.");
+      return;
+    }
+
+    const result = await updatePlotStatusFn({
+      data: { callerAccessToken: accessToken, plotId: plot.id, status: newPlotStatus },
+    });
+
+    if (!result.success) {
+      setStatusSaveError(result.error ?? "Error updating plot status.");
     } else {
       setEditingStatus(false);
       loadData();
@@ -249,6 +260,7 @@ function PlotDetail() {
               alert("Access Denied: Agents cannot manually modify plot statuses.");
               return;
             }
+            setStatusSaveError(null);
             setEditingStatus(true);
           }}
           className="px-6 py-3 bg-secondary-container text-on-secondary-container font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
@@ -507,6 +519,9 @@ function PlotDetail() {
                 <option value="sold">Sold</option>
               </select>
             </div>
+            {statusSaveError && (
+              <p className="text-xs font-semibold text-red-600">{statusSaveError}</p>
+            )}
             <DialogFooter className="gap-2 sm:gap-0">
               <button
                 type="button"
