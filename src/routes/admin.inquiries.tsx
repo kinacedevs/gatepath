@@ -37,7 +37,7 @@ import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
 import { SplitDonutChart } from "@/components/admin/charts/SplitDonutChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { Inquiry, Agreement, Offer, Payment } from "@/lib/types";
+import type { Inquiry, Agreement, Offer, Payment, CustomFieldDefinition } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/inquiries")({
   component: InquiriesQueue,
@@ -78,6 +78,7 @@ function InquiriesQueue() {
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -88,17 +89,20 @@ function InquiriesQueue() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [inquiriesRes, agreementsRes, offersRes, paymentsRes] = await Promise.all([
-        supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
-        supabase.from("agreements").select("*"),
-        supabase.from("offers").select("*"),
-        supabase.from("payments").select("*"),
-      ]);
+      const [inquiriesRes, agreementsRes, offersRes, paymentsRes, customFieldsRes] =
+        await Promise.all([
+          supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
+          supabase.from("agreements").select("*"),
+          supabase.from("offers").select("*"),
+          supabase.from("payments").select("*"),
+          supabase.from("custom_field_definitions").select("*"),
+        ]);
 
       setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
       setAgreements((agreementsRes.data as Agreement[]) ?? []);
       setOffers((offersRes.data as Offer[]) ?? []);
       setPayments((paymentsRes.data as Payment[]) ?? []);
+      setCustomFieldDefs((customFieldsRes.data as CustomFieldDefinition[]) ?? []);
     } catch (err) {
       console.error("Error loading inquiries data:", err);
     } finally {
@@ -487,26 +491,43 @@ function InquiriesQueue() {
                     },
                   ],
                 },
-              ].map((section) => (
-                <div
-                  key={section.title}
-                  className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4.5"
-                >
-                  <div className="text-[10px] font-bold text-accent uppercase tracking-[0.12em] mb-3.5">
-                    {section.title}
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
-                    {section.fields.map((f) => (
-                      <div key={f.label}>
-                        <div className="text-[11px] text-on-surface-variant mb-0.5">{f.label}:</div>
-                        <div className="font-semibold text-[13px] text-primary-container">
-                          {f.value}
+                {
+                  title: "ADDITIONAL INFORMATION",
+                  // Additive only — built once from whatever custom fields (Phase
+                  // 27) this specific inquiry actually has values for. Falls back
+                  // to the raw key if a definition was since deactivated/removed,
+                  // so a historical value never loses its meaning entirely.
+                  fields: Object.entries(selectedInquiry.custom_fields ?? {}).map(
+                    ([key, value]) => ({
+                      label: customFieldDefs.find((d) => d.key === key)?.label ?? key,
+                      value: String(value),
+                    }),
+                  ),
+                },
+              ]
+                .filter((section) => section.fields.length > 0)
+                .map((section) => (
+                  <div
+                    key={section.title}
+                    className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4.5"
+                  >
+                    <div className="text-[10px] font-bold text-accent uppercase tracking-[0.12em] mb-3.5">
+                      {section.title}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+                      {section.fields.map((f) => (
+                        <div key={f.label}>
+                          <div className="text-[11px] text-on-surface-variant mb-0.5">
+                            {f.label}:
+                          </div>
+                          <div className="font-semibold text-[13px] text-primary-container">
+                            {f.value}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
               <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg px-5 py-4.5">
                 <div className="text-[10px] font-bold text-accent uppercase tracking-[0.12em] mb-3.5">

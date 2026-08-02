@@ -13,6 +13,7 @@ import { InquiryStepper } from "@/components/InquiryStepper";
 import { PlotSummaryCard } from "@/components/inquiry/PlotSummaryCard";
 import { useInquiry } from "@/context/InquiryContext";
 import { supabase } from "@/lib/supabase";
+import type { CustomFieldDefinition } from "@/lib/types";
 
 type Search = {
   phase?: string;
@@ -193,6 +194,25 @@ function InquiryPage() {
   const [consentError, setConsentError] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState("");
 
+  // Custom fields (Settings Expansion, Phase 27) — CEO/manager-defined,
+  // dynamic per-deployment, so held in local state rather than the shared
+  // InquiryContext (which every other field here is a fixed named property
+  // of). Empty array today until a CEO/manager defines any.
+  const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDefinition[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [customFieldError, setCustomFieldError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("custom_field_definitions")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      setCustomFieldDefs((data as CustomFieldDefinition[]) ?? []);
+    })();
+  }, []);
+
   // Seed form from URL params on first load
   useEffect(() => {
     if (search.phase || search.plotNumber) {
@@ -283,6 +303,16 @@ function InquiryPage() {
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+
+    const missingCustomField = customFieldDefs.find(
+      (def) => def.is_required && !customFieldValues[def.key]?.trim(),
+    );
+    if (missingCustomField) {
+      setCustomFieldError(`Please fill in "${missingCustomField.label}".`);
+      setBannerError(true);
+      return;
+    }
+    setCustomFieldError(null);
     setBannerError(false);
     setLoading(true);
 
@@ -376,6 +406,7 @@ function InquiryPage() {
         kin_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kinKraPin) || null,
         heard_from: form.heardFrom,
         marketing_opt_in: form.marketingOptIn,
+        custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : null,
         payment_preference: form.intent, // Set intent ('free_visit', 'reserve', 'deposit') as payment preference
         location_preference: sanitize(form.locationPreference),
         questions: sanitize(form.questions),
@@ -1229,6 +1260,79 @@ function InquiryPage() {
                   </p>
                 </div>
               )}
+              {/* ─────────────────────────────────────────────── */}
+              {/* ADDITIONAL INFORMATION (CEO/manager-defined custom fields) */}
+              {/* ─────────────────────────────────────────────── */}
+              {customFieldDefs.length > 0 && (
+                <div className="mb-6 flex flex-col gap-4">
+                  <label style={{ ...label, fontWeight: 600 }}>Additional Information</label>
+                  {customFieldDefs.map((def) => (
+                    <div key={def.key}>
+                      <label style={label}>
+                        {def.label}
+                        {def.is_required ? " *" : " (Optional)"}
+                      </label>
+                      {def.field_type === "select" ? (
+                        <select
+                          value={customFieldValues[def.key] ?? ""}
+                          onChange={(e) =>
+                            setCustomFieldValues((v) => ({ ...v, [def.key]: e.target.value }))
+                          }
+                          style={inp(`custom_${def.key}`)}
+                        >
+                          <option value="">Select an option...</option>
+                          {(def.options ?? []).map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : def.field_type === "checkbox" ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="checkbox"
+                            checked={customFieldValues[def.key] === "true"}
+                            onChange={(e) =>
+                              setCustomFieldValues((v) => ({
+                                ...v,
+                                [def.key]: e.target.checked ? "true" : "false",
+                              }))
+                            }
+                            style={{ width: 18, height: 18, cursor: "pointer" }}
+                          />
+                        </div>
+                      ) : (
+                        <input
+                          type={
+                            def.field_type === "number"
+                              ? "number"
+                              : def.field_type === "date"
+                                ? "date"
+                                : "text"
+                          }
+                          value={customFieldValues[def.key] ?? ""}
+                          onChange={(e) =>
+                            setCustomFieldValues((v) => ({ ...v, [def.key]: e.target.value }))
+                          }
+                          style={inp(`custom_${def.key}`)}
+                        />
+                      )}
+                    </div>
+                  ))}
+                  {customFieldError && (
+                    <div
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 12,
+                        color: "var(--destructive)",
+                      }}
+                    >
+                      {customFieldError}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mb-6">
                 <label style={label}>Any questions or special requirements? (Optional)</label>
                 <textarea

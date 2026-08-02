@@ -18,7 +18,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { UserCheck, Shield, Rocket, Loader2, Download } from "lucide-react";
+import { UserCheck, Shield, Rocket, Loader2, Download, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAdminSession } from "@/context/AdminSessionContext";
 import { SectionCard } from "@/components/admin/SectionCard";
@@ -30,8 +30,19 @@ import { DEFAULT_PIPELINE_LABELS, savePipelineLabelsFn } from "@/lib/pipelineLab
 import { saveMessageTemplateFn, resetMessageTemplateFn } from "@/lib/messageTemplateActions";
 import { saveFxRatesFn } from "@/lib/fxRateActions";
 import { exportTableCsvFn } from "@/lib/dataExportActions";
+import {
+  saveCustomFieldDefinitionFn,
+  deactivateCustomFieldDefinitionFn,
+} from "@/lib/customFieldActions";
 import { CURRENCY_RATES, CURRENCIES, type Currency } from "@/lib/currency";
-import type { MessageTemplate } from "@/lib/types";
+import type { MessageTemplate, CustomFieldDefinition } from "@/lib/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/admin/settings")({
   component: SystemSettings,
@@ -44,10 +55,8 @@ const ROLE_TONE = {
 } as const;
 
 const ROADMAP_ITEMS = [
-  "Custom fields for inquiries/leads",
   "Full pipeline restructuring (add/remove/reorder stages, not just relabel)",
   "Scheduled/automatic refresh (backups, FX rates) — needs the Automation/n8n module",
-  "Live FX-rate propagation into the public diaspora/property pages",
 ];
 
 const TEMPLATE_DEFS: { key: string; name: string }[] = [
@@ -88,6 +97,17 @@ function SystemSettings() {
   const [exportingTable, setExportingTable] = useState<string | null>(null);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
 
+  const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
+  const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [fieldKey, setFieldKey] = useState("");
+  const [fieldLabel, setFieldLabel] = useState("");
+  const [fieldType, setFieldType] = useState<CustomFieldDefinition["field_type"]>("text");
+  const [fieldOptionsText, setFieldOptionsText] = useState("");
+  const [fieldRequired, setFieldRequired] = useState(false);
+  const [fieldSaving, setFieldSaving] = useState(false);
+  const [fieldMsg, setFieldMsg] = useState<string | null>(null);
+
   const getAccessToken = async () => {
     const { data } = await supabase.auth.getSession();
     return data.session?.access_token ?? null;
@@ -95,9 +115,10 @@ function SystemSettings() {
 
   const loadData = async () => {
     setLoading(true);
-    const [bannersRes, templatesRes] = await Promise.all([
+    const [bannersRes, templatesRes, customFieldsRes] = await Promise.all([
       supabase.from("site_banners").select("*").in("id", ["pipeline_labels", "fx_rates"]),
       supabase.from("message_templates").select("*").order("name"),
+      supabase.from("custom_field_definitions").select("*").order("display_order"),
     ]);
 
     const banners = (bannersRes.data as { id: string; data: any }[]) ?? [];
@@ -111,6 +132,7 @@ function SystemSettings() {
     }
 
     setSavedTemplates((templatesRes.data as MessageTemplate[]) ?? []);
+    setCustomFields((customFieldsRes.data as CustomFieldDefinition[]) ?? []);
     setLoading(false);
   };
 
@@ -229,6 +251,90 @@ function SystemSettings() {
     setExportingTable(null);
   };
 
+  const resetFieldForm = () => {
+    setEditingFieldId(null);
+    setFieldKey("");
+    setFieldLabel("");
+    setFieldType("text");
+    setFieldOptionsText("");
+    setFieldRequired(false);
+    setFieldMsg(null);
+  };
+
+  const openCreateField = () => {
+    resetFieldForm();
+    setFieldDialogOpen(true);
+  };
+
+  const openEditField = (field: CustomFieldDefinition) => {
+    setEditingFieldId(field.id);
+    setFieldKey(field.key);
+    setFieldLabel(field.label);
+    setFieldType(field.field_type);
+    setFieldOptionsText((field.options ?? []).join(", "));
+    setFieldRequired(field.is_required);
+    setFieldMsg(null);
+    setFieldDialogOpen(true);
+  };
+
+  const submitField = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fieldKey.trim() || !fieldLabel.trim()) {
+      setFieldMsg("Key and label are required.");
+      return;
+    }
+    setFieldSaving(true);
+    setFieldMsg(null);
+    const token = await getAccessToken();
+    if (!token) {
+      setFieldMsg("Your session expired — please sign in again.");
+      setFieldSaving(false);
+      return;
+    }
+    const result = await (saveCustomFieldDefinitionFn as any)({
+      data: {
+        callerAccessToken: token,
+        id: editingFieldId ?? undefined,
+        key: fieldKey.trim(),
+        label: fieldLabel.trim(),
+        fieldType,
+        options:
+          fieldType === "select"
+            ? fieldOptionsText
+                .split(",")
+                .map((o) => o.trim())
+                .filter(Boolean)
+            : undefined,
+        isRequired: fieldRequired,
+        displayOrder: customFields.length,
+      },
+    });
+    if (!result.success) {
+      setFieldMsg("Error: " + result.error);
+    } else {
+      setFieldDialogOpen(false);
+      resetFieldForm();
+      loadData();
+    }
+    setFieldSaving(false);
+  };
+
+  const deactivateField = async (id: string) => {
+    if (!confirm("Deactivate this field? It will no longer appear on the public inquiry form.")) {
+      return;
+    }
+    const token = await getAccessToken();
+    if (!token) {
+      setFieldMsg("Your session expired — please sign in again.");
+      return;
+    }
+    const result = await (deactivateCustomFieldDefinitionFn as any)({
+      data: { callerAccessToken: token, id },
+    });
+    if (!result.success) setFieldMsg("Error: " + result.error);
+    else loadData();
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div>
@@ -247,6 +353,7 @@ function SystemSettings() {
           <TabsTrigger value="templates">Message Templates</TabsTrigger>
           <TabsTrigger value="fx">FX Rates</TabsTrigger>
           <TabsTrigger value="export">Data Export</TabsTrigger>
+          <TabsTrigger value="customfields">Custom Fields</TabsTrigger>
         </TabsList>
 
         {/* ── MY PROFILE & SECURITY (unchanged) ── */}
@@ -584,7 +691,156 @@ function SystemSettings() {
             )}
           </SectionCard>
         </TabsContent>
+
+        {/* ── CUSTOM FIELDS ── */}
+        <TabsContent value="customfields">
+          <SectionCard
+            title="Custom Fields for Inquiries/Leads"
+            action={
+              canWriteMoney && (
+                <button
+                  type="button"
+                  onClick={openCreateField}
+                  className="flex items-center gap-1.5 px-4.5 py-2.5 bg-accent rounded-lg text-white font-bold text-[13px]"
+                >
+                  <Plus size={14} /> Add Field
+                </button>
+              )
+            }
+          >
+            <p className="text-[13px] text-on-surface-variant mb-4">
+              Rendered dynamically on the public inquiry form's "Additional Information" section,
+              and shown per-inquiry in the Inquiries Queue review modal. Deactivating a field
+              removes it from the form but keeps historical values labeled correctly.
+            </p>
+            {!canWriteMoney ? (
+              <EmptyState title="Custom fields are restricted to the CEO and managers." />
+            ) : loading ? (
+              <Skeleton className="h-32 rounded-xl" />
+            ) : customFields.length === 0 ? (
+              <EmptyState title="No custom fields defined yet." />
+            ) : (
+              <div className="flex flex-col gap-2">
+                {customFields.map((field) => (
+                  <div
+                    key={field.id}
+                    className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg"
+                  >
+                    <div>
+                      <span className="font-semibold text-[14px] text-primary-container">
+                        {field.label}
+                      </span>
+                      <StatusBadge tone={field.is_active ? "success" : "neutral"} className="ml-2">
+                        {field.is_active ? "Active" : "Deactivated"}
+                      </StatusBadge>
+                      <p className="text-[11px] text-on-surface-variant mt-0.5">
+                        {field.key} · {field.field_type}
+                        {field.is_required ? " · required" : ""}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditField(field)}
+                        className="text-xs text-secondary underline"
+                      >
+                        Edit
+                      </button>
+                      {field.is_active && (
+                        <button
+                          type="button"
+                          onClick={() => deactivateField(field.id)}
+                          className="p-1.5 rounded-lg text-error hover:bg-error/10 transition-colors"
+                          title="Deactivate"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        </TabsContent>
       </Tabs>
+
+      {/* ══════ MODAL: CREATE/EDIT CUSTOM FIELD ══════ */}
+      <Dialog
+        open={fieldDialogOpen}
+        onOpenChange={(open) => {
+          setFieldDialogOpen(open);
+          if (!open) resetFieldForm();
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>{editingFieldId ? "Edit Field" : "Add Field"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitField} className="flex flex-col gap-4">
+            <input
+              type="text"
+              value={fieldKey}
+              onChange={(e) => setFieldKey(e.target.value)}
+              disabled={!!editingFieldId}
+              placeholder="Key (e.g. preferred_contact_time) — cannot change once set"
+              className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none disabled:opacity-60"
+            />
+            <input
+              type="text"
+              value={fieldLabel}
+              onChange={(e) => setFieldLabel(e.target.value)}
+              placeholder="Label shown on the form"
+              className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none"
+            />
+            <select
+              value={fieldType}
+              onChange={(e) => setFieldType(e.target.value as CustomFieldDefinition["field_type"])}
+              className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none"
+            >
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="select">Select (dropdown)</option>
+              <option value="checkbox">Checkbox</option>
+              <option value="date">Date</option>
+            </select>
+            {fieldType === "select" && (
+              <input
+                type="text"
+                value={fieldOptionsText}
+                onChange={(e) => setFieldOptionsText(e.target.value)}
+                placeholder="Options, comma-separated (e.g. Morning, Afternoon, Evening)"
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none"
+              />
+            )}
+            <label className="flex items-center gap-2 text-[13px]">
+              <input
+                type="checkbox"
+                checked={fieldRequired}
+                onChange={(e) => setFieldRequired(e.target.checked)}
+              />
+              Required on the inquiry form
+            </label>
+            {fieldMsg && <p className="text-[13px] text-on-surface">{fieldMsg}</p>}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <button
+                type="button"
+                onClick={() => setFieldDialogOpen(false)}
+                className="px-4 py-2 rounded-lg border border-outline-variant/40 text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={fieldSaving}
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold inline-flex items-center gap-1.5"
+              >
+                {fieldSaving && <Loader2 size={13} className="animate-spin" />} Save Field
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
