@@ -175,9 +175,25 @@ export function PlotPanel({
           <div className="font-numbers font-medium text-[11px] text-muted-foreground tracking-[0.1em] uppercase">
             Listed Price
           </div>
-          <div className="font-numbers font-bold text-[36px] text-primary leading-tight">
-            {formatFromKes(plot.price, currency)}
-          </div>
+          {plot.promoActive && plot.promoPrice ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="font-numbers text-[18px] text-muted-foreground line-through">
+                  {formatFromKes(plot.price, currency)}
+                </span>
+                <span className="bg-accent text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+                  {plot.promoLabel || "Sale"}
+                </span>
+              </div>
+              <div className="font-numbers font-bold text-[36px] text-primary leading-tight">
+                {formatFromKes(plot.promoPrice, currency)}
+              </div>
+            </>
+          ) : (
+            <div className="font-numbers font-bold text-[36px] text-primary leading-tight">
+              {formatFromKes(plot.price, currency)}
+            </div>
+          )}
           <div className="text-[13px] text-accent italic mt-1">Flexible payment plan available</div>
 
           <div className="mt-3 flex flex-wrap gap-2">

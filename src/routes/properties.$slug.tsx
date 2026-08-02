@@ -40,36 +40,41 @@ export const Route = createFileRoute("/properties/$slug")({
       .eq("slug", params.slug)
       .single();
 
-    if (phaseErr || !dbPhase) {
+    if (phaseErr || !dbPhase || dbPhase.is_archived === true) {
       console.error("[Gatepath Loader Error] Slug:", params.slug, "Error:", phaseErr);
       throw notFound();
     }
 
-    // 2. Fetch plot sizes
-    const { data: dbSizes } = await (supabase as any)
+    // 2. Fetch plot sizes (is_active !== false: degrades gracefully before
+    // migration 0022 is applied and the column doesn't exist yet)
+    const { data: rawSizes } = await (supabase as any)
       .from("plot_sizes")
       .select("*")
       .eq("phase_id", dbPhase.id)
       .order("cash_price");
+    const dbSizes = (rawSizes ?? []).filter((s: any) => s.is_active !== false);
 
-    // 3. Fetch plots
-    const { data: dbPlots } = await (supabase as any)
+    // 3. Fetch plots (excluding archived — same graceful-degradation rule)
+    const { data: rawPlots } = await (supabase as any)
       .from("plots")
       .select("*")
       .eq("phase_id", dbPhase.id)
       .order("plot_number");
+    const dbPlots = (rawPlots ?? []).filter((p: any) => p.is_archived !== true);
 
-    // 4. Fetch 3 similar phases (excluding current)
-    const { data: rawSimilar } = await (supabase as any)
+    // 4. Fetch 3 similar phases (excluding current and archived)
+    const { data: rawSimilarAll } = await (supabase as any)
       .from("phases")
       .select("*")
       .neq("id", dbPhase.id)
-      .limit(3);
+      .limit(6);
+    const rawSimilar = (rawSimilarAll ?? []).filter((p: any) => p.is_archived !== true).slice(0, 3);
 
     const similarIds = rawSimilar ? rawSimilar.map((p: any) => p.id) : [];
-    const { data: similarSizes } = similarIds.length
+    const { data: rawSimilarSizes } = similarIds.length
       ? await (supabase as any).from("plot_sizes").select("*").in("phase_id", similarIds)
       : { data: [] };
+    const similarSizes = (rawSimilarSizes ?? []).filter((s: any) => s.is_active !== false);
 
     // Adapt similar phases for PhaseCard
     const similarAdapted = (rawSimilar ?? []).map((p: any) => {
@@ -99,6 +104,7 @@ export const Route = createFileRoute("/properties/$slug")({
         startingPrice,
         size: defaultSize ? defaultSize.label : "50x100 ft",
         plots: [],
+        hasPromo: sizesForPhase.some((s: any) => s.promo_active),
       };
     });
 
@@ -117,6 +123,9 @@ export const Route = createFileRoute("/properties/$slug")({
         status: p.status as "available" | "booked" | "sold",
         size: sizeObj ? sizeObj.label.replace(" ft", "") : "50x100",
         price: sizeObj ? sizeObj.cash_price : 0,
+        promoActive: sizeObj?.promo_active ?? false,
+        promoLabel: sizeObj?.promo_label ?? null,
+        promoPrice: sizeObj?.promo_price ?? null,
       };
     });
 

@@ -16,6 +16,11 @@ export interface Plot {
   status: "available" | "booked" | "sold";
   size: string;
   price: number;
+  /** Display-only promo pricing (Part 3, Phase A) — the real amount charged
+   * at checkout still comes from the inquiry/reservation flow, unaffected. */
+  promoActive?: boolean;
+  promoLabel?: string | null;
+  promoPrice?: number | null;
 }
 
 export interface Phase {
@@ -44,6 +49,8 @@ export interface Phase {
   plot_map_url?: string | null;
   /** Diaspora section banner override — falls back to the phase's main image. */
   diaspora_image_url?: string | null;
+  /** True if any active pricing tier in this phase has a promo on (Part 3, Phase A). */
+  hasPromo?: boolean;
 }
 
 // ─── Adapters ────────────────────────────────────────────────────────────────
@@ -79,13 +86,19 @@ const LOCATION_IMAGES: Record<string, string> = {
 };
 
 export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbPlot[] = []): Phase {
-  const sizesForPhase = dbSizes.filter((s) => s.phase_id === dbPhase.id);
+  // `!== false` (not `=== true`) so this degrades gracefully before
+  // migration 0022 is applied and the column doesn't exist yet (undefined
+  // reads as "active", the pre-existing behavior).
+  const sizesForPhase = dbSizes.filter(
+    (s) => s.phase_id === dbPhase.id && (s as any).is_active !== false,
+  );
+  const plotsForPhase = dbPlots.filter((p) => (p as any).is_archived !== true);
   const defaultSize = sizesForPhase.find((s) => s.is_default) ?? sizesForPhase[0];
   const startingPrice = sizesForPhase.length
     ? Math.min(...sizesForPhase.map((s) => s.cash_price))
     : 0;
 
-  const mappedPlots = dbPlots.map((p) => {
+  const mappedPlots = plotsForPhase.map((p) => {
     const sizeObj = sizesForPhase.find((s) => s.id === p.size_id) ?? defaultSize;
     return {
       id: p.plot_number,
@@ -94,6 +107,9 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
       status: p.status,
       size: sizeObj ? sizeObj.label.replace(" ft", "") : "50x100",
       price: sizeObj ? sizeObj.cash_price : 0,
+      promoActive: (sizeObj as any)?.promo_active ?? false,
+      promoLabel: (sizeObj as any)?.promo_label ?? null,
+      promoPrice: (sizeObj as any)?.promo_price ?? null,
     };
   });
 
@@ -128,6 +144,7 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
     brochure_url: dbPhase.brochure_url,
     plot_map_url: dbPhase.plot_map_url,
     diaspora_image_url: dbPhase.diaspora_image_url,
+    hasPromo: sizesForPhase.some((s) => (s as any).promo_active),
   };
 }
 
@@ -167,7 +184,7 @@ export function usePhases() {
           if (phaseRes.error) {
             throw new Error(phaseRes.error.message);
           }
-          const dbPhases = phaseRes.data ?? [];
+          const dbPhases = (phaseRes.data ?? []).filter((p: any) => p.is_archived !== true);
           const dbSizes = plotSizeRes.data ?? [];
           const adapted = dbPhases.map((p) => adaptPhase(p, dbSizes));
           if (!isServer) {
@@ -226,7 +243,11 @@ export function usePhase(slug: string) {
 
           const [plotSizeRes, plotsRes] = await Promise.all([
             supabase.from("plot_sizes").select("*").eq("phase_id", dbPhase.id) as any,
-            supabase.from("plots").select("*").eq("phase_id", dbPhase.id).order("plot_number") as any,
+            supabase
+              .from("plots")
+              .select("*")
+              .eq("phase_id", dbPhase.id)
+              .order("plot_number") as any,
           ]);
 
           const adapted = adaptPhase(
@@ -260,25 +281,30 @@ export function usePhase(slug: string) {
     };
   }, [slug]);
 
-  // Real-time listener for plot status changes
+  // Real-time listener for plot status/inventory changes. "*" (not just
+  // UPDATE) so a plot added or archived by staff appears/disappears live —
+  // Part 3 "pushed live to the interactive map" — not just status flips.
   useEffect(() => {
     if (!phase) return;
 
     const channel = supabase
       .channel(`realtime-plots-${phase.slug}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "plots" }, async () => {
-        // Re-fetch plot details FOR THIS PHASE ONLY to preserve joined sizes
-        const { data: updatedPlots } = await supabase
-          .from("plots")
-          .select("*")
-          .eq("phase_id", phase.id)
-          .order("plot_number");
+      .on("postgres_changes", { event: "*", schema: "public", table: "plots" }, async () => {
+        // Re-fetch plot details + the phase's own rolling counts FOR THIS
+        // PHASE ONLY to preserve joined sizes and stay correct across
+        // insert/archive, not just status updates.
+        const [{ data: updatedPlots }, { data: updatedPhaseRow }] = await Promise.all([
+          supabase.from("plots").select("*").eq("phase_id", phase.id).order("plot_number"),
+          supabase.from("phases").select("*").eq("id", phase.id).maybeSingle(),
+        ]);
 
         if (updatedPlots) {
           setPhase((prev) => {
             if (!prev) return null;
             // Map updated plots — cast needed due to supabase-js v2.110 inference in useEffect
-            const typedPlots = updatedPlots as import("./types").Plot[];
+            const typedPlots = (updatedPlots as import("./types").Plot[]).filter(
+              (p) => (p as any).is_archived !== true,
+            );
             const mapped = typedPlots.map((p) => {
               const existing = prev.plots.find((ep) => ep.id === p.plot_number);
               return {
@@ -288,10 +314,21 @@ export function usePhase(slug: string) {
                 status: p.status,
                 size: existing ? existing.size : "50x100",
                 price: existing ? existing.price : 0,
+                promoActive: existing?.promoActive ?? false,
+                promoLabel: existing?.promoLabel ?? null,
+                promoPrice: existing?.promoPrice ?? null,
               };
             });
 
-            const updated = { ...prev, plots: mapped };
+            const phaseRow = updatedPhaseRow as import("./types").Phase | null;
+            const updated = {
+              ...prev,
+              plots: mapped,
+              totalPlots: phaseRow?.total_plots ?? prev.totalPlots,
+              available: phaseRow?.available_count ?? prev.available,
+              booked: phaseRow?.booked_count ?? prev.booked,
+              sold: phaseRow?.sold_count ?? prev.sold,
+            };
             if (!isServer) {
               cacheSinglePhases[phase.slug] = updated;
             }
@@ -304,6 +341,10 @@ export function usePhase(slug: string) {
     return () => {
       supabase.removeChannel(channel);
     };
+    // Deliberately scoped to slug/id, not the whole `phase` object — `phase`
+    // itself changes identity every time this effect's own setPhase runs,
+    // which would otherwise re-subscribe the channel in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase?.slug, phase?.id]);
 
   return { phase, loading, error };

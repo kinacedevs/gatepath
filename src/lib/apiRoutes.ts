@@ -174,14 +174,25 @@ async function handlePlotsList(request: Request): Promise<Response> {
   const service = getServiceClient();
   let query = (service as any)
     .from("plots")
-    .select("plot_number, status, phases(name), plot_sizes(cash_price)")
+    .select("plot_number, status, is_archived, phases(name, is_archived), plot_sizes(cash_price)")
     .order("plot_number", { ascending: true })
     .limit(200);
   if (status) query = query.eq("status", status);
 
   const { data, error } = await query;
   if (error) return json({ error: error.message }, 500);
-  return json({ data });
+
+  // Filtered in JS, not via .eq("is_archived", ...) — degrades gracefully
+  // before migration 0022 is applied and the column doesn't exist yet
+  // (undefined reads as "not archived", the pre-existing behavior).
+  const visible = ((data as any[]) ?? [])
+    .filter((row) => row.is_archived !== true && row.phases?.is_archived !== true)
+    .map(({ is_archived: _archived, phases, ...rest }) => ({
+      ...rest,
+      phases: phases ? { name: phases.name } : null,
+    }));
+
+  return json({ data: visible });
 }
 
 /**

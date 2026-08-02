@@ -49,6 +49,11 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
         >
           {phase.status}
         </span>
+        {phase.hasPromo && (
+          <span className="absolute top-[52px] left-4 bg-accent text-white font-numbers font-bold text-[10px] px-3.5 py-[6px] rounded-full shadow-md uppercase tracking-wide">
+            Sale
+          </span>
+        )}
         <div className="absolute bottom-3 left-4 flex gap-[3px]">
           {strip.map((t, i) => (
             <span
