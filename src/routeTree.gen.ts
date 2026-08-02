@@ -33,6 +33,7 @@ import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSiteContentRouteImport } from './routes/admin.site-content'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminReferralsTestimonialsRouteImport } from './routes/admin.referrals-testimonials'
 import { Route as AdminPropertyMatchingRouteImport } from './routes/admin.property-matching'
 import { Route as AdminPlotsRouteImport } from './routes/admin.plots'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
@@ -175,6 +176,12 @@ const AdminReportsRoute = AdminReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReferralsTestimonialsRoute =
+  AdminReferralsTestimonialsRouteImport.update({
+    id: '/referrals-testimonials',
+    path: '/referrals-testimonials',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminPropertyMatchingRoute = AdminPropertyMatchingRouteImport.update({
   id: '/property-matching',
   path: '/property-matching',
@@ -312,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
+  '/admin/referrals-testimonials': typeof AdminReferralsTestimonialsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
@@ -358,6 +366,7 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
+  '/admin/referrals-testimonials': typeof AdminReferralsTestimonialsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
@@ -406,6 +415,7 @@ export interface FileRoutesById {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/plots': typeof AdminPlotsRouteWithChildren
   '/admin/property-matching': typeof AdminPropertyMatchingRoute
+  '/admin/referrals-testimonials': typeof AdminReferralsTestimonialsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/site-content': typeof AdminSiteContentRoute
@@ -455,6 +465,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/plots'
     | '/admin/property-matching'
+    | '/admin/referrals-testimonials'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/site-content'
@@ -501,6 +512,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/plots'
     | '/admin/property-matching'
+    | '/admin/referrals-testimonials'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/site-content'
@@ -548,6 +560,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/plots'
     | '/admin/property-matching'
+    | '/admin/referrals-testimonials'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/site-content'
@@ -758,6 +771,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReportsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/referrals-testimonials': {
+      id: '/admin/referrals-testimonials'
+      path: '/referrals-testimonials'
+      fullPath: '/admin/referrals-testimonials'
+      preLoaderRoute: typeof AdminReferralsTestimonialsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/property-matching': {
       id: '/admin/property-matching'
       path: '/property-matching'
@@ -938,6 +958,7 @@ interface AdminRouteChildren {
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPlotsRoute: typeof AdminPlotsRouteWithChildren
   AdminPropertyMatchingRoute: typeof AdminPropertyMatchingRoute
+  AdminReferralsTestimonialsRoute: typeof AdminReferralsTestimonialsRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSiteContentRoute: typeof AdminSiteContentRoute
@@ -965,6 +986,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPlotsRoute: AdminPlotsRouteWithChildren,
   AdminPropertyMatchingRoute: AdminPropertyMatchingRoute,
+  AdminReferralsTestimonialsRoute: AdminReferralsTestimonialsRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSiteContentRoute: AdminSiteContentRoute,

@@ -34,6 +34,7 @@ import {
   PhoneCall,
   Banknote,
   Goal,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -76,6 +77,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/admin/reports", label: "Reports & Analytics", icon: BarChart3 },
       { to: "/admin/commissions", label: "Commission & Payouts", icon: Banknote },
       { to: "/admin/goals", label: "Goals & Quotas", icon: Goal },
+      { to: "/admin/referrals-testimonials", label: "Referrals & Testimonials", icon: Share2 },
     ],
   },
   {

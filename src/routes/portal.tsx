@@ -10,6 +10,7 @@ import {
   getPortalDataFn,
   getPortalDocumentSignedUrlFn,
   assertPortalOwnsInquiryFn,
+  submitTestimonialFn,
 } from "@/lib/portalActions";
 import { verifyPaymentFn } from "@/lib/paymentActions";
 import {
@@ -123,6 +124,10 @@ interface PhaseVideoData {
   youtube_video_url: string | null;
 }
 
+interface TestimonialFlagData {
+  submitted_by_inquiry_id: string | null;
+}
+
 const DOCUMENT_TYPE_LABEL: Record<string, string> = {
   agreement: "Agreement",
   offer: "Offer Letter",
@@ -169,7 +174,13 @@ function ClientPortalPage() {
   const [interactions, setInteractions] = useState<InteractionData[]>([]);
   const [documents, setDocuments] = useState<DocumentData[]>([]);
   const [phases, setPhases] = useState<PhaseVideoData[]>([]);
+  const [testimonialFlags, setTestimonialFlags] = useState<TestimonialFlagData[]>([]);
   const [viewingDocId, setViewingDocId] = useState<string | null>(null);
+
+  // Share Your Experience (testimonial self-submission) state, keyed by inquiry id
+  const [testimonialQuote, setTestimonialQuote] = useState<Record<string, string>>({});
+  const [testimonialSaving, setTestimonialSaving] = useState<string | null>(null);
+  const [testimonialMsg, setTestimonialMsg] = useState<Record<string, string>>({});
 
   // In-Portal Installment Payment Modal State
   const [payingInquiry, setPayingInquiry] = useState<InquiryData | null>(null);
@@ -227,6 +238,7 @@ function ClientPortalPage() {
       setInteractions(result.interactions || []);
       setDocuments(result.documents || []);
       setPhases(result.phases || []);
+      setTestimonialFlags(result.testimonials || []);
       setSessionToken(token);
       setSessionEmail(result.inquiries[0]?.client_email || null);
     } catch (err: any) {
@@ -313,10 +325,39 @@ function ClientPortalPage() {
     setInteractions([]);
     setDocuments([]);
     setPhases([]);
+    setTestimonialFlags([]);
     setEmailInput("");
     setPhoneInput("");
     setOtpInput("");
     setOtpSent(false);
+  };
+
+  const submitTestimonial = async (inquiryId: string) => {
+    const quote = (testimonialQuote[inquiryId] || "").trim();
+    if (quote.length < 10) {
+      setTestimonialMsg((m) => ({ ...m, [inquiryId]: "Please share a few more details." }));
+      return;
+    }
+    setTestimonialSaving(inquiryId);
+    setTestimonialMsg((m) => ({ ...m, [inquiryId]: "" }));
+    try {
+      const result = await (submitTestimonialFn as any)({
+        data: { sessionToken, inquiryId, quote },
+      });
+      if (!result.success) {
+        setTestimonialMsg((m) => ({ ...m, [inquiryId]: result.error }));
+      } else {
+        setTestimonialFlags((flags) => [...flags, { submitted_by_inquiry_id: inquiryId }]);
+        setTestimonialMsg((m) => ({
+          ...m,
+          [inquiryId]: "Thank you! Your testimonial is pending review.",
+        }));
+      }
+    } catch {
+      setTestimonialMsg((m) => ({ ...m, [inquiryId]: "Something went wrong. Please try again." }));
+    } finally {
+      setTestimonialSaving(null);
+    }
   };
 
   // Open In-Portal Paystack Installment Modal
@@ -890,6 +931,52 @@ function ClientPortalPage() {
                       })}
                     </div>
                   )}
+
+                  {/* Share Your Experience — only for deals that are fully
+                      paid/finalized (agreements.ceo_signed), and only if this
+                      client hasn't already submitted one for this deal */}
+                  {inquiries
+                    .filter(
+                      (inq) =>
+                        agreements.some((a) => a.inquiry_id === inq.id) &&
+                        !testimonialFlags.some((t) => t.submitted_by_inquiry_id === inq.id),
+                    )
+                    .map((inq) => (
+                      <div
+                        key={inq.id}
+                        className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-3"
+                      >
+                        <h3 className="font-serif font-bold text-xl text-primary-deep flex items-center gap-2">
+                          <MessageSquare size={20} className="text-accent" /> Share Your Experience
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Congratulations on completing your purchase of Plot #{inq.plot_number_ref}
+                          ! We'd love a short testimonial — approved ones are featured on our site.
+                        </p>
+                        <textarea
+                          value={testimonialQuote[inq.id] || ""}
+                          onChange={(e) =>
+                            setTestimonialQuote((q) => ({ ...q, [inq.id]: e.target.value }))
+                          }
+                          rows={3}
+                          placeholder="Tell us about your experience with Gatepath Realtors..."
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none resize-y"
+                        />
+                        {testimonialMsg[inq.id] && (
+                          <p className="text-xs text-primary-deep">{testimonialMsg[inq.id]}</p>
+                        )}
+                        <button
+                          onClick={() => submitTestimonial(inq.id)}
+                          disabled={testimonialSaving === inq.id}
+                          className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          {testimonialSaving === inq.id && (
+                            <Loader2 size={13} className="animate-spin" />
+                          )}
+                          Submit Testimonial
+                        </button>
+                      </div>
+                    ))}
 
                   {/* Scheduled Site Visits */}
                   <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">

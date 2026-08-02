@@ -274,6 +274,30 @@ function SiteContent() {
     if (error) alert("Error deleting: " + error.message);
     else loadData();
   };
+  // Client-submitted testimonials (Module 14) start as is_published: false —
+  // approving flips the same flag that already gates the public site.
+  const handleApproveTestimonial = async (id: string) => {
+    if (!canWrite) {
+      alert("Access Denied: Agents cannot manage site content.");
+      return;
+    }
+    const { error } = await (supabase as any)
+      .from("testimonials")
+      .update({ is_published: true })
+      .eq("id", id);
+    if (error) alert("Error approving: " + error.message);
+    else loadData();
+  };
+  const handleRejectTestimonial = async (id: string) => {
+    if (!canWrite) {
+      alert("Access Denied: Agents cannot manage site content.");
+      return;
+    }
+    if (!confirm("Reject and delete this submitted testimonial?")) return;
+    const { error } = await supabase.from("testimonials").delete().eq("id", id);
+    if (error) alert("Error rejecting: " + error.message);
+    else loadData();
+  };
 
   // ── Team Profiles handlers ──
   const openCreateTeam = () => {
@@ -665,6 +689,55 @@ function SiteContent() {
 
         {/* ── TESTIMONIALS ── */}
         <TabsContent value="testimonials">
+          {(() => {
+            const pending = testimonials.filter(
+              (t) => !t.is_published && t.submitted_by_inquiry_id,
+            );
+            return pending.length > 0 ? (
+              <SectionCard title="Pending Review — Submitted by Clients" className="mb-4">
+                <div className="flex flex-col gap-3">
+                  {pending.map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-start justify-between gap-4 p-3 bg-surface-container-low rounded-lg"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[14px] text-primary-container">
+                          {t.client_name}
+                          {t.tag && (
+                            <span className="text-[12px] text-on-surface-variant font-normal">
+                              {" "}
+                              · {t.tag}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[13px] text-on-surface mt-1">{t.quote}</p>
+                      </div>
+                      {canWrite && (
+                        <div className="flex gap-1.5 shrink-0">
+                          <button
+                            onClick={() => handleApproveTestimonial(t.id)}
+                            className="p-1.5 border border-success-container/40 rounded-md bg-white text-on-success-container"
+                            title="Approve — publish to public site"
+                          >
+                            <Check size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleRejectTestimonial(t.id)}
+                            className="p-1.5 border border-outline-variant/40 rounded-md bg-white text-error"
+                            title="Reject and delete"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            ) : null;
+          })()}
+
           <div className="flex justify-end mb-3">
             {canWrite && (
               <button
