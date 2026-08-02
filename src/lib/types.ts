@@ -431,6 +431,10 @@ export type BlogPost = {
   author_name: string;
   tags: string[];
   status: "draft" | "published";
+  /** SEO-tuned overrides, independent of the on-page title/summary
+   * (migration 0024). Nullable — falls back to title/summary when unset. */
+  meta_title: string | null;
+  meta_description: string | null;
   created_at: string;
   updated_at: string;
 };

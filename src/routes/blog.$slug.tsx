@@ -28,6 +28,11 @@ export const Route = createFileRoute("/blog/$slug")({
     const post = loaderData?.post;
     if (!post) return {};
 
+    // SEO-tuned overrides (Part 3, Slice C) — fall back to the on-page
+    // title/summary when unset, zero change in output for any existing post.
+    const seoTitle = post.meta_title || post.title;
+    const seoDescription = post.meta_description || post.summary;
+
     // Create structured JSON-LD Schema markup for Google
     const schemaMarkup = {
       "@context": "https://schema.org",
@@ -55,17 +60,17 @@ export const Route = createFileRoute("/blog/$slug")({
 
     return {
       meta: [
-        { title: `${post.title} — Gatepath Realtors Blog` },
-        { name: "description", content: post.summary },
+        { title: `${seoTitle} — Gatepath Realtors Blog` },
+        { name: "description", content: seoDescription },
         // Open Graph
-        { property: "og:title", content: post.title },
-        { property: "og:description", content: post.summary },
+        { property: "og:title", content: seoTitle },
+        { property: "og:description", content: seoDescription },
         { property: "og:image", content: post.featured_image || "" },
         { property: "og:type", content: "article" },
         // Twitter
         { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: post.title },
-        { name: "twitter:description", content: post.summary },
+        { name: "twitter:title", content: seoTitle },
+        { name: "twitter:description", content: seoDescription },
       ],
       // Inject Structured Data for Google crawler boost
       script: [

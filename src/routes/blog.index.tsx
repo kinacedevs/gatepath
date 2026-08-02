@@ -77,6 +77,8 @@ By taking these measured steps, you protect your hard-earned foreign income and 
     status: "published",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    meta_title: null,
+    meta_description: null,
   },
   {
     id: "seed-2",
@@ -108,6 +110,8 @@ At Gatepath Realtors, we specialize in providing freehold titles for our plots i
     status: "published",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    meta_title: null,
+    meta_description: null,
   },
   {
     id: "seed-3",
@@ -137,6 +141,8 @@ Investing in projects like **Baraka Plains Phase 6** or **Amani Gardens Phase 3*
     status: "published",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    meta_title: null,
+    meta_description: null,
   },
 ];
 
@@ -162,7 +168,9 @@ function BlogIndexPage() {
           setPosts(DEFAULT_POSTS);
         } else if (!data || data.length === 0) {
           // If table is empty, auto-seed the defaults
-          const { error: seedErr } = await (supabase as any).from("blog_posts").insert(DEFAULT_POSTS);
+          const { error: seedErr } = await (supabase as any)
+            .from("blog_posts")
+            .insert(DEFAULT_POSTS);
           if (!seedErr) {
             setPosts(DEFAULT_POSTS);
           } else {
