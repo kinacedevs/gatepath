@@ -23,6 +23,7 @@ import { updateInquiryStatusFn } from "@/lib/leadsActions";
 import { logInteractionFn } from "@/lib/interactionLogActions";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { StatusBadge, INQUIRY_STATUS_TONE } from "@/components/admin/StatusBadge";
+import { DEFAULT_PIPELINE_LABELS } from "@/lib/pipelineLabelsActions";
 import { FreshnessStamp } from "@/components/admin/FreshnessStamp";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -38,12 +39,7 @@ export const Route = createFileRoute("/admin/field-mode")({
   component: FieldMode,
 });
 
-const STATUS_BUTTONS: { status: Inquiry["status"]; label: string }[] = [
-  { status: "pending", label: "New" },
-  { status: "reviewed", label: "In Review" },
-  { status: "approved", label: "Won" },
-  { status: "rejected", label: "Lost" },
-];
+const STATUS_ORDER: Inquiry["status"][] = ["pending", "reviewed", "approved", "rejected"];
 
 function FieldMode() {
   const { adminName, sessionUser } = useAdminSession();
@@ -61,13 +57,20 @@ function FieldMode() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [savingVisit, setSavingVisit] = useState(false);
 
+  const [pipelineLabels, setPipelineLabels] =
+    useState<Record<Inquiry["status"], string>>(DEFAULT_PIPELINE_LABELS);
+
   const loadData = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("inquiries")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setInquiries((data as Inquiry[]) ?? []);
+    const [inquiriesRes, labelsRes] = await Promise.all([
+      supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
+      supabase.from("site_banners").select("data").eq("id", "pipeline_labels").maybeSingle(),
+    ]);
+    setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
+    const labelOverrides = (labelsRes.data as { data: Record<string, string> } | null)?.data;
+    if (labelOverrides) {
+      setPipelineLabels({ ...DEFAULT_PIPELINE_LABELS, ...labelOverrides });
+    }
     setLoading(false);
     setLastUpdated(new Date());
   };
@@ -75,6 +78,12 @@ function FieldMode() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Relabel only — same STATUS_ORDER, just the display label swapped.
+  const statusButtons = useMemo(
+    () => STATUS_ORDER.map((status) => ({ status, label: pipelineLabels[status] })),
+    [pipelineLabels],
+  );
 
   const myLeads = useMemo(
     () =>
@@ -238,7 +247,7 @@ function FieldMode() {
               </div>
 
               <div className="grid grid-cols-4 gap-1.5">
-                {STATUS_BUTTONS.map((s) => (
+                {statusButtons.map((s) => (
                   <button
                     key={s.status}
                     type="button"

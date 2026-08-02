@@ -46,6 +46,7 @@ import {
   type LeadScoreBreakdown,
 } from "@/lib/leadScoring";
 import { StatusBadge, INQUIRY_STATUS_TONE } from "@/components/admin/StatusBadge";
+import { DEFAULT_PIPELINE_LABELS } from "@/lib/pipelineLabelsActions";
 import { KpiCard } from "@/components/admin/KpiCard";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -71,10 +72,10 @@ export const Route = createFileRoute("/admin/leads")({
 type InquiryStatus = keyof typeof INQUIRY_STATUS_TONE;
 
 const COLUMNS: { status: InquiryStatus; label: string }[] = [
-  { status: "pending", label: "New" },
-  { status: "reviewed", label: "In Review" },
-  { status: "approved", label: "Won" },
-  { status: "rejected", label: "Lost" },
+  { status: "pending", label: DEFAULT_PIPELINE_LABELS.pending },
+  { status: "reviewed", label: DEFAULT_PIPELINE_LABELS.reviewed },
+  { status: "approved", label: DEFAULT_PIPELINE_LABELS.approved },
+  { status: "rejected", label: DEFAULT_PIPELINE_LABELS.rejected },
 ];
 
 function getInitials(name: string) {
@@ -249,15 +250,18 @@ function LeadsPipeline() {
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [pipelineLabels, setPipelineLabels] =
+    useState<Record<InquiryStatus, string>>(DEFAULT_PIPELINE_LABELS);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [inquiriesRes, bookingsRes, interactionsRes] = await Promise.all([
+      const [inquiriesRes, bookingsRes, interactionsRes, labelsRes] = await Promise.all([
         supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
         supabase.from("bookings").select("inquiry_id"),
         supabase.from("interaction_log").select("*"),
+        supabase.from("site_banners").select("data").eq("id", "pipeline_labels").maybeSingle(),
       ]);
       if (cancelled) return;
       setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
@@ -266,6 +270,10 @@ function LeadsPipeline() {
         new Set(bookingRows.map((b) => b.inquiry_id).filter(Boolean) as string[]),
       );
       setInteractions((interactionsRes.data as InteractionLog[]) ?? []);
+      const labelOverrides = (labelsRes.data as { data: Record<string, string> } | null)?.data;
+      if (labelOverrides) {
+        setPipelineLabels({ ...DEFAULT_PIPELINE_LABELS, ...labelOverrides });
+      }
       setLoading(false);
       setLastUpdated(new Date());
     })();
@@ -273,6 +281,13 @@ function LeadsPipeline() {
       cancelled = true;
     };
   }, []);
+
+  // Relabel only — inquiries.status itself and every write path are
+  // untouched, just the display label shown per column.
+  const columns = useMemo(
+    () => COLUMNS.map((col) => ({ ...col, label: pipelineLabels[col.status] })),
+    [pipelineLabels],
+  );
 
   // ── Lead scoring (Part 2, Module 4) — rules-based, computed live from
   // the same `inquiries`/`bookings`/`interaction_log` fetch above. See
@@ -333,7 +348,7 @@ function LeadsPipeline() {
     const won = inquiries.filter((i) => i.status === "approved").length;
     const conversionPct = inquiries.length > 0 ? Math.round((won / inquiries.length) * 100) : 0;
 
-    const funnelData = COLUMNS.map((col) => ({
+    const funnelData = columns.map((col) => ({
       name: col.label,
       value: inquiries.filter((i) => i.status === col.status).length,
     }));
@@ -389,7 +404,7 @@ function LeadsPipeline() {
       trendData,
       avgSpeedToLeadMs,
     };
-  }, [inquiries, interactions]);
+  }, [inquiries, interactions, columns]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -540,7 +555,7 @@ function LeadsPipeline() {
       ) : (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="flex gap-4 flex-1 overflow-x-auto pb-5">
-            {COLUMNS.map((col) => (
+            {columns.map((col) => (
               <KanbanColumn
                 key={col.status}
                 status={col.status}
