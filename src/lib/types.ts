@@ -117,6 +117,9 @@ export type Inquiry = {
   /** Pure annotations, not a status transition. Added migration 0017. */
   testimonial_requested_at: string | null;
   referral_invite_sent_at: string | null;
+  /** Flat key -> value map, definitions in custom_field_definitions.
+   * Added migration 0021. */
+  custom_fields: Record<string, string> | null;
   status: "pending" | "reviewed" | "approved" | "rejected";
   created_at: string;
   updated_at: string;
@@ -335,6 +338,19 @@ export type ApiKey = {
   revoked_at: string | null;
 };
 
+export type CustomFieldDefinition = {
+  id: string;
+  key: string;
+  label: string;
+  field_type: "text" | "number" | "select" | "checkbox" | "date";
+  options: string[] | null;
+  is_required: boolean;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type MessageTemplate = {
   id: string;
   key: string;
@@ -535,6 +551,11 @@ export type Database = {
         Row: MessageTemplate;
         Insert: Omit<MessageTemplate, "id" | "updated_at">;
         Update: Partial<Omit<MessageTemplate, "id" | "updated_at">>;
+      };
+      custom_field_definitions: {
+        Row: CustomFieldDefinition;
+        Insert: Omit<CustomFieldDefinition, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<CustomFieldDefinition, "id" | "created_at" | "updated_at">>;
       };
     };
     Views: {
