@@ -14,6 +14,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { sendResendEmail } from "./notifications";
+import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 
 async function verifyStaffCaller(callerAccessToken: string) {
   const anonClient = getAnonClient();
@@ -69,8 +70,8 @@ export const sendTestimonialRequestFn = createServerFn({ method: "POST" })
       return { success: false, error: "This deal isn't fully paid/finalized yet." };
     }
 
-    const subject = `We'd love to hear from you — Gatepath Realtors`;
-    const emailHtml = `
+    const defaultSubject = `We'd love to hear from you — Gatepath Realtors`;
+    const defaultBody = `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Share Your Experience</title></head>
@@ -105,6 +106,14 @@ export const sendTestimonialRequestFn = createServerFn({ method: "POST" })
   </table>
 </body></html>`;
 
+    const template = await getTemplateOrDefault(caller.serviceClient, "testimonial_request", {
+      subject: defaultSubject,
+      body: defaultBody,
+    });
+    const vars = { clientName: inquiry.client_full_name };
+    const subject = renderTemplate(template.subject, vars);
+    const emailHtml = renderTemplate(template.body, vars);
+
     const emailResult = await sendResendEmail(inquiry.client_email, subject, emailHtml);
 
     await caller.serviceClient
@@ -130,8 +139,8 @@ export const sendReferralInviteFn = createServerFn({ method: "POST" })
       return { success: false, error: "This deal isn't fully paid/finalized yet." };
     }
 
-    const subject = `Know someone looking for land in Kenya? — Gatepath Realtors`;
-    const emailHtml = `
+    const defaultSubject = `Know someone looking for land in Kenya? — Gatepath Realtors`;
+    const defaultBody = `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Refer a Friend</title></head>
@@ -166,6 +175,14 @@ export const sendReferralInviteFn = createServerFn({ method: "POST" })
     </td></tr>
   </table>
 </body></html>`;
+
+    const template = await getTemplateOrDefault(caller.serviceClient, "referral_invite", {
+      subject: defaultSubject,
+      body: defaultBody,
+    });
+    const vars = { clientName: inquiry.client_full_name };
+    const subject = renderTemplate(template.subject, vars);
+    const emailHtml = renderTemplate(template.body, vars);
 
     const emailResult = await sendResendEmail(inquiry.client_email, subject, emailHtml);
 

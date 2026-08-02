@@ -13,6 +13,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { sendResendEmail } from "./notifications";
 import { computeAgentCommissions } from "./commissions";
+import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 import type { AdminUser, Inquiry, Agreement } from "./types";
 
 async function verifyManagerCaller(callerAccessToken: string) {
@@ -127,8 +128,8 @@ export const sendCommissionStatementFn = createServerFn({ method: "POST" })
       )
       .join("");
 
-    const subject = `Commission Statement — Gatepath Realtors`;
-    const emailHtml = `
+    const defaultSubject = `Commission Statement — Gatepath Realtors`;
+    const defaultBody = `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Commission Statement</title></head>
@@ -158,6 +159,20 @@ export const sendCommissionStatementFn = createServerFn({ method: "POST" })
     </td></tr>
   </table>
 </body></html>`;
+
+    const template = await getTemplateOrDefault(caller.serviceClient, "commission_statement", {
+      subject: defaultSubject,
+      body: defaultBody,
+    });
+    const vars = {
+      agentName: agent.full_name ?? agent.email,
+      dealCount: String(summary.dealCount),
+      totalCommissionKes: summary.totalCommissionKes.toLocaleString(),
+      paidKes: summary.paidKes.toLocaleString(),
+      pendingKes: summary.pendingKes.toLocaleString(),
+    };
+    const subject = renderTemplate(template.subject, vars);
+    const emailHtml = renderTemplate(template.body, vars);
 
     const emailResult = await sendResendEmail(agent.email, subject, emailHtml);
     return { success: true, emailResult };

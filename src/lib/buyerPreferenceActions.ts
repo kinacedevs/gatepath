@@ -18,6 +18,7 @@ import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { sendResendEmail } from "./notifications";
 import { findMatchingPlots } from "./propertyMatching";
 import { logAuditEvent } from "./auditLog";
+import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 import type { Phase, Plot } from "./types";
 
 async function verifyStaffCaller(callerAccessToken: string) {
@@ -168,8 +169,8 @@ export const sendMatchAlertFn = createServerFn({ method: "POST" })
       )
       .join("");
 
-    const subject = `New Plot Matches for You — Gatepath Realtors`;
-    const emailHtml = `
+    const defaultSubject = `New Plot Matches for You — Gatepath Realtors`;
+    const defaultBody = `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Plot Matches</title></head>
@@ -194,6 +195,17 @@ export const sendMatchAlertFn = createServerFn({ method: "POST" })
     </td></tr>
   </table>
 </body></html>`;
+
+    const template = await getTemplateOrDefault(caller.serviceClient, "match_alert", {
+      subject: defaultSubject,
+      body: defaultBody,
+    });
+    const vars = {
+      clientName: preference.client_name,
+      matchCount: String(matches.length),
+    };
+    const subject = renderTemplate(template.subject, vars);
+    const emailHtml = renderTemplate(template.body, vars);
 
     const emailResult = await sendResendEmail(preference.client_email, subject, emailHtml);
     return { success: true, emailResult, matchCount: matches.length };

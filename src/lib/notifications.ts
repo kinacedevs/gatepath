@@ -5,6 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabase } from "./supabase";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
+import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 
 /**
  * Sends a regional SMS via Africa's Talking API (pure HTTP implementation)
@@ -403,21 +404,21 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
     console.log("[Notification ServerFn] Processing agreement signed notification...");
 
     // 1. Fetch details from database
-    const { data: inquiry } = await supabase
+    const { data: inquiry } = (await supabase
       .from("inquiries")
       .select("*")
       .eq("id", data.inquiryId)
-      .maybeSingle() as { data: import("./types").Inquiry | null; error: any };
+      .maybeSingle()) as { data: import("./types").Inquiry | null; error: any };
 
     if (!inquiry) {
       return { success: false, error: "Inquiry not found" };
     }
 
-    const { data: payment } = await supabase
+    const { data: payment } = (await supabase
       .from("payments")
       .select("*")
       .eq("inquiry_id", data.inquiryId)
-      .maybeSingle() as { data: import("./types").Payment | null; error: any };
+      .maybeSingle()) as { data: import("./types").Payment | null; error: any };
 
     const agreementUrl = `http://localhost:5173/document/agreement/${data.inquiryId}`;
 
@@ -439,13 +440,13 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
     const smsResult = await sendAfricaTalkingSms(inquiry.client_phone, smsMessage);
 
     if (payment) {
-      await ((supabase as any)
+      await (supabase as any)
         .from("agreements")
         .update({
           email_sent: emailResult.success,
           sms_sent: smsResult.success,
         })
-        .eq("payment_id", payment.id));
+        .eq("payment_id", payment.id);
     }
 
     return { success: true, emailResult, smsResult };
@@ -593,8 +594,8 @@ export const sendPaymentReminderFn = createServerFn({ method: "POST" })
     );
     const balance = Math.max(0, (inquiry.price ?? 0) - totalPaid);
 
-    const subject = `Payment Reminder: Plot #${inquiry.plot_number_ref} — ${inquiry.phase_name}`;
-    const emailHtml = `
+    const defaultSubject = `Payment Reminder: Plot #${inquiry.plot_number_ref} — ${inquiry.phase_name}`;
+    const defaultBody = `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Payment Reminder</title></head>
@@ -623,6 +624,21 @@ export const sendPaymentReminderFn = createServerFn({ method: "POST" })
     </td></tr>
   </table>
 </body></html>`;
+
+    const template = await getTemplateOrDefault(serviceClient, "payment_reminder", {
+      subject: defaultSubject,
+      body: defaultBody,
+    });
+    const vars = {
+      clientName: inquiry.client_full_name,
+      plotNumber: String(inquiry.plot_number_ref),
+      phaseName: inquiry.phase_name ?? "",
+      agreedPrice: (inquiry.price ?? 0).toLocaleString(),
+      paidSoFar: totalPaid.toLocaleString(),
+      balance: balance.toLocaleString(),
+    };
+    const subject = renderTemplate(template.subject, vars);
+    const emailHtml = renderTemplate(template.body, vars);
 
     const emailResult = await sendResendEmail(inquiry.client_email, subject, emailHtml);
     const smsMessage2 = `Hello ${inquiry.client_full_name}, a reminder on your instalment plan for Plot #${inquiry.plot_number_ref} at ${inquiry.phase_name}: balance remaining is Ksh ${balance.toLocaleString()}. Gatepath Realtors.`;

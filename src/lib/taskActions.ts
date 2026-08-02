@@ -18,6 +18,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { sendResendEmail } from "./notifications";
 import { logAuditEvent } from "./auditLog";
+import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 
 async function verifyStaffCaller(callerAccessToken: string) {
   const anonClient = getAnonClient();
@@ -142,8 +143,8 @@ export const sendTaskReminderFn = createServerFn({ method: "POST" })
       ? new Date(task.due_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })
       : "no due date set";
 
-    const subject = `Task Reminder: ${task.title}`;
-    const emailHtml = `
+    const defaultSubject = `Task Reminder: ${task.title}`;
+    const defaultBody = `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Task Reminder</title></head>
@@ -171,6 +172,19 @@ export const sendTaskReminderFn = createServerFn({ method: "POST" })
     </td></tr>
   </table>
 </body></html>`;
+
+    const template = await getTemplateOrDefault(caller.serviceClient, "task_reminder", {
+      subject: defaultSubject,
+      body: defaultBody,
+    });
+    const vars = {
+      assigneeName: task.assigned_to_name ?? "there",
+      taskTitle: task.title,
+      dueText,
+      details: task.description ? `Details: ${task.description}` : "",
+    };
+    const subject = renderTemplate(template.subject, vars);
+    const emailHtml = renderTemplate(template.body, vars);
 
     // admin_users has no phone column today, so an SMS reminder isn't
     // possible yet — email-only until that field exists.

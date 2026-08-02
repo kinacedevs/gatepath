@@ -12,6 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { sendResendEmail } from "./notifications";
 import { computeSourceRoi } from "./reportAnalytics";
+import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 import type { Inquiry, Payment } from "./types";
 
 export const sendExecutiveReportFn = createServerFn({ method: "POST" })
@@ -66,8 +67,8 @@ export const sendExecutiveReportFn = createServerFn({ method: "POST" })
     const sourceRoi = computeSourceRoi(inquiries, payments);
     const bestSource = sourceRoi[0];
 
-    const subject = `Gatepath Executive Report — ${now.toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}`;
-    const emailHtml = `
+    const defaultSubject = `Gatepath Executive Report — ${now.toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}`;
+    const defaultBody = `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Executive Report</title></head>
@@ -97,6 +98,22 @@ export const sendExecutiveReportFn = createServerFn({ method: "POST" })
     </td></tr>
   </table>
 </body></html>`;
+
+    const template = await getTemplateOrDefault(serviceClient, "executive_report", {
+      subject: defaultSubject,
+      body: defaultBody,
+    });
+    const vars = {
+      ceoName: ceoRow.full_name ?? "there",
+      pipelineValue: pipelineValue.toLocaleString(),
+      monthCollections: monthCollections.toLocaleString(),
+      teamConversionPct: String(teamConversionPct),
+      bestSource: bestSource
+        ? `${bestSource.source} (Ksh ${bestSource.revenue.toLocaleString()} closed)`
+        : "No data yet",
+    };
+    const subject = renderTemplate(template.subject, vars);
+    const emailHtml = renderTemplate(template.body, vars);
 
     const emailResult = await sendResendEmail(ceoRow.email, subject, emailHtml);
     return { success: true, emailResult };
