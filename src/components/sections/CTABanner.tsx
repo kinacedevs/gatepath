@@ -1,7 +1,34 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/Reveal";
+import { supabase } from "@/lib/supabase";
+
+const DEFAULT_WHATSAPP_NUMBER = "254799488488";
 
 export function CTABanner() {
+  const [whatsappNumber, setWhatsappNumber] = useState(DEFAULT_WHATSAPP_NUMBER);
+
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("site_banners")
+          .select("data")
+          .eq("id", "contact_info")
+          .maybeSingle();
+        // Only override if a real CEO-set number exists — otherwise keep
+        // the default that's already rendering, no flash-to-nothing.
+        const number = data?.data?.whatsapp_number;
+        if (typeof number === "string" && number.trim()) {
+          setWhatsappNumber(number.trim());
+        }
+      } catch {
+        // Default number is already showing — nothing to do.
+      }
+    };
+    fetchContactInfo();
+  }, []);
+
   return (
     <section
       className="relative bg-cover bg-center"
@@ -30,7 +57,7 @@ export function CTABanner() {
               Browse Available Plots →
             </Link>
             <a
-              href="https://wa.me/254799488488"
+              href={`https://wa.me/${whatsappNumber}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center bg-white text-primary border-2 border-white px-11 py-4 text-base font-semibold rounded-md hover:bg-primary hover:text-white transition-all duration-300"

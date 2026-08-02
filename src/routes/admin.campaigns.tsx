@@ -28,6 +28,7 @@ import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
 import { TrendChart } from "@/components/admin/charts/TrendChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { locationToSlug } from "@/lib/locations";
 import type { Phase, Affiliate, BlogPost } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/campaigns")({
@@ -69,19 +70,34 @@ function CampaignsAndContent() {
   const [blogTags, setBlogTags] = useState("");
   const [blogImage, setBlogImage] = useState("");
   const [blogStatus, setBlogStatus] = useState<"draft" | "published">("published");
+  const [blogMetaTitle, setBlogMetaTitle] = useState("");
+  const [blogMetaDescription, setBlogMetaDescription] = useState("");
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [phasesRes, affiliatesRes, blogRes] = await Promise.all([
+      const [phasesRes, affiliatesRes, blogRes, bannersRes] = await Promise.all([
         supabase.from("phases").select("*").order("name"),
         supabase.from("affiliates").select("*").order("created_at", { ascending: false }),
         supabase.from("blog_posts").select("*").order("created_at", { ascending: false }),
+        (supabase as any)
+          .from("site_banners")
+          .select("*")
+          .in("id", ["location_images", "trust_bar_stats"]),
       ]);
 
       setPhases((phasesRes.data as Phase[]) ?? []);
       setAffiliates((affiliatesRes.data as Affiliate[]) ?? []);
       setBlogPosts((blogRes.data as BlogPost[]) ?? []);
+
+      const banners = (bannersRes.data as { id: string; data: any }[]) ?? [];
+      const locBanner = banners.find((b) => b.id === "location_images");
+      setLocationImages(locBanner?.data ?? {});
+      const trustBanner = banners.find((b) => b.id === "trust_bar_stats");
+      setTrustSinceYear(
+        trustBanner?.data?.trusted_since_year ? String(trustBanner.data.trusted_since_year) : "",
+      );
+      setTrustSatisfactionLabel(trustBanner?.data?.client_satisfaction_label ?? "");
     } catch (err) {
       console.error("Error loading campaigns data:", err);
     } finally {
@@ -145,6 +161,8 @@ function CampaignsAndContent() {
       featured_image: blogImage.trim() || null,
       status: blogStatus,
       author_name: adminName || "Joe Muchiri",
+      meta_title: blogMetaTitle.trim() || null,
+      meta_description: blogMetaDescription.trim() || null,
     };
 
     if (editingBlog) {
@@ -199,6 +217,8 @@ function CampaignsAndContent() {
     setBlogTags("");
     setBlogImage("");
     setBlogStatus("published");
+    setBlogMetaTitle("");
+    setBlogMetaDescription("");
     setCreatingBlog(true);
   };
 
@@ -212,6 +232,8 @@ function CampaignsAndContent() {
     setBlogTags(post.tags.join(", "));
     setBlogImage(post.featured_image || "");
     setBlogStatus(post.status);
+    setBlogMetaTitle(post.meta_title || "");
+    setBlogMetaDescription(post.meta_description || "");
     setCreatingBlog(true);
   };
 
@@ -262,6 +284,56 @@ function CampaignsAndContent() {
       setHotPickMsg("Saved.");
       loadData();
     }
+  };
+
+  // ── Homepage Content: Location Images + Trust Bar Stats (Part 3, Slice C) ──
+  const [locationImages, setLocationImages] = useState<Record<string, string>>({});
+  const [trustSinceYear, setTrustSinceYear] = useState("");
+  const [trustSatisfactionLabel, setTrustSatisfactionLabel] = useState("");
+  const [homeContentSaving, setHomeContentSaving] = useState(false);
+  const [homeContentMsg, setHomeContentMsg] = useState<string | null>(null);
+
+  const handleSaveLocationImages = async () => {
+    if (adminRole === "agent") {
+      alert("Access Denied: Agents cannot manage homepage content.");
+      return;
+    }
+    setHomeContentSaving(true);
+    setHomeContentMsg(null);
+
+    const { error } = await (supabase as any)
+      .from("site_banners")
+      .upsert(
+        { id: "location_images", data: locationImages, updated_at: new Date().toISOString() },
+        { onConflict: "id" },
+      );
+
+    setHomeContentSaving(false);
+    setHomeContentMsg(error ? "Error saving: " + error.message : "Location images saved.");
+  };
+
+  const handleSaveTrustBarStats = async () => {
+    if (adminRole === "agent") {
+      alert("Access Denied: Agents cannot manage homepage content.");
+      return;
+    }
+    setHomeContentSaving(true);
+    setHomeContentMsg(null);
+
+    const { error } = await (supabase as any).from("site_banners").upsert(
+      {
+        id: "trust_bar_stats",
+        data: {
+          trusted_since_year: trustSinceYear ? Number(trustSinceYear) : null,
+          client_satisfaction_label: trustSatisfactionLabel.trim() || null,
+        },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    setHomeContentSaving(false);
+    setHomeContentMsg(error ? "Error saving: " + error.message : "Trust bar stats saved.");
   };
 
   // ── KPIs & charts (docs/VIZ_SPEC.md §10 — only the real items) ──
@@ -359,6 +431,7 @@ function CampaignsAndContent() {
         <TabsList className="w-fit">
           <TabsTrigger value="media">Media Manager</TabsTrigger>
           <TabsTrigger value="hotpicks">Hot Picks</TabsTrigger>
+          <TabsTrigger value="homepage">Homepage Content</TabsTrigger>
           <TabsTrigger value="blog">Blog Posts</TabsTrigger>
           <TabsTrigger value="affiliates">Affiliates</TabsTrigger>
         </TabsList>
@@ -622,6 +695,103 @@ function CampaignsAndContent() {
                 </table>
               </div>
             )}
+          </div>
+        </TabsContent>
+
+        {/* ── HOMEPAGE CONTENT ── */}
+        <TabsContent value="homepage">
+          <div className="flex flex-col gap-6">
+            {homeContentMsg && (
+              <div
+                className={`px-3.5 py-2.5 rounded-lg text-[13px] ${
+                  homeContentMsg.includes("Error")
+                    ? "bg-error/10 text-error"
+                    : "bg-success-container/15 text-on-success-container"
+                }`}
+              >
+                {homeContentMsg}
+              </div>
+            )}
+
+            <div className="luxury-card rounded-xl p-8 bg-white">
+              <h2 className="font-headline-md text-lg text-primary font-bold mb-1">
+                Location Images
+              </h2>
+              <p className="text-[13px] text-on-surface-variant mb-5">
+                Override the stock photo shown for each featured location on the homepage. Pricing
+                and plot counts there are always live from real inventory — this only controls the
+                photo.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.keys(locationToSlug).map((name) => (
+                  <div key={name}>
+                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                      {name}
+                    </label>
+                    <input
+                      type="url"
+                      value={locationImages[name] || ""}
+                      onChange={(e) =>
+                        setLocationImages((prev) => ({ ...prev, [name]: e.target.value }))
+                      }
+                      placeholder="https://..."
+                      className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={handleSaveLocationImages}
+                disabled={homeContentSaving}
+                className="mt-5 px-6 py-3 bg-primary-container text-white rounded-lg font-semibold text-sm disabled:opacity-60"
+              >
+                {homeContentSaving ? "Saving..." : "Save Location Images"}
+              </button>
+            </div>
+
+            <div className="luxury-card rounded-xl p-8 bg-white">
+              <h2 className="font-headline-md text-lg text-primary font-bold mb-1">
+                Trust Bar Stats
+              </h2>
+              <p className="text-[13px] text-on-surface-variant mb-5">
+                "Plots Sold" and "Prime Locations" on the homepage are always real, live counts from
+                inventory. These two aren't tracked anywhere in the system, so they're set here
+                directly.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                    Trusted Since (Year)
+                  </label>
+                  <input
+                    type="number"
+                    value={trustSinceYear}
+                    onChange={(e) => setTrustSinceYear(e.target.value)}
+                    placeholder="2020"
+                    className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                    Client Satisfaction Label
+                  </label>
+                  <input
+                    type="text"
+                    value={trustSatisfactionLabel}
+                    onChange={(e) => setTrustSatisfactionLabel(e.target.value)}
+                    placeholder="5★"
+                    className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleSaveTrustBarStats}
+                disabled={homeContentSaving}
+                className="mt-5 px-6 py-3 bg-primary-container text-white rounded-lg font-semibold text-sm disabled:opacity-60"
+              >
+                {homeContentSaving ? "Saving..." : "Save Trust Bar Stats"}
+              </button>
+            </div>
           </div>
         </TabsContent>
 
@@ -916,6 +1086,37 @@ function CampaignsAndContent() {
                   placeholder="Title Deeds, Legal, Diaspora"
                   className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
                 />
+              </div>
+
+              <div className="pt-2.5 border-t border-outline-variant/20 space-y-3">
+                <p className="text-[11px] text-on-surface-variant">
+                  Optional — search engine/social-share overrides. Leave blank to use the title and
+                  summary above.
+                </p>
+                <div>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                    Meta Title
+                  </label>
+                  <input
+                    type="text"
+                    value={blogMetaTitle}
+                    onChange={(e) => setBlogMetaTitle(e.target.value)}
+                    placeholder={blogTitle || "Defaults to the post title"}
+                    className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                    Meta Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={blogMetaDescription}
+                    onChange={(e) => setBlogMetaDescription(e.target.value)}
+                    placeholder={blogSummary || "Defaults to the post summary"}
+                    className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none resize-y"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2.5 pt-2.5 border-t border-outline-variant/30">
