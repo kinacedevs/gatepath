@@ -17,7 +17,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Megaphone, Check, Loader2, Plus, BookOpen, Edit2, X, Flame } from "lucide-react";
+import { Megaphone, Check, Loader2, Plus, BookOpen, Edit2, X, Flame, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAdminSession } from "@/context/AdminSessionContext";
 import { KpiCard } from "@/components/admin/KpiCard";
@@ -29,7 +29,7 @@ import { TrendChart } from "@/components/admin/charts/TrendChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { locationToSlug } from "@/lib/locations";
-import type { Phase, Affiliate, BlogPost } from "@/lib/types";
+import type { Phase, Affiliate, BlogPost, NewsletterSubscriber } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/campaigns")({
   component: CampaignsAndContent,
@@ -45,6 +45,7 @@ function CampaignsAndContent() {
   const [phases, setPhases] = useState<Phase[]>([]);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [newsletterSubscribers, setNewsletterSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -76,7 +77,7 @@ function CampaignsAndContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [phasesRes, affiliatesRes, blogRes, bannersRes] = await Promise.all([
+      const [phasesRes, affiliatesRes, blogRes, bannersRes, newsletterRes] = await Promise.all([
         supabase.from("phases").select("*").order("name"),
         supabase.from("affiliates").select("*").order("created_at", { ascending: false }),
         supabase.from("blog_posts").select("*").order("created_at", { ascending: false }),
@@ -84,11 +85,16 @@ function CampaignsAndContent() {
           .from("site_banners")
           .select("*")
           .in("id", ["location_images", "trust_bar_stats"]),
+        (supabase as any)
+          .from("newsletter_subscribers")
+          .select("*")
+          .order("created_at", { ascending: false }),
       ]);
 
       setPhases((phasesRes.data as Phase[]) ?? []);
       setAffiliates((affiliatesRes.data as Affiliate[]) ?? []);
       setBlogPosts((blogRes.data as BlogPost[]) ?? []);
+      setNewsletterSubscribers((newsletterRes.data as NewsletterSubscriber[]) ?? []);
 
       const banners = (bannersRes.data as { id: string; data: any }[]) ?? [];
       const locBanner = banners.find((b) => b.id === "location_images");
@@ -433,6 +439,7 @@ function CampaignsAndContent() {
           <TabsTrigger value="hotpicks">Hot Picks</TabsTrigger>
           <TabsTrigger value="homepage">Homepage Content</TabsTrigger>
           <TabsTrigger value="blog">Blog Posts</TabsTrigger>
+          <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
           <TabsTrigger value="affiliates">Affiliates</TabsTrigger>
         </TabsList>
 
@@ -895,6 +902,49 @@ function CampaignsAndContent() {
                 </table>
               </div>
             )}
+          </div>
+        </TabsContent>
+
+        {/* ── NEWSLETTER ── */}
+        <TabsContent value="newsletter">
+          <div className="flex flex-col gap-4">
+            <KpiCard
+              label="Total Subscribers"
+              value={loading ? "…" : String(newsletterSubscribers.length)}
+              icon={Mail}
+            />
+            <div className="luxury-card rounded-xl shadow-sm overflow-hidden bg-white">
+              {newsletterSubscribers.length === 0 ? (
+                <div className="p-6">
+                  <EmptyState title="No newsletter subscribers yet" />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-surface-container-low border-b border-outline-variant/30">
+                      <tr>
+                        <th className="px-6 py-3 font-label-md text-on-surface-variant uppercase text-[11px]">
+                          Email
+                        </th>
+                        <th className="px-6 py-3 font-label-md text-on-surface-variant uppercase text-[11px]">
+                          Signed Up
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/10">
+                      {newsletterSubscribers.map((s) => (
+                        <tr key={s.id}>
+                          <td className="px-6 py-3 text-body-md text-on-surface">{s.email}</td>
+                          <td className="px-6 py-3 text-body-md text-on-surface-variant">
+                            {new Date(s.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
 

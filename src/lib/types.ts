@@ -237,6 +237,13 @@ export type SiteBanner = {
   updated_at: string;
 };
 
+export type NewsletterSubscriber = {
+  id: string;
+  email: string;
+  source: string;
+  created_at: string;
+};
+
 export type Testimonial = {
   id: string;
   client_name: string;
@@ -517,6 +524,11 @@ export type Database = {
         Row: SiteBanner;
         Insert: { id: string; data: Record<string, any> };
         Update: { data?: Record<string, any>; updated_at?: string };
+      };
+      newsletter_subscribers: {
+        Row: NewsletterSubscriber;
+        Insert: Omit<NewsletterSubscriber, "id" | "created_at">;
+        Update: Partial<Omit<NewsletterSubscriber, "id" | "created_at">>;
       };
       testimonials: {
         Row: Testimonial;

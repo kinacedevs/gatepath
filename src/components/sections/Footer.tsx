@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Facebook, Instagram, Music2, Phone, Mail, Building2 } from "lucide-react";
+import { Facebook, Instagram, Music2, Phone, Mail, Building2, Send } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/lib/supabase";
 import logoIcon from "@/assets/logo-icon.png";
@@ -32,6 +32,31 @@ const DEFAULT_CONTACT = {
 
 export function Footer() {
   const [contact, setContact] = useState(DEFAULT_CONTACT);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const [newsletterMsg, setNewsletterMsg] = useState<string | null>(null);
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewsletterSubmitting(true);
+    setNewsletterMsg(null);
+
+    const { error } = await (supabase as any)
+      .from("newsletter_subscribers")
+      .insert({ email: newsletterEmail.trim().toLowerCase(), source: "website" });
+
+    setNewsletterSubmitting(false);
+    if (error) {
+      setNewsletterMsg(
+        error.code === "23505"
+          ? "You're already on the list!"
+          : "Something went wrong — please try again.",
+      );
+      return;
+    }
+    setNewsletterEmail("");
+    setNewsletterMsg("Subscribed! Thanks for joining.");
+  };
 
   useEffect(() => {
     const fetchContactInfo = async () => {
@@ -115,6 +140,31 @@ export function Footer() {
               </a>
             ))}
           </div>
+
+          <form onSubmit={handleNewsletterSubmit} className="mt-6 max-w-xs">
+            <h4 className="font-numbers font-medium text-[11px] tracking-[0.3em] text-accent mb-2">
+              STAY UPDATED
+            </h4>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                required
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                placeholder="Your email"
+                className="min-w-0 flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/40 outline-none focus:border-accent"
+              />
+              <button
+                type="submit"
+                disabled={newsletterSubmitting}
+                aria-label="Subscribe"
+                className="shrink-0 w-10 h-10 rounded-lg bg-accent text-primary flex items-center justify-center hover:bg-accent-dark transition-colors disabled:opacity-60"
+              >
+                <Send size={15} />
+              </button>
+            </div>
+            {newsletterMsg && <p className="mt-2 text-[12px] text-white/70">{newsletterMsg}</p>}
+          </form>
         </div>
 
         {/* Quick Links */}
