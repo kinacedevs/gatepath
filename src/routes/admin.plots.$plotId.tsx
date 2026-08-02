@@ -31,12 +31,16 @@ import {
   Plus,
   Phone,
   Mail,
+  Archive,
+  ArchiveRestore,
+  Images,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAdminSession } from "@/context/AdminSessionContext";
 import { formatFromKes } from "@/lib/currency";
 import { logPlotTitleVerificationFn } from "@/lib/plotVerificationActions";
 import { updatePlotStatusFn } from "@/lib/plotActions";
+import { updatePlotDetailsFn, setPlotArchivedFn } from "@/lib/inventoryActions";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { QuickCallLogger } from "@/components/admin/QuickCallLogger";
 import {
@@ -78,6 +82,7 @@ function PlotDetail() {
   const [loading, setLoading] = useState(true);
   const [plot, setPlot] = useState<PlotWithSize | null>(null);
   const [phase, setPhase] = useState<Phase | null>(null);
+  const [phaseSizes, setPhaseSizes] = useState<PlotSize[]>([]);
   const [interestedLeads, setInterestedLeads] = useState<Inquiry[]>([]);
   const [verifications, setVerifications] = useState<TitleVerification[]>([]);
   const [verificationsError, setVerificationsError] = useState<string | null>(null);
@@ -85,6 +90,13 @@ function PlotDetail() {
   const [editingStatus, setEditingStatus] = useState(false);
   const [newPlotStatus, setNewPlotStatus] = useState<"available" | "booked" | "sold">("available");
   const [statusSaveError, setStatusSaveError] = useState<string | null>(null);
+
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [editSizeId, setEditSizeId] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [editPhotoUrls, setEditPhotoUrls] = useState("");
+  const [editDetailsSaving, setEditDetailsSaving] = useState(false);
+  const [editDetailsError, setEditDetailsError] = useState<string | null>(null);
 
   const [loggingVerification, setLoggingVerification] = useState(false);
   const [verifyOutcome, setVerifyOutcome] =
@@ -104,16 +116,21 @@ function PlotDetail() {
       .maybeSingle();
     const plotData = plotRow as PlotWithSize | null;
     setPlot(plotData);
-    if (plotData) setNewPlotStatus(plotData.status);
+    if (plotData) {
+      setNewPlotStatus(plotData.status);
+      setEditSizeId(plotData.size_id ?? "");
+      setEditNotes(plotData.notes ?? "");
+      setEditPhotoUrls((plotData.photo_urls ?? []).join("\n"));
+    }
 
     if (plotData?.phase_id) {
-      const { data: phaseRow } = await supabase
-        .from("phases")
-        .select("*")
-        .eq("id", plotData.phase_id)
-        .maybeSingle();
+      const [{ data: phaseRow }, { data: sizeRows }] = await Promise.all([
+        supabase.from("phases").select("*").eq("id", plotData.phase_id).maybeSingle(),
+        supabase.from("plot_sizes").select("*").eq("phase_id", plotData.phase_id),
+      ]);
       const phaseData = phaseRow as Phase | null;
       setPhase(phaseData);
+      setPhaseSizes((sizeRows as PlotSize[]) ?? []);
 
       if (phaseData?.slug) {
         const { data: leadRows } = await supabase
@@ -176,6 +193,63 @@ function PlotDetail() {
       setEditingStatus(false);
       loadData();
     }
+  };
+
+  const handleUpdateDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!plot) return;
+    setEditDetailsSaving(true);
+    setEditDetailsError(null);
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+      setEditDetailsError("Session expired — please refresh and sign in again.");
+      setEditDetailsSaving(false);
+      return;
+    }
+
+    const result = await updatePlotDetailsFn({
+      data: {
+        callerAccessToken: accessToken,
+        plotId: plot.id,
+        sizeId: editSizeId || null,
+        notes: editNotes || null,
+        photoUrls: editPhotoUrls
+          ? editPhotoUrls
+              .split("\n")
+              .map((u) => u.trim())
+              .filter(Boolean)
+          : null,
+      },
+    });
+
+    setEditDetailsSaving(false);
+    if (!result.success) {
+      setEditDetailsError(result.error ?? "Error saving plot details.");
+      return;
+    }
+    setEditingDetails(false);
+    loadData();
+  };
+
+  const handleToggleArchived = async (archived: boolean) => {
+    if (!plot) return;
+    if (
+      archived &&
+      !confirm(
+        `Archive Plot #${plot.plot_number}? It will be hidden from the public site, but nothing is deleted — you can restore it anytime.`,
+      )
+    ) {
+      return;
+    }
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) return;
+    await setPlotArchivedFn({
+      data: { callerAccessToken: accessToken, plotId: plot.id, archived },
+    });
+    loadData();
   };
 
   const handleLogVerification = async (e: React.FormEvent) => {
@@ -251,22 +325,52 @@ function PlotDetail() {
               Ref ID: GP-PLOT-{plot.plot_number}
             </span>
             <StatusBadge tone={PLOT_STATUS_TONE[plot.status]}>{plot.status}</StatusBadge>
+            {plot.is_archived && <StatusBadge tone="neutral">Archived</StatusBadge>}
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            if (adminRole === "agent") {
-              alert("Access Denied: Agents cannot manually modify plot statuses.");
-              return;
-            }
-            setStatusSaveError(null);
-            setEditingStatus(true);
-          }}
-          className="px-6 py-3 bg-secondary-container text-on-secondary-container font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
-        >
-          <PenTool size={16} /> Update Status
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => {
+              if (adminRole === "agent") {
+                alert("Access Denied: Agents cannot manually modify plot statuses.");
+                return;
+              }
+              setStatusSaveError(null);
+              setEditingStatus(true);
+            }}
+            className="px-6 py-3 bg-secondary-container text-on-secondary-container font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
+          >
+            <PenTool size={16} /> Update Status
+          </button>
+          {adminRole !== "agent" && (
+            <>
+              <button
+                onClick={() => {
+                  setEditDetailsError(null);
+                  setEditingDetails(true);
+                }}
+                className="px-6 py-3 border border-outline-variant text-on-surface font-bold rounded-xl hover:bg-surface-container-low transition-all flex items-center gap-2"
+              >
+                <PenTool size={16} /> Edit Details
+              </button>
+              <button
+                onClick={() => handleToggleArchived(!plot.is_archived)}
+                className="px-6 py-3 border border-outline-variant text-on-surface font-bold rounded-xl hover:bg-surface-container-low transition-all flex items-center gap-2"
+              >
+                {plot.is_archived ? (
+                  <>
+                    <ArchiveRestore size={16} /> Restore
+                  </>
+                ) : (
+                  <>
+                    <Archive size={16} /> Archive
+                  </>
+                )}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -324,6 +428,28 @@ function PlotDetail() {
               </p>
             </div>
           </div>
+
+          {/* Plot Photos */}
+          {plot.photo_urls && plot.photo_urls.length > 0 && (
+            <div className="luxury-card p-6 rounded-2xl bg-white space-y-3">
+              <h3 className="font-headline-md text-sm text-primary font-bold flex items-center gap-2">
+                <Images size={16} /> Plot Photos
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                {plot.photo_urls.map((url) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block aspect-square rounded-lg overflow-hidden border border-outline-variant/20"
+                  >
+                    <img src={url} alt="Plot" className="w-full h-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Verification Documents */}
           <div className="luxury-card p-6 rounded-2xl bg-white space-y-4">
@@ -535,6 +661,76 @@ function PlotDetail() {
                 className="flex-1 py-2.5 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent-dark"
               >
                 Save Status
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editingDetails} onOpenChange={setEditingDetails}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Edit Plot #{plot.plot_number} Details</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateDetails} className="flex flex-col gap-4">
+            {editDetailsError && (
+              <p className="text-xs font-semibold text-red-600">{editDetailsError}</p>
+            )}
+            <div>
+              <label className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                Pricing Tier / Size
+              </label>
+              <select
+                value={editSizeId}
+                onChange={(e) => setEditSizeId(e.target.value)}
+                className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-sm bg-white outline-none"
+              >
+                <option value="">— None —</option>
+                {phaseSizes.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label} ({formatFromKes(s.cash_price, "KES")})
+                    {!s.is_active ? " — inactive" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                Notes
+              </label>
+              <textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                rows={2}
+                className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-sm outline-none resize-none"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide block mb-1.5">
+                Photo URLs (one per line)
+              </label>
+              <textarea
+                value={editPhotoUrls}
+                onChange={(e) => setEditPhotoUrls(e.target.value)}
+                rows={3}
+                placeholder="https://..."
+                className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-sm outline-none resize-none"
+              />
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <button
+                type="button"
+                onClick={() => setEditingDetails(false)}
+                className="flex-1 py-2.5 border border-outline-variant/40 rounded-lg text-sm font-semibold text-on-surface hover:bg-surface-container-low"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={editDetailsSaving}
+                className="flex-1 py-2.5 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent-dark disabled:opacity-60"
+              >
+                {editDetailsSaving ? "Saving..." : "Save Details"}
               </button>
             </DialogFooter>
           </form>
