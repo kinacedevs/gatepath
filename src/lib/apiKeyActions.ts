@@ -53,7 +53,14 @@ async function hashKey(rawKey: string): Promise<string> {
 }
 
 export const generateApiKeyFn = createServerFn({ method: "POST" })
-  .validator((d: { callerAccessToken: string; name: string; scopes: string[] }) => d)
+  .validator(
+    (d: {
+      callerAccessToken: string;
+      name: string;
+      scopes: string[];
+      fieldMapping?: Record<string, string>;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const caller = await verifyManagerCaller(data.callerAccessToken);
     if (!caller.ok) return { success: false as const, error: caller.error };
@@ -74,6 +81,8 @@ export const generateApiKeyFn = createServerFn({ method: "POST" })
       key_hash: keyHash,
       key_prefix: keyPrefix,
       scopes: data.scopes,
+      field_mapping:
+        data.fieldMapping && Object.keys(data.fieldMapping).length > 0 ? data.fieldMapping : null,
       created_by_email: caller.caller.email,
       created_by_name: caller.caller.full_name,
     });

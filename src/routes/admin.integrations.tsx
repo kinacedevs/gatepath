@@ -69,6 +69,7 @@ function Integrations() {
   const [createOpen, setCreateOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
   const [keyScopes, setKeyScopes] = useState<string[]>([]);
+  const [fieldMappingText, setFieldMappingText] = useState("");
   const [saving, setSaving] = useState(false);
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -112,6 +113,18 @@ function Integrations() {
     setKeyScopes((s) => (s.includes(scope) ? s.filter((x) => x !== scope) : [...s, scope]));
   };
 
+  /** One "externalField=ourField" pair per line — e.g. "full_name=client_full_name" —
+   * so a platform whose webhook payload uses different field names still maps
+   * correctly in POST /api/v1/leads, without bespoke code per vendor. */
+  const parseFieldMapping = (text: string): Record<string, string> => {
+    const mapping: Record<string, string> = {};
+    for (const line of text.split("\n")) {
+      const [external, ours] = line.split("=").map((s) => s.trim());
+      if (external && ours) mapping[external] = ours;
+    }
+    return mapping;
+  };
+
   const submitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!keyName.trim()) {
@@ -127,7 +140,12 @@ function Integrations() {
       return;
     }
     const result = await (generateApiKeyFn as any)({
-      data: { callerAccessToken: token, name: keyName.trim(), scopes: keyScopes },
+      data: {
+        callerAccessToken: token,
+        name: keyName.trim(),
+        scopes: keyScopes,
+        fieldMapping: parseFieldMapping(fieldMappingText),
+      },
     });
     if (!result.success) {
       setErrorMsg(result.error);
@@ -135,6 +153,7 @@ function Integrations() {
       setCreateOpen(false);
       setKeyName("");
       setKeyScopes([]);
+      setFieldMappingText("");
       setRevealedKey(result.rawKey);
       loadData();
     }
@@ -366,6 +385,9 @@ function Integrations() {
                     {key.last_used_at
                       ? new Date(key.last_used_at).toLocaleDateString("en-KE")
                       : "never"}
+                    {key.field_mapping && Object.keys(key.field_mapping).length > 0 && (
+                      <> · custom field mapping</>
+                    )}
                   </p>
                 </div>
                 {!key.revoked_at && (
@@ -408,6 +430,23 @@ function Integrations() {
                   {s.label}
                 </label>
               ))}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                Field Mapping (optional — for leads:write)
+              </label>
+              <textarea
+                value={fieldMappingText}
+                onChange={(e) => setFieldMappingText(e.target.value)}
+                placeholder={
+                  "One per line: externalField=ourField\ne.g. full_name=client_full_name"
+                }
+                rows={3}
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-[12px] font-mono py-2.5 px-3 outline-none resize-y"
+              />
+              <p className="text-[11px] text-on-surface-variant mt-1">
+                Only needed if this source's payload uses different field names than ours.
+              </p>
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
               <button

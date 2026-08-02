@@ -39,7 +39,10 @@ type Scope = "leads:read" | "leads:write" | "plots:read";
 
 async function authenticate(
   request: Request,
-): Promise<{ ok: true; scopes: Scope[]; keyId: string } | { ok: false; response: Response }> {
+): Promise<
+  | { ok: true; scopes: Scope[]; keyId: string; fieldMapping: Record<string, string> | null }
+  | { ok: false; response: Response }
+> {
   const authHeader = request.headers.get("authorization") ?? "";
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   if (!match) {
@@ -54,7 +57,7 @@ async function authenticate(
 
   const { data: keyRow } = await (service as any)
     .from("api_keys")
-    .select("id, scopes, revoked_at")
+    .select("id, scopes, revoked_at, field_mapping")
     .eq("key_hash", keyHash)
     .maybeSingle();
 
@@ -67,7 +70,12 @@ async function authenticate(
     .update({ last_used_at: new Date().toISOString() })
     .eq("id", keyRow.id);
 
-  return { ok: true, scopes: (keyRow.scopes as Scope[]) ?? [], keyId: keyRow.id };
+  return {
+    ok: true,
+    scopes: (keyRow.scopes as Scope[]) ?? [],
+    keyId: keyRow.id,
+    fieldMapping: keyRow.field_mapping ?? null,
+  };
 }
 
 function requireScope(scopes: Scope[], required: Scope): Response | null {
@@ -109,12 +117,29 @@ async function handleLeadDetail(id: string): Promise<Response> {
   return json({ data });
 }
 
-async function handleLeadCreate(request: Request): Promise<Response> {
-  let body: Record<string, unknown>;
+/**
+ * fieldMapping remaps external-field-name -> our-field-name BEFORE
+ * validation, so a source whose webhook payload uses different keys
+ * (e.g. "full_name" instead of "client_full_name") still lands correctly
+ * — no bespoke code per vendor, just a per-key config (Settings
+ * Expansion / admin.integrations.tsx).
+ */
+async function handleLeadCreate(
+  request: Request,
+  fieldMapping: Record<string, string> | null,
+): Promise<Response> {
+  let rawBody: Record<string, unknown>;
   try {
-    body = await request.json();
+    rawBody = await request.json();
   } catch {
     return json({ error: "Request body must be valid JSON." }, 400);
+  }
+
+  const body: Record<string, unknown> = { ...rawBody };
+  if (fieldMapping) {
+    for (const [externalKey, ourKey] of Object.entries(fieldMapping)) {
+      if (externalKey in rawBody) body[ourKey] = rawBody[externalKey];
+    }
   }
 
   const required = ["client_full_name", "client_email", "client_phone", "client_id_passport"];
@@ -190,7 +215,7 @@ export async function handleApiRequest(request: Request): Promise<Response> {
       if (request.method === "POST") {
         const scopeErr = requireScope(auth.scopes, "leads:write");
         if (scopeErr) return scopeErr;
-        return await handleLeadCreate(request);
+        return await handleLeadCreate(request, auth.fieldMapping);
       }
     }
 
