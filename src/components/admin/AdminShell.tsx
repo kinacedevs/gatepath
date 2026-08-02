@@ -36,6 +36,7 @@ import {
   Goal,
   Share2,
   Smartphone,
+  Webhook,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -100,6 +101,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/admin/campaigns", label: "Campaigns & Blog", icon: Megaphone },
       { to: "/admin/site-content", label: "Site Content", icon: Globe },
       { to: "/admin/data-governance", label: "Data Governance", icon: ShieldCheck },
+      { to: "/admin/integrations", label: "Integrations & API", icon: Webhook },
       { to: "/admin/staff", label: "Staff Accounts", icon: UserCheck },
       { to: "/admin/settings", label: "System Settings", icon: Settings },
     ],

@@ -39,6 +39,7 @@ import { Route as AdminPlotsRouteImport } from './routes/admin.plots'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMeetingsRouteImport } from './routes/admin.meetings'
 import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
+import { Route as AdminIntegrationsRouteImport } from './routes/admin.integrations'
 import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
 import { Route as AdminInquiriesRouteImport } from './routes/admin.inquiries'
 import { Route as AdminGoalsRouteImport } from './routes/admin.goals'
@@ -208,6 +209,11 @@ const AdminLeadsRoute = AdminLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInstallmentsRoute = AdminInstallmentsRouteImport.update({
   id: '/installments',
   path: '/installments',
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/admin/goals': typeof AdminGoalsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/admin/goals': typeof AdminGoalsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
@@ -419,6 +427,7 @@ export interface FileRoutesById {
   '/admin/goals': typeof AdminGoalsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
@@ -470,6 +479,7 @@ export interface FileRouteTypes {
     | '/admin/goals'
     | '/admin/inquiries'
     | '/admin/installments'
+    | '/admin/integrations'
     | '/admin/leads'
     | '/admin/meetings'
     | '/admin/notifications'
@@ -518,6 +528,7 @@ export interface FileRouteTypes {
     | '/admin/goals'
     | '/admin/inquiries'
     | '/admin/installments'
+    | '/admin/integrations'
     | '/admin/leads'
     | '/admin/meetings'
     | '/admin/notifications'
@@ -567,6 +578,7 @@ export interface FileRouteTypes {
     | '/admin/goals'
     | '/admin/inquiries'
     | '/admin/installments'
+    | '/admin/integrations'
     | '/admin/leads'
     | '/admin/meetings'
     | '/admin/notifications'
@@ -825,6 +837,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLeadsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/integrations': {
+      id: '/admin/integrations'
+      path: '/integrations'
+      fullPath: '/admin/integrations'
+      preLoaderRoute: typeof AdminIntegrationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/installments': {
       id: '/admin/installments'
       path: '/installments'
@@ -973,6 +992,7 @@ interface AdminRouteChildren {
   AdminGoalsRoute: typeof AdminGoalsRoute
   AdminInquiriesRoute: typeof AdminInquiriesRoute
   AdminInstallmentsRoute: typeof AdminInstallmentsRoute
+  AdminIntegrationsRoute: typeof AdminIntegrationsRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
   AdminMeetingsRoute: typeof AdminMeetingsRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
@@ -1002,6 +1022,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGoalsRoute: AdminGoalsRoute,
   AdminInquiriesRoute: AdminInquiriesRoute,
   AdminInstallmentsRoute: AdminInstallmentsRoute,
+  AdminIntegrationsRoute: AdminIntegrationsRoute,
   AdminLeadsRoute: AdminLeadsRoute,
   AdminMeetingsRoute: AdminMeetingsRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
