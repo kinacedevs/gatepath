@@ -51,6 +51,11 @@ export interface Phase {
   diaspora_image_url?: string | null;
   /** True if any active pricing tier in this phase has a promo on (Part 3, Phase A). */
   hasPromo?: boolean;
+  /** Manual homepage "Hot Picks" override (Part 3, Slice B). */
+  isHotPick?: boolean;
+  hotPickOrder?: number;
+  hotPickExpiresAt?: string | null;
+  hotPickBadgeText?: string | null;
 }
 
 // ─── Adapters ────────────────────────────────────────────────────────────────
@@ -145,6 +150,10 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
     plot_map_url: dbPhase.plot_map_url,
     diaspora_image_url: dbPhase.diaspora_image_url,
     hasPromo: sizesForPhase.some((s) => (s as any).promo_active),
+    isHotPick: (dbPhase as any).is_hot_pick ?? false,
+    hotPickOrder: (dbPhase as any).hot_pick_order ?? 0,
+    hotPickExpiresAt: (dbPhase as any).hot_pick_expires_at ?? null,
+    hotPickBadgeText: (dbPhase as any).hot_pick_badge_text ?? null,
   };
 }
 

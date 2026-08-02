@@ -33,6 +33,12 @@ export type Phase = {
   /** Soft-delete — hides the phase from every public read path and the
    * admin's default view. Never a hard delete (migration 0022). */
   is_archived: boolean;
+  /** Manual homepage "Hot Picks" override (migration 0023) — falls back to
+   * PropertyPreview.tsx's real-scarcity automatic selection when unset. */
+  is_hot_pick: boolean;
+  hot_pick_order: number;
+  hot_pick_expires_at: string | null;
+  hot_pick_badge_text: string | null;
   created_at: string;
   updated_at: string;
 };

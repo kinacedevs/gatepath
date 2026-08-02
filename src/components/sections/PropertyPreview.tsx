@@ -11,18 +11,29 @@ import { usePhases } from "@/lib/phases";
  * genuine trust problem, not just a content gap. Now pulls real data via
  * the same usePhases() hook every other property listing uses.
  *
- * "Hot Picks" selection is real scarcity, not a fabricated rotation: the
- * active phases with the lowest available/total ratio — i.e. genuinely
- * selling fastest right now. This evolves naturally as real bookings
- * happen, rather than faking a weekly refresh.
+ * Hot Picks selection (Part 3, Slice B): CEO/manager can manually feature
+ * specific phases (order + optional expiry + custom badge) from Campaigns
+ * & Content. If none are currently active, this falls back to the original
+ * real-scarcity automatic selection — active phases with the lowest
+ * available/total ratio, i.e. genuinely selling fastest right now — so the
+ * section is never empty and never fabricated.
  */
 export function PropertyPreview() {
   const { phases, loading } = usePhases();
 
-  const hotPicks = [...phases]
-    .filter((p) => p.status === "ACTIVE" && p.totalPlots > 0)
-    .sort((a, b) => a.available / a.totalPlots - b.available / b.totalPlots)
+  const now = new Date();
+  const manualPicks = [...phases]
+    .filter((p) => p.isHotPick && (!p.hotPickExpiresAt || new Date(p.hotPickExpiresAt) > now))
+    .sort((a, b) => (a.hotPickOrder ?? 0) - (b.hotPickOrder ?? 0))
     .slice(0, 3);
+
+  const isManualSelection = manualPicks.length > 0;
+  const hotPicks = isManualSelection
+    ? manualPicks
+    : [...phases]
+        .filter((p) => p.status === "ACTIVE" && p.totalPlots > 0)
+        .sort((a, b) => a.available / a.totalPlots - b.available / b.totalPlots)
+        .slice(0, 3);
 
   return (
     <section className="bg-ivory py-20 lg:py-28">
@@ -57,10 +68,16 @@ export function PropertyPreview() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {hotPicks.map((phase, i) => (
               <div key={phase.slug} className="relative">
-                {i === 0 && (
+                {isManualSelection ? (
                   <span className="absolute -top-3 left-6 z-10 inline-flex items-center gap-1.5 bg-accent text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-lg">
-                    <Flame size={12} /> Hottest Pick
+                    <Flame size={12} /> {phase.hotPickBadgeText || "Featured"}
                   </span>
+                ) : (
+                  i === 0 && (
+                    <span className="absolute -top-3 left-6 z-10 inline-flex items-center gap-1.5 bg-accent text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-lg">
+                      <Flame size={12} /> Hottest Pick
+                    </span>
+                  )
                 )}
                 <PhaseCard phase={phase} />
                 <p className="mt-3 text-center text-[12px] font-semibold text-destructive">

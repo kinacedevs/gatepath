@@ -17,7 +17,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Megaphone, Check, Loader2, Plus, BookOpen, Edit2, X } from "lucide-react";
+import { Megaphone, Check, Loader2, Plus, BookOpen, Edit2, X, Flame } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAdminSession } from "@/context/AdminSessionContext";
 import { KpiCard } from "@/components/admin/KpiCard";
@@ -215,11 +215,64 @@ function CampaignsAndContent() {
     setCreatingBlog(true);
   };
 
+  // ── Hot Picks (Part 3, Slice B) ──
+  const [hotPickDrafts, setHotPickDrafts] = useState<
+    Record<string, { isHotPick: boolean; order: string; expiresAt: string; badgeText: string }>
+  >({});
+  const [hotPickSaving, setHotPickSaving] = useState<string | null>(null);
+  const [hotPickMsg, setHotPickMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const drafts: typeof hotPickDrafts = {};
+    for (const p of phases) {
+      drafts[p.id] = {
+        isHotPick: p.is_hot_pick,
+        order: String(p.hot_pick_order ?? 0),
+        expiresAt: p.hot_pick_expires_at ? p.hot_pick_expires_at.slice(0, 10) : "",
+        badgeText: p.hot_pick_badge_text ?? "",
+      };
+    }
+    setHotPickDrafts(drafts);
+  }, [phases]);
+
+  const handleSaveHotPick = async (phaseId: string) => {
+    if (adminRole === "agent") {
+      alert("Access Denied: Agents cannot manage Hot Picks.");
+      return;
+    }
+    const draft = hotPickDrafts[phaseId];
+    if (!draft) return;
+    setHotPickSaving(phaseId);
+    setHotPickMsg(null);
+
+    const { error } = await (supabase as any)
+      .from("phases")
+      .update({
+        is_hot_pick: draft.isHotPick,
+        hot_pick_order: Number(draft.order) || 0,
+        hot_pick_expires_at: draft.expiresAt || null,
+        hot_pick_badge_text: draft.badgeText.trim() || null,
+      })
+      .eq("id", phaseId);
+
+    setHotPickSaving(null);
+    if (error) {
+      setHotPickMsg("Error saving: " + error.message);
+    } else {
+      setHotPickMsg("Saved.");
+      loadData();
+    }
+  };
+
   // ── KPIs & charts (docs/VIZ_SPEC.md §10 — only the real items) ──
   const totalPosts = blogPosts.length;
   const publishedCount = blogPosts.filter((p) => p.status === "published").length;
   const draftCount = blogPosts.filter((p) => p.status === "draft").length;
   const totalAffiliates = affiliates.length;
+  const activeHotPicksCount = phases.filter(
+    (p) =>
+      p.is_hot_pick && (!p.hot_pick_expires_at || new Date(p.hot_pick_expires_at) > new Date()),
+  ).length;
 
   const postsByCategory = useMemo(() => {
     const counts = new Map<string, number>();
@@ -261,7 +314,7 @@ function CampaignsAndContent() {
         <FreshnessStamp updatedAt={lastUpdated} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard label="Total Posts" value={loading ? "…" : String(totalPosts)} icon={BookOpen} />
         <KpiCard
           label="Published"
@@ -274,6 +327,12 @@ function CampaignsAndContent() {
           label="Total Affiliates"
           value={loading ? "…" : String(totalAffiliates)}
           icon={Megaphone}
+        />
+        <KpiCard
+          label="Active Hot Picks"
+          value={loading ? "…" : String(activeHotPicksCount)}
+          icon={Flame}
+          tone="warning"
         />
       </div>
 
@@ -299,6 +358,7 @@ function CampaignsAndContent() {
       <Tabs defaultValue="media" className="flex flex-col gap-4">
         <TabsList className="w-fit">
           <TabsTrigger value="media">Media Manager</TabsTrigger>
+          <TabsTrigger value="hotpicks">Hot Picks</TabsTrigger>
           <TabsTrigger value="blog">Blog Posts</TabsTrigger>
           <TabsTrigger value="affiliates">Affiliates</TabsTrigger>
         </TabsList>
@@ -427,6 +487,140 @@ function CampaignsAndContent() {
                   Save Media URLs
                 </button>
               </form>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── HOT PICKS ── */}
+        <TabsContent value="hotpicks">
+          <div className="luxury-card rounded-xl p-8 bg-white">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-accent-dark">
+                <Flame size={20} />
+              </div>
+              <div>
+                <h2 className="font-headline-md text-lg text-primary font-bold">
+                  Weekly Hot Picks
+                </h2>
+                <p className="text-[13px] text-on-surface-variant">
+                  Manually feature specific phases on the homepage, in your chosen order, with an
+                  optional expiry and badge text. If none are featured (or all have expired), the
+                  homepage falls back to its automatic "selling fastest right now" selection.
+                </p>
+              </div>
+            </div>
+
+            {hotPickMsg && (
+              <div
+                className={`mt-4 px-3.5 py-2.5 rounded-lg text-[13px] ${
+                  hotPickMsg.includes("Error")
+                    ? "bg-error/10 text-error"
+                    : "bg-success-container/15 text-on-success-container"
+                }`}
+              >
+                {hotPickMsg}
+              </div>
+            )}
+
+            {phases.length === 0 ? (
+              <div className="mt-6">
+                <EmptyState title="No phases yet" />
+              </div>
+            ) : (
+              <div className="mt-6 overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead className="border-b border-outline-variant/20">
+                    <tr className="text-[11px] uppercase text-on-surface-variant">
+                      <th className="py-2 pr-4">Phase</th>
+                      <th className="py-2 pr-4">Featured</th>
+                      <th className="py-2 pr-4">Order</th>
+                      <th className="py-2 pr-4">Expires</th>
+                      <th className="py-2 pr-4">Badge Text</th>
+                      <th className="py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10">
+                    {phases.map((p) => {
+                      const draft = hotPickDrafts[p.id];
+                      if (!draft) return null;
+                      const isExpired = draft.expiresAt && new Date(draft.expiresAt) < new Date();
+                      return (
+                        <tr key={p.id}>
+                          <td className="py-2.5 pr-4 font-semibold">
+                            {p.name}
+                            {isExpired && (
+                              <span className="ml-2 text-[10px] text-error font-bold uppercase">
+                                Expired
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <input
+                              type="checkbox"
+                              checked={draft.isHotPick}
+                              onChange={(e) =>
+                                setHotPickDrafts((prev) => ({
+                                  ...prev,
+                                  [p.id]: { ...draft, isHotPick: e.target.checked },
+                                }))
+                              }
+                            />
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <input
+                              type="number"
+                              value={draft.order}
+                              onChange={(e) =>
+                                setHotPickDrafts((prev) => ({
+                                  ...prev,
+                                  [p.id]: { ...draft, order: e.target.value },
+                                }))
+                              }
+                              className="w-16 p-1.5 border border-outline-variant/40 rounded-md text-xs"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <input
+                              type="date"
+                              value={draft.expiresAt}
+                              onChange={(e) =>
+                                setHotPickDrafts((prev) => ({
+                                  ...prev,
+                                  [p.id]: { ...draft, expiresAt: e.target.value },
+                                }))
+                              }
+                              className="p-1.5 border border-outline-variant/40 rounded-md text-xs"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <input
+                              type="text"
+                              value={draft.badgeText}
+                              onChange={(e) =>
+                                setHotPickDrafts((prev) => ({
+                                  ...prev,
+                                  [p.id]: { ...draft, badgeText: e.target.value },
+                                }))
+                              }
+                              placeholder="Hot Pick"
+                              className="w-full min-w-[140px] p-1.5 border border-outline-variant/40 rounded-md text-xs"
+                            />
+                          </td>
+                          <td className="py-2.5 text-right">
+                            <button
+                              onClick={() => handleSaveHotPick(p.id)}
+                              disabled={hotPickSaving === p.id}
+                              className="px-3 py-1.5 bg-primary text-white font-label-md text-xs rounded-lg hover:opacity-90 disabled:opacity-60"
+                            >
+                              {hotPickSaving === p.id ? "Saving..." : "Save"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </TabsContent>
