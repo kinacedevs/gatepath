@@ -29,9 +29,25 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
 
 export const CURRENCIES = Object.keys(CURRENCY_RATES) as Currency[];
 
+// ─── Live rate override (Phase 26) ────────────────────────────────────────
+// CURRENCY_RATES above stays the hardcoded seed/fallback. diaspora.tsx and
+// properties.$slug.tsx (the only 2 route-level files with their own
+// currency-selection state — PhaseCard/PlotPanel are pure consumers of
+// fromKes/formatFromKes and need no changes) each fetch the real,
+// admin-editable rate config (site_banners row 'fx_rates', set via
+// admin.settings.tsx's FX Rates tab / src/lib/fxRateActions.ts) once on
+// mount and call setLiveFxRates. A fetch failure or missing row is a true
+// no-op — liveRates simply stays at its hardcoded seed, never a crash or a
+// broken price.
+let liveRates: Record<Currency, number> = { ...CURRENCY_RATES };
+
+export function setLiveFxRates(rates: Partial<Record<Currency, number>>): void {
+  liveRates = { ...liveRates, ...rates, KES: 1 };
+}
+
 /** Converts a KES amount to the target currency (rounded to whole units). */
 export function fromKes(kesAmount: number, currency: Currency): number {
-  return Math.round(kesAmount / CURRENCY_RATES[currency]);
+  return Math.round(kesAmount / liveRates[currency]);
 }
 
 /** Formats a KES amount as a display string in the target currency, e.g. "$ 2,463". */

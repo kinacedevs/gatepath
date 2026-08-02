@@ -23,7 +23,7 @@ import { supabase } from "@/lib/supabase";
 import diasporaHeroAsset from "@/assets/diaspora.jpg";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhases } from "@/lib/phases";
-import { CURRENCIES, formatFromKes, type Currency } from "@/lib/currency";
+import { CURRENCIES, formatFromKes, setLiveFxRates, type Currency } from "@/lib/currency";
 import type { Faq } from "@/lib/types";
 
 export const Route = createFileRoute("/diaspora")({
@@ -111,6 +111,26 @@ function DiasporaPage() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
   }, [currency]);
+
+  // Live FX rate config (Phase 26) — admin-editable via Settings → FX
+  // Rates. A fetch failure or missing row is a silent no-op; formatFromKes
+  // simply keeps using its hardcoded seed rates, never a crash/broken price.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("site_banners")
+          .select("data")
+          .eq("id", "fx_rates")
+          .maybeSingle();
+        const rates = (data as { data?: { rates?: Partial<Record<Currency, number>> } } | null)
+          ?.data?.rates;
+        if (rates) setLiveFxRates(rates);
+      } catch {
+        /* keep hardcoded seed rates */
+      }
+    })();
+  }, []);
 
   // ─── Hero — CEO-uploaded override (site_banners "diaspora_hero", same
   // pattern as Hero.tsx's "homepage_hero") falls back to the real branded

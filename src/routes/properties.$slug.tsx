@@ -17,7 +17,7 @@ import { PlotPanel } from "@/components/properties/PlotPanel";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhase, type Plot, type Phase } from "@/lib/phases";
 import { supabase } from "@/lib/supabase";
-import { formatFromKes, CURRENCIES, type Currency } from "@/lib/currency";
+import { formatFromKes, CURRENCIES, setLiveFxRates, type Currency } from "@/lib/currency";
 
 type DetailSearch = {
   from?: string;
@@ -223,6 +223,26 @@ function PhaseDetailPage() {
   // Carousel slider states for property photos
   const [currentSlide, setCurrentSlide] = useState(0);
   const slides = [phase?.image, ...(phase?.hero_image_urls ?? [])].filter(Boolean).slice(0, 8);
+
+  // Live FX rate config (Phase 26) — admin-editable via Settings → FX
+  // Rates. A fetch failure or missing row is a silent no-op; formatFromKes
+  // simply keeps using its hardcoded seed rates, never a crash/broken price.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("site_banners")
+          .select("data")
+          .eq("id", "fx_rates")
+          .maybeSingle();
+        const rates = (data as { data?: { rates?: Partial<Record<Currency, number>> } } | null)
+          ?.data?.rates;
+        if (rates) setLiveFxRates(rates);
+      } catch {
+        /* keep hardcoded seed rates */
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (slides.length <= 1) return;
