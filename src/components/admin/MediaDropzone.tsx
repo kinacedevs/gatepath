@@ -52,24 +52,53 @@ async function getAccessToken() {
   return data.session?.access_token ?? null;
 }
 
-async function uploadFile(file: File, category: string): Promise<{ url?: string; error?: string }> {
+function matchesAccept(file: File, accept: string) {
+  const patterns = accept
+    .split(",")
+    .map((p) => p.trim().toLowerCase())
+    .filter(Boolean);
+  if (patterns.length === 0) return true;
+  const name = file.name.toLowerCase();
+  const type = (file.type || "").toLowerCase();
+  return patterns.some((pattern) => {
+    if (pattern.startsWith(".")) return name.endsWith(pattern);
+    if (pattern.endsWith("/*")) return type.startsWith(pattern.slice(0, -1));
+    return type === pattern;
+  });
+}
+
+async function uploadFile(
+  file: File,
+  category: string,
+  accept: string,
+): Promise<{ url?: string; error?: string }> {
+  if (!matchesAccept(file, accept)) {
+    return { error: `"${file.name}" isn't an accepted file type for this field.` };
+  }
   if (file.size > MAX_FILE_BYTES) {
     return { error: "File is too large (max 8MB)." };
   }
-  const accessToken = await getAccessToken();
-  if (!accessToken) return { error: "Your session expired — please sign in again." };
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) return { error: "Your session expired — please sign in again." };
 
-  const urlResult = await requestMediaUploadUrlFn({
-    data: { callerAccessToken: accessToken, category, fileName: file.name },
-  });
-  if (!urlResult.success) return { error: urlResult.error };
+    const urlResult = await requestMediaUploadUrlFn({
+      data: { callerAccessToken: accessToken, category, fileName: file.name },
+    });
+    if (!urlResult.success) return { error: urlResult.error };
 
-  const { error: uploadErr } = await supabase.storage
-    .from(BUCKET)
-    .uploadToSignedUrl(urlResult.path, urlResult.token, file);
-  if (uploadErr) return { error: uploadErr.message };
+    const { error: uploadErr } = await supabase.storage
+      .from(BUCKET)
+      .uploadToSignedUrl(urlResult.path, urlResult.token, file);
+    if (uploadErr) return { error: uploadErr.message };
 
-  return { url: urlResult.publicUrl };
+    return { url: urlResult.publicUrl };
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error ? err.message : "Upload failed — check your connection and try again.",
+    };
+  }
 }
 
 function MediaThumb({ url, className = "" }: { url: string; className?: string }) {
@@ -147,21 +176,24 @@ export function MediaDropzone({
     if (!files || files.length === 0) return;
     setUploading(true);
     setError(null);
-    const uploaded: string[] = [];
-    for (const file of Array.from(files)) {
-      const result = await uploadFile(file, category);
-      if (result.error) {
-        setError(result.error);
-        break;
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const result = await uploadFile(file, category, accept);
+        if (result.error) {
+          setError(result.error);
+          break;
+        }
+        if (result.url) uploaded.push(result.url);
+        if (!multi) break;
       }
-      if (result.url) uploaded.push(result.url);
-      if (!multi) break;
+      if (uploaded.length > 0) {
+        onChange(multi ? [...urls, ...uploaded] : uploaded[0]);
+      }
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-    if (uploaded.length > 0) {
-      onChange(multi ? [...urls, ...uploaded] : uploaded[0]);
-    }
-    setUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleDrop = (e: DragEvent) => {

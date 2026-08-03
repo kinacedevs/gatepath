@@ -120,6 +120,10 @@ function CampaignsAndContent() {
 
   const handleSaveMediaUrls = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (adminRole === "agent") {
+      alert("Access Denied: Agents cannot manage media.");
+      return;
+    }
     if (!mediaEditingPhaseId) return;
     setMediaSaveLoading(true);
     setMediaSaveMsg(null);
