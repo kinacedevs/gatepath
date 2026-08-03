@@ -182,10 +182,16 @@ function ClientPortalPage() {
   const [testimonialQuote, setTestimonialQuote] = useState<Record<string, string>>({});
   const [testimonialSaving, setTestimonialSaving] = useState<string | null>(null);
   const [testimonialMsg, setTestimonialMsg] = useState<Record<string, string>>({});
+  // Ids submitted THIS session — kept separately from testimonialFlags (the
+  // set loaded from the server) so the card stays mounted long enough to
+  // actually show its own confirmation message instead of unmounting on
+  // the same render that would have painted it.
+  const [justSubmittedIds, setJustSubmittedIds] = useState<string[]>([]);
 
   // In-Portal Installment Payment Modal State
   const [payingInquiry, setPayingInquiry] = useState<InquiryData | null>(null);
   const [payAmount, setPayAmount] = useState<number>(0);
+  const [suggestedPayAmount, setSuggestedPayAmount] = useState<number>(0);
   const [payProcessing, setPayProcessing] = useState(false);
   const [paySuccessMsg, setPaySuccessMsg] = useState<string | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
@@ -250,8 +256,7 @@ function ClientPortalPage() {
     }
   };
 
-  const handleLoginRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const requestOtp = async () => {
     setLoading(true);
     setError(null);
 
@@ -267,6 +272,7 @@ function ClientPortalPage() {
         return;
       }
 
+      setOtpInput("");
       setOtpSent(true);
       setOtpCountdown(300);
     } catch (err: any) {
@@ -274,6 +280,17 @@ function ClientPortalPage() {
       setError("Connection failure. Please try again.");
       console.error("[Portal] OTP request failed:", err);
     }
+  };
+
+  const handleLoginRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await requestOtp();
+  };
+
+  const handleBackToLogin = () => {
+    setOtpSent(false);
+    setOtpInput("");
+    setError(null);
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -349,6 +366,7 @@ function ClientPortalPage() {
         setTestimonialMsg((m) => ({ ...m, [inquiryId]: result.error }));
       } else {
         setTestimonialFlags((flags) => [...flags, { submitted_by_inquiry_id: inquiryId }]);
+        setJustSubmittedIds((ids) => [...ids, inquiryId]);
         setTestimonialMsg((m) => ({
           ...m,
           [inquiryId]: "Thank you! Your testimonial is pending review.",
@@ -365,7 +383,9 @@ function ClientPortalPage() {
   const openInstallmentModal = (inq: InquiryData, remainingBalance: number) => {
     setPayingInquiry(inq);
     const suggestedInstallment = Math.min(26667, remainingBalance);
-    setPayAmount(suggestedInstallment > 0 ? suggestedInstallment : remainingBalance);
+    const amount = suggestedInstallment > 0 ? suggestedInstallment : remainingBalance;
+    setPayAmount(amount);
+    setSuggestedPayAmount(amount);
     setPaySuccessMsg(null);
     setPayError(null);
   };
@@ -579,6 +599,24 @@ function ClientPortalPage() {
                       {otpVerifying ? "Authorizing..." : "Verify & Log In →"}
                     </button>
                   </form>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      type="button"
+                      onClick={handleBackToLogin}
+                      className="text-xs text-slate-500 hover:text-primary-deep font-medium"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={requestOtp}
+                      disabled={loading}
+                      className="text-xs text-accent hover:text-primary-deep font-bold disabled:opacity-50"
+                    >
+                      {loading ? "Sending…" : "Resend Code"}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -949,7 +987,8 @@ function ClientPortalPage() {
                     .filter(
                       (inq) =>
                         agreements.some((a) => a.inquiry_id === inq.id && a.ceo_signed) &&
-                        !testimonialFlags.some((t) => t.submitted_by_inquiry_id === inq.id),
+                        (!testimonialFlags.some((t) => t.submitted_by_inquiry_id === inq.id) ||
+                          justSubmittedIds.includes(inq.id)),
                     )
                     .map((inq) => (
                       <div
@@ -959,32 +998,42 @@ function ClientPortalPage() {
                         <h3 className="font-serif font-bold text-xl text-primary-deep flex items-center gap-2">
                           <MessageSquare size={20} className="text-accent" /> Share Your Experience
                         </h3>
-                        <p className="text-xs text-slate-500">
-                          Congratulations on completing your purchase of Plot #{inq.plot_number_ref}
-                          ! We'd love a short testimonial — approved ones are featured on our site.
-                        </p>
-                        <textarea
-                          value={testimonialQuote[inq.id] || ""}
-                          onChange={(e) =>
-                            setTestimonialQuote((q) => ({ ...q, [inq.id]: e.target.value }))
-                          }
-                          rows={3}
-                          placeholder="Tell us about your experience with Gatepath Realtors..."
-                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none resize-y"
-                        />
-                        {testimonialMsg[inq.id] && (
-                          <p className="text-xs text-primary-deep">{testimonialMsg[inq.id]}</p>
+                        {justSubmittedIds.includes(inq.id) ? (
+                          <p className="text-xs text-primary-deep">
+                            {testimonialMsg[inq.id] ||
+                              "Thank you! Your testimonial is pending review."}
+                          </p>
+                        ) : (
+                          <>
+                            <p className="text-xs text-slate-500">
+                              Congratulations on completing your purchase of Plot #
+                              {inq.plot_number_ref}! We'd love a short testimonial — approved ones
+                              are featured on our site.
+                            </p>
+                            <textarea
+                              value={testimonialQuote[inq.id] || ""}
+                              onChange={(e) =>
+                                setTestimonialQuote((q) => ({ ...q, [inq.id]: e.target.value }))
+                              }
+                              rows={3}
+                              placeholder="Tell us about your experience with Gatepath Realtors..."
+                              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none resize-y"
+                            />
+                            {testimonialMsg[inq.id] && (
+                              <p className="text-xs text-primary-deep">{testimonialMsg[inq.id]}</p>
+                            )}
+                            <button
+                              onClick={() => submitTestimonial(inq.id)}
+                              disabled={testimonialSaving === inq.id}
+                              className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                              {testimonialSaving === inq.id && (
+                                <Loader2 size={13} className="animate-spin" />
+                              )}
+                              Submit Testimonial
+                            </button>
+                          </>
                         )}
-                        <button
-                          onClick={() => submitTestimonial(inq.id)}
-                          disabled={testimonialSaving === inq.id}
-                          className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                          {testimonialSaving === inq.id && (
-                            <Loader2 size={13} className="animate-spin" />
-                          )}
-                          Submit Testimonial
-                        </button>
                       </div>
                     ))}
 
@@ -1057,7 +1106,7 @@ function ClientPortalPage() {
                 className="w-full p-3.5 border border-slate-200 rounded-xl text-lg font-bold text-primary outline-none focus:border-primary"
               />
               <p className="text-[11px] text-slate-400">
-                Suggested installment: <strong>Ksh 26,667</strong>
+                Suggested installment: <strong>Ksh {suggestedPayAmount.toLocaleString()}</strong>
               </p>
             </div>
 

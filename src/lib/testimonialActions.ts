@@ -115,6 +115,9 @@ export const sendTestimonialRequestFn = createServerFn({ method: "POST" })
     const emailHtml = renderTemplate(template.body, vars);
 
     const emailResult = await sendResendEmail(inquiry.client_email, subject, emailHtml);
+    if (!emailResult.success) {
+      return { success: false, error: emailResult.error || "Could not send the email." };
+    }
 
     await caller.serviceClient
       .from("inquiries")
@@ -185,6 +188,9 @@ export const sendReferralInviteFn = createServerFn({ method: "POST" })
     const emailHtml = renderTemplate(template.body, vars);
 
     const emailResult = await sendResendEmail(inquiry.client_email, subject, emailHtml);
+    if (!emailResult.success) {
+      return { success: false, error: emailResult.error || "Could not send the email." };
+    }
 
     await caller.serviceClient
       .from("inquiries")
