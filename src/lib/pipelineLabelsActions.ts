@@ -117,6 +117,28 @@ export const savePipelineStageFn = createServerFn({ method: "POST" })
     };
 
     if (data.stageId) {
+      // If this edit moves an already-in-use stage to a different bucket,
+      // every inquiry currently pointing at it must follow — otherwise the
+      // Kanban (which renders a card purely from pipeline_stage_id) and
+      // every report/conversion metric (which keys strictly off the real
+      // inquiries.status) permanently disagree about which bucket that
+      // lead is actually in, with no reconciliation path. Same "fix the
+      // real data, don't just relabel the stage" discipline already
+      // applied to deactivatePipelineStageFn below.
+      const { data: existingStage } = await (caller.serviceClient as any)
+        .from("pipeline_stages")
+        .select("bucket")
+        .eq("id", data.stageId)
+        .maybeSingle();
+
+      if (existingStage && existingStage.bucket !== data.bucket) {
+        const { error: cascadeErr } = await (caller.serviceClient as any)
+          .from("inquiries")
+          .update({ status: data.bucket })
+          .eq("pipeline_stage_id", data.stageId);
+        if (cascadeErr) return { success: false, error: cascadeErr.message };
+      }
+
       const { error } = await (caller.serviceClient as any)
         .from("pipeline_stages")
         .update(payload)

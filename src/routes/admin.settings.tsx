@@ -961,6 +961,12 @@ function SystemSettings() {
                 </option>
               ))}
             </select>
+            {editingStageId && (
+              <p className="text-[11px] text-on-surface-variant -mt-2">
+                Changing the bucket moves every lead currently in this stage to the new bucket too —
+                their status updates to match, so reports stay accurate.
+              </p>
+            )}
             <input
               type="text"
               value={stageLabel}
