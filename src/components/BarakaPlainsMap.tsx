@@ -59,15 +59,25 @@ export function BarakaPlainsMap({ plots, selectedPlotId, onSelectPlot }: BarakaP
       {/* Header & Map Title */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
-          <h3 className="font-headline-md text-lg text-primary-deep font-bold">Baraka Plains Phase 6 — Masterplan Map</h3>
-          <p className="text-xs text-slate-500">Matuu, Machakos County • Exact Physical Survey Replica</p>
+          <h3 className="font-headline-md text-lg text-primary-deep font-bold">
+            Baraka Plains Phase 6 — Masterplan Map
+          </h3>
+          <p className="text-xs text-slate-500">
+            Matuu, Machakos County • Exact Physical Survey Replica
+          </p>
         </div>
 
         {/* Legend */}
         <div className="flex items-center gap-4 text-xs font-semibold">
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-available"></span> Available</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#F59E0B]"></span> Booked</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-destructive"></span> Sold</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-available"></span> Available
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-[#F59E0B]"></span> Booked
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-destructive"></span> Sold
+          </span>
         </div>
       </div>
 
@@ -91,7 +101,14 @@ export function BarakaPlainsMap({ plots, selectedPlotId, onSelectPlot }: BarakaP
 
           {/* Diagonal Main Road */}
           <polygon points="530,0 700,120 700,520 660,520 490,0" fill="#94A3B8" opacity="0.4" />
-          <text x="580" y="320" fill="#334155" fontSize="11" fontWeight="700" transform="rotate(45 580 320)">
+          <text
+            x="580"
+            y="320"
+            fill="#334155"
+            fontSize="11"
+            fontWeight="700"
+            transform="rotate(45 580 320)"
+          >
             MAIN THIKA - GARISSA HIGHWAY (EXISTING)
           </text>
 
@@ -108,7 +125,9 @@ export function BarakaPlainsMap({ plots, selectedPlotId, onSelectPlot }: BarakaP
                 className={`cursor-pointer transition-all duration-200 ${
                   plotObj?.status === "available" ? "hover:opacity-90 hover:scale-[1.02]" : ""
                 }`}
-                style={{ transformOrigin: `${layout.x + layout.width / 2}px ${layout.y + layout.height / 2}px` }}
+                style={{
+                  transformOrigin: `${layout.x + layout.width / 2}px ${layout.y + layout.height / 2}px`,
+                }}
               >
                 <rect
                   x={layout.x}

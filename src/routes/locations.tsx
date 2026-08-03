@@ -39,10 +39,16 @@ const locationsData: LocationDetail[] = [
     name: "Malindi & Mambrui",
     county: "Kilifi County",
     region: "Coastal Region",
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
     startingPrice: 160000,
     appreciationRate: "+18% / year",
-    highlights: ["Beach Proximity (10 mins)", "Malindi Airport Expansion", "Tarmacked Access Roads", "Water & Power On-Site"],
+    highlights: [
+      "Beach Proximity (10 mins)",
+      "Malindi Airport Expansion",
+      "Tarmacked Access Roads",
+      "Water & Power On-Site",
+    ],
     distanceFromTown: "20 mins from Malindi CBD",
     activePhases: 5,
     description:
@@ -53,10 +59,16 @@ const locationsData: LocationDetail[] = [
     name: "Sagana & Makutano",
     county: "Kirinyaga County",
     region: "Central Kenya",
-    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
     startingPrice: 749000,
     appreciationRate: "+15% / year",
-    highlights: ["Kenol-Marua Dual Carriageway", "Fertile Red Soil", "River Tana Resort Zone", "Ready Title Deeds"],
+    highlights: [
+      "Kenol-Marua Dual Carriageway",
+      "Fertile Red Soil",
+      "River Tana Resort Zone",
+      "Ready Title Deeds",
+    ],
     distanceFromTown: "5 mins from Sagana Town",
     activePhases: 1,
     description:
@@ -67,10 +79,16 @@ const locationsData: LocationDetail[] = [
     name: "Matuu & Kithimani",
     county: "Machakos County",
     region: "Eastern Region",
-    image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80",
     startingPrice: 320000,
     appreciationRate: "+14% / year",
-    highlights: ["Thika-Garissa Highway Corridor", "Rapid Suburb Expansion", "Piped Water & Electricity", "Beaconed 50x100 Plots"],
+    highlights: [
+      "Thika-Garissa Highway Corridor",
+      "Rapid Suburb Expansion",
+      "Piped Water & Electricity",
+      "Beaconed 50x100 Plots",
+    ],
     distanceFromTown: "5 mins from Matuu CBD",
     activePhases: 1,
     description:
@@ -81,10 +99,16 @@ const locationsData: LocationDetail[] = [
     name: "Diani & Ukunda",
     county: "Kwale County",
     region: "South Coast",
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80",
     startingPrice: 450000,
     appreciationRate: "+20% / year",
-    highlights: ["Voted Africa's Best Beach", "Ukunda Airstrip Upgrade", "Holiday Home Zone", "High Tourism Demand"],
+    highlights: [
+      "Voted Africa's Best Beach",
+      "Ukunda Airstrip Upgrade",
+      "Holiday Home Zone",
+      "High Tourism Demand",
+    ],
     distanceFromTown: "12 mins from Diani Beach",
     activePhases: 1,
     description:
@@ -95,10 +119,16 @@ const locationsData: LocationDetail[] = [
     name: "Juja & Thika Metro",
     county: "Kiambu County",
     region: "Nairobi Metro Corridor",
-    image: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=1200&q=80",
     startingPrice: 2500000,
     appreciationRate: "+22% / year",
-    highlights: ["Thika Superhighway Access", "Near JKUAT & Universities", "Commercial High-Density", "Instant Building Permit Zone"],
+    highlights: [
+      "Thika Superhighway Access",
+      "Near JKUAT & Universities",
+      "Commercial High-Density",
+      "Instant Building Permit Zone",
+    ],
     distanceFromTown: "3 mins from Juja Town",
     activePhases: 1,
     description:
@@ -109,10 +139,16 @@ const locationsData: LocationDetail[] = [
     name: "Nanyuki & Mt. Kenya Rim",
     county: "Laikipia County",
     region: "Rift Valley / Central",
-    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
+    image:
+      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
     startingPrice: 500000,
     appreciationRate: "+16% / year",
-    highlights: ["Mt. Kenya Scenic Views", "Cool Highland Climate", "Wildlife Conservancy Proximity", "Rapid Resort Growth"],
+    highlights: [
+      "Mt. Kenya Scenic Views",
+      "Cool Highland Climate",
+      "Wildlife Conservancy Proximity",
+      "Rapid Resort Growth",
+    ],
     distanceFromTown: "15 mins from Nanyuki Town",
     activePhases: 1,
     description:
@@ -123,9 +159,12 @@ const locationsData: LocationDetail[] = [
 function LocationsPage() {
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
 
-  const filteredLocations = selectedRegion === "all"
-    ? locationsData
-    : locationsData.filter((loc) => loc.region.toLowerCase().includes(selectedRegion.toLowerCase()));
+  const filteredLocations =
+    selectedRegion === "all"
+      ? locationsData
+      : locationsData.filter((loc) =>
+          loc.region.toLowerCase().includes(selectedRegion.toLowerCase()),
+        );
 
   return (
     <div className="min-h-screen bg-ivory text-foreground font-sans">
@@ -142,7 +181,9 @@ function LocationsPage() {
               Explore Land Across <span className="text-accent">12 Prime Kenyan Locations</span>
             </h1>
             <p className="text-base text-slate-300 max-w-2xl leading-relaxed">
-              From the white sands of Malindi to the agricultural valleys of Sagana and the high-growth corridors of Juja & Matuu — discover verified land backed by ready title deeds.
+              From the white sands of Malindi to the agricultural valleys of Sagana and the
+              high-growth corridors of Juja & Matuu — discover verified land backed by ready title
+              deeds.
             </p>
           </div>
 
@@ -221,7 +262,9 @@ function LocationsPage() {
               {/* Card Footer Price & CTA */}
               <div className="p-6 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Starting Price</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                    Starting Price
+                  </span>
                   <span className="font-stat-lg text-lg font-extrabold text-primary">
                     Ksh {loc.startingPrice.toLocaleString()}
                   </span>
@@ -246,7 +289,8 @@ function LocationsPage() {
             Ready to Visit Your Desired Location?
           </h2>
           <p className="text-sm text-slate-300 max-w-xl mx-auto">
-            Gatepath Realtor agents conduct free guided on-site visits every Wednesday and Saturday. Transport is fully provided.
+            Gatepath Realtor agents conduct free guided on-site visits every Wednesday and Saturday.
+            Transport is fully provided.
           </p>
           <div className="flex justify-center gap-4 pt-2">
             <Link

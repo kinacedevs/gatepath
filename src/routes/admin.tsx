@@ -56,7 +56,9 @@ function AdminPage() {
       setSessionUser(null);
       setAdminRole(null);
       setAdminName("");
-      setLoginError("This account is not registered as Gatepath staff. Contact the CEO for access.");
+      setLoginError(
+        "This account is not registered as Gatepath staff. Contact the CEO for access.",
+      );
       return;
     }
 

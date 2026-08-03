@@ -46,9 +46,7 @@ export function KpiCard({
           </span>
         )}
       </div>
-      <p className="font-label-md text-on-surface-variant uppercase tracking-wider mb-1">
-        {label}
-      </p>
+      <p className="font-label-md text-on-surface-variant uppercase tracking-wider mb-1">{label}</p>
       <h3 className="font-stat-lg text-stat-lg text-primary-container">{value}</h3>
       {sublabel && <p className="text-xs text-on-surface-variant mt-2 font-medium">{sublabel}</p>}
     </div>

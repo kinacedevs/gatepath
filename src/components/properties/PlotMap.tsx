@@ -59,7 +59,12 @@ export function PlotMap({
         <rect width={width} height={height} fill="var(--ivory)" rx="8" />
 
         {/* Compass rose top-right */}
-        <g transform={`translate(${width - 35}, 28)`} stroke="var(--muted-foreground)" strokeWidth="1" fill="none">
+        <g
+          transform={`translate(${width - 35}, 28)`}
+          stroke="var(--muted-foreground)"
+          strokeWidth="1"
+          fill="none"
+        >
           <line x1="0" y1="-12" x2="0" y2="12" />
           <line x1="-12" y1="0" x2="12" y2="0" />
           <text
@@ -232,7 +237,7 @@ export function PlotMap({
                 rx="3"
                 style={
                   isSelected ? { filter: "drop-shadow(0 0 8px rgba(11,127,199,0.4))" } : undefined
-                 }
+                }
               />
               <text
                 x={x + PLOT_W / 2}

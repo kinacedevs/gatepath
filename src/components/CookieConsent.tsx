@@ -13,12 +13,18 @@ export function CookieConsent() {
   }, []);
 
   const handleAcceptAll = () => {
-    localStorage.setItem("gatepath_cookie_consent", JSON.stringify({ essential: true, analytics: true, marketing: true }));
+    localStorage.setItem(
+      "gatepath_cookie_consent",
+      JSON.stringify({ essential: true, analytics: true, marketing: true }),
+    );
     setIsVisible(false);
   };
 
   const handleEssentialOnly = () => {
-    localStorage.setItem("gatepath_cookie_consent", JSON.stringify({ essential: true, analytics: false, marketing: false }));
+    localStorage.setItem(
+      "gatepath_cookie_consent",
+      JSON.stringify({ essential: true, analytics: false, marketing: false }),
+    );
     setIsVisible(false);
   };
 
@@ -34,9 +40,13 @@ export function CookieConsent() {
           </div>
           <div className="space-y-3 flex-1">
             <div>
-              <h4 className="font-headline-md text-sm font-bold text-white">Data Protection & Cookie Preferences</h4>
+              <h4 className="font-headline-md text-sm font-bold text-white">
+                Data Protection & Cookie Preferences
+              </h4>
               <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                We use cookies to secure your land inquiries, provide real-time masterplan status updates, and comply with the <strong className="text-white">Kenyan Data Protection Act (2019)</strong>.
+                We use cookies to secure your land inquiries, provide real-time masterplan status
+                updates, and comply with the{" "}
+                <strong className="text-white">Kenyan Data Protection Act (2019)</strong>.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -76,14 +86,18 @@ export function CookieConsent() {
 
             <div className="flex items-center gap-3">
               <Shield className="text-primary" size={24} />
-              <h3 className="font-headline-md text-lg text-primary-deep font-bold">Cookie Security Settings</h3>
+              <h3 className="font-headline-md text-lg text-primary-deep font-bold">
+                Cookie Security Settings
+              </h3>
             </div>
 
             <div className="space-y-4 text-xs text-slate-600">
               <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
                 <div>
                   <span className="font-bold text-slate-800 block">Strictly Necessary Cookies</span>
-                  <span>Required for secure logins, plot reservation locks, and Paystack transactions.</span>
+                  <span>
+                    Required for secure logins, plot reservation locks, and Paystack transactions.
+                  </span>
                 </div>
                 <input type="checkbox" checked disabled className="accent-primary" />
               </div>
@@ -91,7 +105,9 @@ export function CookieConsent() {
               <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
                 <div>
                   <span className="font-bold text-slate-800 block">Performance & Analytics</span>
-                  <span>Allows us to optimize masterplan map loading speeds and search filters.</span>
+                  <span>
+                    Allows us to optimize masterplan map loading speeds and search filters.
+                  </span>
                 </div>
                 <input type="checkbox" defaultChecked className="accent-primary" />
               </div>

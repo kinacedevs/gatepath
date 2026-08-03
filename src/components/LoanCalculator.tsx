@@ -9,9 +9,18 @@ export function LoanCalculator({ cashPrice, onDepositChange }: LoanCalculatorPro
   const [depositPercent, setDepositPercent] = useState<number>(30); // Default 30%
   const [repaymentMonths, setRepaymentMonths] = useState<number>(12); // Default 12 Months
 
-  const depositAmount = useMemo(() => Math.round((cashPrice * depositPercent) / 100), [cashPrice, depositPercent]);
-  const remainingBalance = useMemo(() => Math.max(0, cashPrice - depositAmount), [cashPrice, depositAmount]);
-  const monthlyPayment = useMemo(() => (repaymentMonths > 0 ? Math.round(remainingBalance / repaymentMonths) : 0), [remainingBalance, repaymentMonths]);
+  const depositAmount = useMemo(
+    () => Math.round((cashPrice * depositPercent) / 100),
+    [cashPrice, depositPercent],
+  );
+  const remainingBalance = useMemo(
+    () => Math.max(0, cashPrice - depositAmount),
+    [cashPrice, depositAmount],
+  );
+  const monthlyPayment = useMemo(
+    () => (repaymentMonths > 0 ? Math.round(remainingBalance / repaymentMonths) : 0),
+    [remainingBalance, repaymentMonths],
+  );
 
   const handlePercentChange = (newPercent: number) => {
     setDepositPercent(newPercent);
@@ -35,8 +44,12 @@ export function LoanCalculator({ cashPrice, onDepositChange }: LoanCalculatorPro
     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
       <div className="flex items-center justify-between pb-4 border-b border-slate-100">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-accent">In-House Financial Calculator</span>
-          <h3 className="font-headline-md text-xl text-primary-deep font-bold">Flexible 0% Interest Payment Plan</h3>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
+            In-House Financial Calculator
+          </span>
+          <h3 className="font-headline-md text-xl text-primary-deep font-bold">
+            Flexible 0% Interest Payment Plan
+          </h3>
         </div>
         <span className="px-3 py-1 bg-green-100 text-green-800 text-[10px] font-bold rounded-full uppercase tracking-wider">
           0% Interest Guaranteed
@@ -54,8 +67,12 @@ export function LoanCalculator({ cashPrice, onDepositChange }: LoanCalculatorPro
       {/* Deposit Slider */}
       <div className="space-y-2">
         <div className="flex justify-between items-center text-xs">
-          <label className="font-bold text-slate-700">Initial Down Payment ({depositPercent}%)</label>
-          <span className="font-stat-lg font-bold text-accent">Ksh {depositAmount.toLocaleString()}</span>
+          <label className="font-bold text-slate-700">
+            Initial Down Payment ({depositPercent}%)
+          </label>
+          <span className="font-stat-lg font-bold text-accent">
+            Ksh {depositAmount.toLocaleString()}
+          </span>
         </div>
         <input
           type="range"
@@ -96,13 +113,17 @@ export function LoanCalculator({ cashPrice, onDepositChange }: LoanCalculatorPro
       {/* Live Calculation Output Bento */}
       <div className="grid grid-cols-2 gap-3 p-4 bg-stone rounded-xl border border-slate-200">
         <div className="p-3 bg-white rounded-lg">
-          <span className="text-[10px] font-bold text-slate-400 uppercase block">Monthly Payment</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase block">
+            Monthly Payment
+          </span>
           <span className="font-stat-lg text-lg font-extrabold text-primary">
             Ksh {monthlyPayment.toLocaleString()}/mo
           </span>
         </div>
         <div className="p-3 bg-white rounded-lg">
-          <span className="text-[10px] font-bold text-slate-400 uppercase block">Remaining Balance</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase block">
+            Remaining Balance
+          </span>
           <span className="font-stat-lg text-lg font-extrabold text-slate-800">
             Ksh {remainingBalance.toLocaleString()}
           </span>
@@ -110,7 +131,8 @@ export function LoanCalculator({ cashPrice, onDepositChange }: LoanCalculatorPro
       </div>
 
       <p className="text-[11px] text-slate-400 italic text-center">
-        * No hidden bank interest or administrative penalties. Gatepath in-house plans are direct and transparent.
+        * No hidden bank interest or administrative penalties. Gatepath in-house plans are direct
+        and transparent.
       </p>
     </div>
   );

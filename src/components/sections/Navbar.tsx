@@ -77,7 +77,6 @@ export function Navbar() {
         solid ? "bg-primary shadow-[0_4px_24px_rgba(11,127,199,0.18)]" : "bg-transparent"
       }`}
     >
-
       <div className="mx-auto max-w-7xl px-6 lg:px-10 h-[100px] flex items-center justify-between">
         <Link
           to="/"

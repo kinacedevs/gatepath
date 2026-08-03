@@ -53,7 +53,11 @@ export function InquiryStepper({ currentStep }: StepperProps) {
                       fontFamily: "Inter, sans-serif",
                       fontWeight: active ? 600 : 400,
                       fontSize: active ? 14 : 13,
-                      color: active ? "var(--primary)" : done ? "var(--muted-foreground)" : "#9A9A9A",
+                      color: active
+                        ? "var(--primary)"
+                        : done
+                          ? "var(--muted-foreground)"
+                          : "#9A9A9A",
                     }}
                   >
                     <span className="hidden sm:inline">{step.label}</span>
