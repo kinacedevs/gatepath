@@ -236,6 +236,11 @@ function PhaseDetailPage() {
   // Live FX rate config (Phase 26) — admin-editable via Settings → FX
   // Rates. A fetch failure or missing row is a silent no-op; formatFromKes
   // simply keeps using its hardcoded seed rates, never a crash/broken price.
+  // setLiveFxRates only mutates a module-level variable with no state of
+  // its own to trigger React — a fetched rate on a single-photo phase page
+  // (no carousel interval, see below) had no other re-render to piggyback
+  // on and could sit stale for the whole session. fxVersion forces one.
+  const [, setFxVersion] = useState(0);
   useEffect(() => {
     (async () => {
       try {
@@ -246,7 +251,10 @@ function PhaseDetailPage() {
           .maybeSingle();
         const rates = (data as { data?: { rates?: Partial<Record<Currency, number>> } } | null)
           ?.data?.rates;
-        if (rates) setLiveFxRates(rates);
+        if (rates) {
+          setLiveFxRates(rates);
+          setFxVersion((v) => v + 1);
+        }
       } catch {
         /* keep hardcoded seed rates */
       }
@@ -612,12 +620,18 @@ function PhaseDetailPage() {
                   and free of any encumbrances.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <button className="border-[1.5px] border-primary text-primary font-medium text-[14px] px-5 py-2.5 rounded-md hover:bg-primary hover:text-white transition-colors">
-                    View Land Search Certificate
-                  </button>
-                  <button className="border-[1.5px] border-primary text-primary font-medium text-[14px] px-5 py-2.5 rounded-md hover:bg-primary hover:text-white transition-colors">
-                    Download Plot Layout Survey
-                  </button>
+                  <a
+                    href={`/inquire?phase=${phase.slug}&phaseName=${encodeURIComponent(phase.name)}&phaseNumber=${phase.phaseNumber || ""}&location=${encodeURIComponent(phase.location + ", " + phase.region)}&intent=free_visit`}
+                    className="border-[1.5px] border-primary text-primary font-medium text-[14px] px-5 py-2.5 rounded-md hover:bg-primary hover:text-white transition-colors"
+                  >
+                    Request Land Search Certificate
+                  </a>
+                  <a
+                    href={`/inquire?phase=${phase.slug}&phaseName=${encodeURIComponent(phase.name)}&phaseNumber=${phase.phaseNumber || ""}&location=${encodeURIComponent(phase.location + ", " + phase.region)}&intent=free_visit`}
+                    className="border-[1.5px] border-primary text-primary font-medium text-[14px] px-5 py-2.5 rounded-md hover:bg-primary hover:text-white transition-colors"
+                  >
+                    Request Plot Layout Survey
+                  </a>
                 </div>
                 <p className="mt-4 text-[13px] text-muted-foreground italic">
                   Documents available after inquiry confirmation.

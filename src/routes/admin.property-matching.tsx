@@ -22,7 +22,7 @@ import {
   sendMatchAlertFn,
 } from "@/lib/buyerPreferenceActions";
 import { findMatchingPlots } from "@/lib/propertyMatching";
-import { CURRENCY_RATES, CURRENCIES, type Currency } from "@/lib/currency";
+import { formatFromKes, toKes, CURRENCIES, setLiveFxRates, type Currency } from "@/lib/currency";
 import { KpiCard } from "@/components/admin/KpiCard";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -41,16 +41,6 @@ import type { BuyerPreference, Phase, Plot } from "@/lib/types";
 export const Route = createFileRoute("/admin/property-matching")({
   component: PropertyMatching,
 });
-
-function formatKesAsCurrency(kes: number, currency: string): string {
-  const rate = CURRENCY_RATES[currency as Currency] ?? 1;
-  const symbol = currency === "KES" ? "Ksh" : currency;
-  return `${symbol} ${Math.round(kes / rate).toLocaleString()}`;
-}
-
-function toKes(amount: number, currency: Currency): number {
-  return Math.round(amount * CURRENCY_RATES[currency]);
-}
 
 function PropertyMatching() {
   const [preferences, setPreferences] = useState<BuyerPreference[]>([]);
@@ -95,6 +85,34 @@ function PropertyMatching() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Live FX rate config (Phase 26 pattern, same as diaspora.tsx/
+  // properties.$slug.tsx) — this screen previously imported the static
+  // CURRENCY_RATES seed directly and never fetched the admin-configured
+  // live rate at all, so buyer budget matching/display silently went
+  // stale the moment the CEO updated a rate elsewhere. fxVersion forces a
+  // re-render once the real rate lands (setLiveFxRates itself only
+  // mutates a module-level variable with no state to trigger React).
+  const [, setFxVersion] = useState(0);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("site_banners")
+          .select("data")
+          .eq("id", "fx_rates")
+          .maybeSingle();
+        const rates = (data as { data?: { rates?: Partial<Record<Currency, number>> } } | null)
+          ?.data?.rates;
+        if (rates) {
+          setLiveFxRates(rates);
+          setFxVersion((v) => v + 1);
+        }
+      } catch {
+        /* keep hardcoded seed rates */
+      }
+    })();
   }, []);
 
   const matchesByPreference = useMemo(() => {
@@ -282,11 +300,17 @@ function PropertyMatching() {
                                 {" "}
                                 ·{" "}
                                 {pref.min_budget_kes
-                                  ? formatKesAsCurrency(pref.min_budget_kes, pref.stated_currency)
+                                  ? formatFromKes(
+                                      pref.min_budget_kes,
+                                      pref.stated_currency as Currency,
+                                    )
                                   : "Any"}{" "}
                                 –{" "}
                                 {pref.max_budget_kes
-                                  ? formatKesAsCurrency(pref.max_budget_kes, pref.stated_currency)
+                                  ? formatFromKes(
+                                      pref.max_budget_kes,
+                                      pref.stated_currency as Currency,
+                                    )
                                   : "Any"}
                               </>
                             )}
@@ -341,7 +365,7 @@ function PropertyMatching() {
                                 {m.phase.name} · Plot #{m.plot.plot_number}
                               </div>
                               <div className="text-[13px] font-bold text-secondary mt-0.5">
-                                {formatKesAsCurrency(m.cashPriceKes, pref.stated_currency)}
+                                {formatFromKes(m.cashPriceKes, pref.stated_currency as Currency)}
                               </div>
                             </div>
                           ))}

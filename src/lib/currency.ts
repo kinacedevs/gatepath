@@ -50,6 +50,11 @@ export function fromKes(kesAmount: number, currency: Currency): number {
   return Math.round(kesAmount / liveRates[currency]);
 }
 
+/** Converts an amount in the given currency back to KES (rounded). */
+export function toKes(amount: number, currency: Currency): number {
+  return Math.round(amount * liveRates[currency]);
+}
+
 /** Formats a KES amount as a display string in the target currency, e.g. "$ 2,463". */
 export function formatFromKes(kesAmount: number, currency: Currency): string {
   return `${CURRENCY_SYMBOLS[currency]} ${fromKes(kesAmount, currency).toLocaleString()}`;
