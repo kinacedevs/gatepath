@@ -22,7 +22,7 @@ interface GovInquiry {
   client_full_name: string;
   client_email: string;
   client_phone: string;
-  client_id_passport: string;
+  client_id_passport: string | null;
   client_kra_pin: string | null;
   client_country: string | null;
   marketing_opt_in: boolean | null;

@@ -107,7 +107,7 @@ export type Inquiry = {
   client_postal_address: string | null;
   client_email: string;
   client_kra_pin: string | null;
-  client_id_passport: string;
+  client_id_passport: string | null;
   client_occupation: string | null;
   kin_full_name: string | null;
   kin_phone: string | null;

@@ -35,7 +35,7 @@ interface ClientRow {
   email: string;
   name: string;
   phone: string;
-  idPassport: string;
+  idPassport: string | null;
   kraPin: string | null;
   lifetimeValue: number;
   plotsOwned: number;
