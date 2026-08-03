@@ -246,7 +246,7 @@ function ReceiptDocumentPage() {
                     </span>
                   </td>
                   <td className="py-3 text-right text-[12px] font-mono text-muted-foreground">
-                    Bal: KES {(inquiry.price - payment.amount).toLocaleString()}
+                    Bal: KES {Math.max(0, inquiry.price - payment.amount).toLocaleString()}
                   </td>
                 </tr>
               )}

@@ -43,7 +43,9 @@ function PaymentPage() {
   const defaultDeposit = form.reservePlot ? 10000 : Math.round(totalPrice * 0.3);
 
   const [deposit, setDeposit] = useState(form.depositAmount || defaultDeposit || 0);
-  const [period, setPeriod] = useState(form.loanPeriod || 12);
+  const [period, setPeriod] = useState(
+    form.termsOfPayment === "cash" ? 0 : form.paymentPeriodMonths || form.loanPeriod || 12,
+  );
   const [method, setMethod] = useState(form.paymentMethod || "mpesa");
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
@@ -121,7 +123,11 @@ function PaymentPage() {
       callback: (response) => {
         setVerifying(true);
         (verifyPaymentFn as any)({
-          data: { reference: response.reference, inquiryId: form.inquiryId, periodMonths: period },
+          data: {
+            reference: response.reference,
+            inquiryId: form.inquiryId,
+            periodMonths: isFullPayment ? 0 : period,
+          },
         })
           .then((result: any) => {
             setVerifying(false);

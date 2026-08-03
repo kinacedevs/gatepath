@@ -333,8 +333,7 @@ function InquiryPage() {
       periodMonths: periodMonthsEstimate,
     });
     const balance = preDiscountBalance - (form.discount || 0);
-    const monthly =
-      form.paymentPeriodMonths > 0 ? Math.round(balance / form.paymentPeriodMonths) : 0;
+    const monthly = periodMonthsEstimate > 0 ? Math.round(balance / periodMonthsEstimate) : 0;
 
     // Update form with calculated values
     setForm({ deposit, balance, monthlyPayment: monthly, price: finalPrice });
@@ -390,7 +389,7 @@ function InquiryPage() {
         discount: form.intent === "free_visit" ? 0 : form.discount || 0,
         deposit: form.intent === "free_visit" ? 0 : deposit,
         balance: form.intent === "free_visit" ? form.plotPrice : balance,
-        payment_period_months: form.intent === "free_visit" ? null : form.paymentPeriodMonths,
+        payment_period_months: form.intent === "free_visit" ? null : periodMonthsEstimate,
         monthly_payment: form.intent === "free_visit" ? 0 : monthly,
         client_full_name: sanitize(form.fullName),
         client_dob: form.intent === "free_visit" ? null : form.dateOfBirth || null,
@@ -801,7 +800,7 @@ function InquiryPage() {
                         onChange={(e) => setForm({ paymentPeriodMonths: Number(e.target.value) })}
                         style={inp("paymentPeriodMonths")}
                       >
-                        {[3, 6, 12, 18, 24].map((m) => (
+                        {[3, 6, 12].map((m) => (
                           <option key={m} value={m}>
                             {m} months
                           </option>

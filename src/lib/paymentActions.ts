@@ -91,6 +91,21 @@ async function recordVerifiedPayment(params: {
 
   const amountKes = paystackData.amount / 100;
 
+  // Never trust the client's periodMonths alone — if what Paystack actually
+  // confirms was paid already covers the full cash price, this is a cash
+  // sale regardless of which installment pill happened to be selected in
+  // the browser (e.g. a stale value left over from an earlier step).
+  // Matches pricing.ts's own full-payment rule. Computed once here, before
+  // the payments row is even written, so loan_period_months is never
+  // stamped with a period that doesn't match what was actually paid.
+  const cashPriceForPeriodCheck = Number(inquiry.plot_price ?? inquiry.price ?? 0);
+  const effectivePeriodMonths =
+    typeof params.periodMonths === "number"
+      ? amountKes >= cashPriceForPeriodCheck
+        ? 0
+        : params.periodMonths
+      : undefined;
+
   const { data: payment, error: payErr } = await (service as any)
     .from("payments")
     .upsert(
@@ -100,7 +115,7 @@ async function recordVerifiedPayment(params: {
         amount: amountKes,
         deposit_amount: amountKes,
         loan_period_months:
-          params.periodMonths && params.periodMonths > 0 ? params.periodMonths : null,
+          effectivePeriodMonths && effectivePeriodMonths > 0 ? effectivePeriodMonths : null,
         payment_method: paystackData.channel ?? null,
         currency: paystackData.currency ?? "KES",
         status: "success",
@@ -154,12 +169,11 @@ async function recordVerifiedPayment(params: {
   // itself uses (src/lib/pricing.ts) — so the price/balance/monthly figures
   // that end up on the Offer Letter, Agreement, and Receipt are always
   // what the buyer actually agreed to and paid, not a superseded guess.
-  if (isFirstPayment && typeof params.periodMonths === "number") {
-    const cashPrice = Number(inquiry.plot_price ?? inquiry.price ?? 0);
+  if (isFirstPayment && effectivePeriodMonths !== undefined) {
     const { adjustedPrice, balance, monthlyPayment } = computeInstallmentPricing({
-      cashPrice,
+      cashPrice: cashPriceForPeriodCheck,
       depositAmount: amountKes,
-      periodMonths: params.periodMonths,
+      periodMonths: effectivePeriodMonths,
     });
 
     await (service as any)
@@ -169,8 +183,8 @@ async function recordVerifiedPayment(params: {
         deposit: amountKes,
         balance,
         monthly_payment: monthlyPayment,
-        payment_period_months: params.periodMonths,
-        terms_of_payment: params.periodMonths === 0 ? "cash" : "installment",
+        payment_period_months: effectivePeriodMonths,
+        terms_of_payment: effectivePeriodMonths === 0 ? "cash" : "installment",
       })
       .eq("id", inquiry.id);
 
@@ -181,7 +195,7 @@ async function recordVerifiedPayment(params: {
     inquiry.deposit = amountKes;
     inquiry.balance = balance;
     inquiry.monthly_payment = monthlyPayment;
-    inquiry.payment_period_months = params.periodMonths;
+    inquiry.payment_period_months = effectivePeriodMonths;
   }
 
   const { data: successfulPayments } = await (service as any)
