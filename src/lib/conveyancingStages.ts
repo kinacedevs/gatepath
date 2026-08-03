@@ -60,7 +60,7 @@ export const CONVEYANCING_13_STAGES = [
   {
     stage: 10,
     label: "Full Payment Cleared",
-    desc: "Your purchase price is fully paid and your Agreement is signed.",
+    desc: "Your purchase price is fully paid — your Agreement is being finalized.",
   },
   {
     stage: 11,
@@ -89,7 +89,7 @@ export const NEXT_ACTION_BY_STAGE: Record<number, string> = {
   7: "Continue your payment plan to move towards full payment.",
   8: "Continue your installment payments — track your balance below.",
   9: "Continue your installment payments — track your balance below.",
-  10: "Your Agreement is signed. Your title is now being processed by the Lands Registry.",
+  10: "Your Agreement is awaiting the CEO's countersignature.",
   11: "Your title is now being processed by the Lands Registry.",
   12: "Your title is now being processed by the Lands Registry.",
   13: "Your title deed is ready — contact us to arrange collection or dispatch.",
@@ -109,19 +109,22 @@ interface DealStageBooking {
 interface DealStageOffer {
   ceo_signed: boolean;
 }
+interface DealStageAgreement {
+  ceo_signed: boolean;
+}
 
 interface DealStageInputs {
   payments: DealStagePayment[];
   bookings: DealStageBooking[];
   offers: DealStageOffer[];
-  agreements: unknown[];
+  agreements: DealStageAgreement[];
   interactions: unknown[];
 }
 
 export function resolveDealStage(
   inquiry: DealStageInquiry,
   { payments, bookings, offers, agreements, interactions }: DealStageInputs,
-): { currentStage: number; reachedStages: Set<number> } {
+): { currentStage: number; reachedStages: Set<number>; agreementSigned: boolean } {
   const reached = new Set<number>();
 
   // 1. Lead Captured — always true, the inquiry exists.
@@ -155,12 +158,18 @@ export function resolveDealStage(
     reached.add(9);
   }
 
-  // 10. Full Payment Cleared — an Agreement only exists once the full
-  // price has been paid (Phase 7's payment-gated creation).
+  // 10. Full Payment Cleared — an Agreement row only exists once the full
+  // price has been paid (Phase 7's payment-gated creation), so this stage
+  // is correctly "reached" the moment payment clears. Whether the CEO has
+  // actually countersigned it yet is a separate fact (ceo_signed, set
+  // false at creation) — surfaced via agreementSigned below rather than
+  // conflated into this stage, so the client is never told "signed" before
+  // it's true.
   if (agreements.length > 0) reached.add(10);
+  const agreementSigned = agreements.some((a) => a.ceo_signed);
 
   // 11-13: no real signal anywhere in the schema — never auto-marked.
 
   const currentStage = Math.max(...Array.from(reached));
-  return { currentStage, reachedStages: reached };
+  return { currentStage, reachedStages: reached, agreementSigned };
 }

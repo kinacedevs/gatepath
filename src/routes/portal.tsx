@@ -104,6 +104,7 @@ interface OfferData {
 interface AgreementData {
   id: string;
   inquiry_id: string;
+  ceo_signed: boolean;
 }
 
 interface InteractionData {
@@ -531,7 +532,7 @@ function ClientPortalPage() {
                       {loading ? (
                         <Loader2 className="animate-spin" size={16} />
                       ) : (
-                        "Request WhatsApp OTP →"
+                        "Request Access Code →"
                       )}
                     </button>
                   </form>
@@ -655,7 +656,7 @@ function ClientPortalPage() {
                     const inqDocuments = documents.filter((d) => d.inquiry_id === inq.id);
                     const inqPhase = phases.find((p) => p.id === inq.phase_id);
 
-                    const { currentStage, reachedStages } = resolveDealStage(
+                    const { currentStage, reachedStages, agreementSigned } = resolveDealStage(
                       {
                         cro_name: inq.cro_name,
                         terms_of_payment: inq.terms_of_payment,
@@ -774,22 +775,29 @@ function ClientPortalPage() {
                               resolved stage, not fabricated */}
                           <div className="p-3.5 bg-accent/10 border border-accent/20 rounded-xl text-xs text-primary-deep font-medium">
                             <strong className="font-bold">Next step:</strong>{" "}
-                            {NEXT_ACTION_BY_STAGE[currentStage]}
+                            {currentStage === 10 && agreementSigned
+                              ? "Your Agreement is signed. Your title is now being processed by the Lands Registry."
+                              : NEXT_ACTION_BY_STAGE[currentStage]}
                           </div>
 
                           <div className="space-y-3">
                             {CONVEYANCING_13_STAGES.map((s) => {
-                              const isComplete = reachedStages.has(s.stage);
+                              // isCurrent takes precedence: currentStage is
+                              // always the max of reachedStages, so it was
+                              // always a member of "complete" too — checked
+                              // in the wrong order before, which meant the
+                              // "in progress" blue state could never render.
                               const isCurrent = s.stage === currentStage;
+                              const isComplete = reachedStages.has(s.stage) && !isCurrent;
 
                               return (
                                 <div
                                   key={s.stage}
                                   className={`p-3.5 rounded-xl border flex items-center gap-4 transition-all ${
-                                    isComplete
-                                      ? "bg-green-50/60 border-green-200 text-green-900"
-                                      : isCurrent
-                                        ? "bg-blue-50 border-blue-200 text-blue-900 shadow-sm"
+                                    isCurrent
+                                      ? "bg-blue-50 border-blue-200 text-blue-900 shadow-sm"
+                                      : isComplete
+                                        ? "bg-green-50/60 border-green-200 text-green-900"
                                         : "bg-slate-50 border-slate-200 text-slate-400"
                                   }`}
                                 >
@@ -797,7 +805,9 @@ function ClientPortalPage() {
                                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                                       isComplete
                                         ? "bg-green-500 text-white"
-                                        : "bg-slate-200 text-slate-600"
+                                        : isCurrent
+                                          ? "bg-blue-600 text-white"
+                                          : "bg-slate-200 text-slate-600"
                                     }`}
                                   >
                                     {isComplete ? <Check size={16} /> : s.stage}
@@ -938,7 +948,7 @@ function ClientPortalPage() {
                   {inquiries
                     .filter(
                       (inq) =>
-                        agreements.some((a) => a.inquiry_id === inq.id) &&
+                        agreements.some((a) => a.inquiry_id === inq.id && a.ceo_signed) &&
                         !testimonialFlags.some((t) => t.submitted_by_inquiry_id === inq.id),
                     )
                     .map((inq) => (

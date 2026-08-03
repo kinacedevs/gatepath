@@ -274,6 +274,24 @@ export const submitTestimonialFn = createServerFn({ method: "POST" })
       return { success: false as const, error: "This inquiry doesn't belong to your account." };
     }
 
+    // "Handover-eligible" means fully paid AND finalized — an agreements row
+    // alone only means payment cleared (paymentActions.ts inserts it with
+    // ceo_signed: false); the CEO's own countersignature is the real signal
+    // this deal is done, matching how admin.referrals-testimonials.tsx and
+    // conveyancingStages.ts's stage 10 both already treat ceo_signed.
+    const { data: agreement } = await (service as any)
+      .from("agreements")
+      .select("ceo_signed")
+      .eq("inquiry_id", data.inquiryId)
+      .maybeSingle();
+
+    if (!agreement?.ceo_signed) {
+      return {
+        success: false as const,
+        error: "Testimonials open up once your deal is fully finalized.",
+      };
+    }
+
     const { data: existing } = await (service as any)
       .from("testimonials")
       .select("id")
