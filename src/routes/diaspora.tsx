@@ -22,7 +22,8 @@ import { supabase } from "@/lib/supabase";
 import diasporaHeroAsset from "@/assets/diaspora.jpg";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhases } from "@/lib/phases";
-import { CURRENCIES, formatFromKes, setLiveFxRates, type Currency } from "@/lib/currency";
+import { CURRENCIES, formatFromKes, fromKes, setLiveFxRates, type Currency } from "@/lib/currency";
+import { createFreeSiteVisitBookingFn } from "@/lib/bookingActions";
 import type { Faq } from "@/lib/types";
 
 export const Route = createFileRoute("/diaspora")({
@@ -114,6 +115,11 @@ function DiasporaPage() {
   // Live FX rate config (Phase 26) — admin-editable via Settings → FX
   // Rates. A fetch failure or missing row is a silent no-op; formatFromKes
   // simply keeps using its hardcoded seed rates, never a crash/broken price.
+  // setLiveFxRates only mutates a module-level variable with no state of
+  // its own to trigger React — fxVersion is a real dependency bumped below
+  // solely to force this page (and its memoized price filter) to re-render
+  // once the real rate lands, instead of waiting on an unrelated re-render.
+  const [fxVersion, setFxVersion] = useState(0);
   useEffect(() => {
     (async () => {
       try {
@@ -124,7 +130,10 @@ function DiasporaPage() {
           .maybeSingle();
         const rates = (data as { data?: { rates?: Partial<Record<Currency, number>> } } | null)
           ?.data?.rates;
-        if (rates) setLiveFxRates(rates);
+        if (rates) {
+          setLiveFxRates(rates);
+          setFxVersion((v) => v + 1);
+        }
       } catch {
         /* keep hardcoded seed rates */
       }
@@ -205,7 +214,9 @@ function DiasporaPage() {
         return false;
       if (status !== "All Status" && p.status !== status) return false;
       if (price !== "Any Price") {
-        const spUsd = p.startingPrice / 129.5;
+        // Live rate (currency.ts), never a hardcoded literal — CLAUDE.md's
+        // "never hardcode a rate in a component" rule.
+        const spUsd = fromKes(p.startingPrice, "USD");
         if (price === "Under $3,000" && spUsd >= 3000) return false;
         if (price === "$3,000–$5,500" && (spUsd < 3000 || spUsd > 5500)) return false;
         if (price === "$5,500–$8,000" && (spUsd < 5500 || spUsd > 8000)) return false;
@@ -222,7 +233,8 @@ function DiasporaPage() {
       }
       return true;
     });
-  }, [phases, loc, status, price, q]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phases, loc, status, price, q, fxVersion]);
 
   const samplePrices = useMemo(() => {
     if (phases.length === 0) return [];
@@ -278,17 +290,25 @@ function DiasporaPage() {
       }
 
       if (preferredDate) {
-        const { error: bookingErr } = await (supabase as any).from("bookings").insert({
-          inquiry_id: inquiry.id,
-          visit_date: preferredDate,
-          visit_time: preferredTime as "morning" | "afternoon",
-          visit_type: "virtual",
-          visit_notes: sanitize(`Preferred channel: ${commChannel} | Notes: ${notes}`),
-          status: "pending",
+        // Server-verified path (mirrors book-visit.tsx's createFreeSiteVisitBookingFn
+        // fix) — restates the Sunday/60-day checks and enforces the real
+        // admin-configured daily capacity, neither of which a direct client
+        // insert into `bookings` could do.
+        const bookingResult = await createFreeSiteVisitBookingFn({
+          data: {
+            inquiryId: inquiry.id,
+            visitDate: preferredDate,
+            visitTime: preferredTime as "morning" | "afternoon",
+            attendees: 1,
+            visitNotes: sanitize(`Preferred channel: ${commChannel} | Notes: ${notes}`),
+            visitType: "virtual",
+            transportMode: null,
+            pickupLocation: null,
+          },
         });
 
-        if (bookingErr) {
-          console.warn("Virtual booking insertion warning:", bookingErr.message);
+        if (!bookingResult.success) {
+          console.warn("Virtual booking insertion warning:", bookingResult.error);
         }
       }
 
