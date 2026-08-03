@@ -20,6 +20,14 @@ export const updateInquiryStatusFn = createServerFn({ method: "POST" })
       callerAccessToken: string;
       inquiryId: string;
       newStatus: "pending" | "reviewed" | "approved" | "rejected";
+      /** Optional finer-grained position within newStatus's bucket (Phase
+       * 35). Kanban drag-drop onto a custom stage column passes the target
+       * stage's id (or explicit null, for dropping back on a bucket's own
+       * base column). Omitted entirely by Field Mode's simpler bucket-only
+       * buttons — in that case the handler always clears any existing
+       * stage, since a bucket-only move can't know which of that bucket's
+       * stages (if any) the lead should land in. */
+      pipelineStageId?: string | null;
     }) => d,
   )
   .handler(async ({ data }) => {
@@ -50,7 +58,10 @@ export const updateInquiryStatusFn = createServerFn({ method: "POST" })
     // elsewhere (paymentActions.ts) — this never touches offers/agreements.
     const { error: updateErr } = await serviceClient
       .from("inquiries")
-      .update({ status: data.newStatus })
+      .update({
+        status: data.newStatus,
+        pipeline_stage_id: data.pipelineStageId !== undefined ? data.pipelineStageId : null,
+      })
       .eq("id", data.inquiryId);
 
     if (updateErr) {

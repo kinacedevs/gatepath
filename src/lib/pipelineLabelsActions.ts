@@ -1,18 +1,50 @@
 /**
- * Gatepath Realtors — Pipeline Label Overrides (Settings Expansion)
+ * Gatepath Realtors — Pipeline Label Overrides + Custom Stages
  *
- * "Relabel only" per the user's explicit choice — inquiries.status (the 4-
- * value Kanban enum) stays exactly as-is; this only lets a CEO/manager
- * change the *display* labels shown for pending/reviewed/approved/rejected
- * (today's New/In Review/Won/Lost) across admin.leads.tsx and
- * admin.field-mode.tsx. Reuses the existing site_banners generic key-value
- * table (Phase 9's own established pattern) — no new schema. Gate matches
- * Site Content's precedent (adminRole !== "agent"): a label is cosmetic,
+ * Labels: inquiries.status (the 4-value Kanban enum) stays exactly as-is;
+ * savePipelineLabelsFn only lets a CEO/manager change the *display* labels
+ * shown for pending/reviewed/approved/rejected (today's New/In Review/Won/
+ * Lost) across admin.leads.tsx and admin.field-mode.tsx. Reuses the
+ * existing site_banners generic key-value table (Phase 9's own established
+ * pattern) — no new schema.
+ *
+ * Custom stages (Phase 35): real add/remove/reorder flexibility, but as
+ * sub-positions *within* one of the 4 fixed buckets, never a replacement
+ * for status itself — see supabase/migrations/0026_pipeline_stages.sql's
+ * header for why. savePipelineStageFn/deactivatePipelineStageFn manage the
+ * new pipeline_stages table.
+ *
+ * Gate matches Site Content's precedent (adminRole !== "agent") throughout
+ * this file: pipeline labels/stages are workflow/display configuration,
  * not financial/credential data.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { logAuditEvent } from "./auditLog";
+
+async function verifyNotAgentCaller(callerAccessToken: string) {
+  const anonClient = getAnonClient();
+  const { data: callerData, error: callerErr } = await anonClient.auth.getUser(callerAccessToken);
+  if (callerErr || !callerData.user?.email) {
+    return { ok: false as const, error: "Not authenticated." };
+  }
+
+  const serviceClient = getServiceClient();
+  const { data: callerRow } = await serviceClient
+    .from("admin_users")
+    .select("id, full_name, email, role")
+    .eq("email", callerData.user.email.toLowerCase())
+    .maybeSingle();
+
+  if (!callerRow) {
+    return { ok: false as const, error: "Not recognised as Gatepath staff." };
+  }
+  if (callerRow.role === "agent") {
+    return { ok: false as const, error: "Agents cannot manage the pipeline." };
+  }
+
+  return { ok: true as const, serviceClient, caller: callerRow };
+}
 
 export const DEFAULT_PIPELINE_LABELS: Record<
   "pending" | "reviewed" | "approved" | "rejected",
@@ -32,28 +64,10 @@ export const savePipelineLabelsFn = createServerFn({ method: "POST" })
     }) => d,
   )
   .handler(async ({ data }) => {
-    const anonClient = getAnonClient();
-    const { data: callerData, error: callerErr } = await anonClient.auth.getUser(
-      data.callerAccessToken,
-    );
-    if (callerErr || !callerData.user?.email) {
-      return { success: false, error: "Not authenticated." };
-    }
+    const caller = await verifyNotAgentCaller(data.callerAccessToken);
+    if (!caller.ok) return { success: false, error: caller.error };
 
-    const serviceClient = getServiceClient();
-    const { data: callerRow } = await serviceClient
-      .from("admin_users")
-      .select("id, full_name, email, role")
-      .eq("email", callerData.user.email.toLowerCase())
-      .maybeSingle();
-    if (!callerRow) {
-      return { success: false, error: "Not recognised as Gatepath staff." };
-    }
-    if (callerRow.role === "agent") {
-      return { success: false, error: "Agents cannot manage pipeline labels." };
-    }
-
-    const { error } = await (serviceClient as any).from("site_banners").upsert(
+    const { error } = await (caller.serviceClient as any).from("site_banners").upsert(
       {
         id: "pipeline_labels",
         data: data.labels,
@@ -64,13 +78,98 @@ export const savePipelineLabelsFn = createServerFn({ method: "POST" })
 
     if (error) return { success: false, error: error.message };
 
-    await logAuditEvent(serviceClient, {
-      actorEmail: callerRow.email,
-      actorName: callerRow.full_name,
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
       action: "pipeline_labels.save",
       entityType: "site_banners",
       entityId: "pipeline_labels",
       details: data.labels,
+    });
+
+    return { success: true };
+  });
+
+// ─── Custom pipeline stages (Phase 35) ─────────────────────────────────────
+
+export const savePipelineStageFn = createServerFn({ method: "POST" })
+  .validator(
+    (d: {
+      callerAccessToken: string;
+      stageId?: string;
+      bucket: "pending" | "reviewed" | "approved" | "rejected";
+      label: string;
+      displayOrder: number;
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const caller = await verifyNotAgentCaller(data.callerAccessToken);
+    if (!caller.ok) return { success: false, error: caller.error };
+
+    const label = data.label.trim();
+    if (!label) return { success: false, error: "Stage label is required." };
+
+    const payload = {
+      bucket: data.bucket,
+      label,
+      display_order: data.displayOrder,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (data.stageId) {
+      const { error } = await (caller.serviceClient as any)
+        .from("pipeline_stages")
+        .update(payload)
+        .eq("id", data.stageId);
+      if (error) return { success: false, error: error.message };
+    } else {
+      const { error } = await (caller.serviceClient as any).from("pipeline_stages").insert({
+        ...payload,
+        created_by_email: caller.caller.email,
+        created_by_name: caller.caller.full_name,
+      });
+      if (error) return { success: false, error: error.message };
+    }
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: data.stageId ? "pipeline_stage.update" : "pipeline_stage.create",
+      entityType: "pipeline_stages",
+      entityId: data.stageId,
+      details: payload,
+    });
+
+    return { success: true };
+  });
+
+export const deactivatePipelineStageFn = createServerFn({ method: "POST" })
+  .validator((d: { callerAccessToken: string; stageId: string }) => d)
+  .handler(async ({ data }) => {
+    const caller = await verifyNotAgentCaller(data.callerAccessToken);
+    if (!caller.ok) return { success: false, error: caller.error };
+
+    // Return every inquiry currently in this stage to its bucket's base
+    // column first — without this, a card pointing at a now-hidden stage
+    // would render in no column at all (see the migration's own header).
+    const { error: clearErr } = await (caller.serviceClient as any)
+      .from("inquiries")
+      .update({ pipeline_stage_id: null })
+      .eq("pipeline_stage_id", data.stageId);
+    if (clearErr) return { success: false, error: clearErr.message };
+
+    const { error } = await (caller.serviceClient as any)
+      .from("pipeline_stages")
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq("id", data.stageId);
+    if (error) return { success: false, error: error.message };
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: "pipeline_stage.deactivate",
+      entityType: "pipeline_stages",
+      entityId: data.stageId,
     });
 
     return { success: true };

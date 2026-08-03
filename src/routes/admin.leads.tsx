@@ -6,11 +6,15 @@
  * the real thing: @dnd-kit-powered, writing through updateInquiryStatusFn
  * (src/lib/leadsActions.ts), which re-verifies the caller server-side.
  *
- * Column mapping is the 4 real inquiries.status values, relabeled for staff
- * clarity — no invented 5th column. A "Site visit booked" badge shows on
- * cards with a matching bookings row instead, since that's a genuinely
- * different signal from pipeline stage (see the Phase 5A plan for why a
- * derived 5th column was rejected).
+ * Columns are the 4 real inquiries.status buckets, each optionally split
+ * into admin-configurable custom sub-stages (Phase 35, src/lib/
+ * pipelineLabelsActions.ts's pipeline_stages table) — real add/remove/
+ * reorder flexibility, but status itself and every revenue/conversion
+ * calculation that depends on it stay completely untouched; a stage is a
+ * finer position *within* a bucket, never a replacement for one. A "Site
+ * visit booked" badge shows on cards with a matching bookings row instead
+ * of being its own column, since that's a genuinely different signal from
+ * pipeline stage.
  *
  * Lead score badge (Part 2, Module 4) added on each card — rules-based,
  * computed live from real data via src/lib/leadScoring.ts (source/budget/
@@ -64,7 +68,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { Inquiry, InteractionLog, AdminUser } from "@/lib/types";
+import type { Inquiry, InteractionLog, AdminUser, PipelineStage } from "@/lib/types";
 
 const LABEL_CLS =
   "text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide block mb-1.5";
@@ -85,12 +89,16 @@ export const Route = createFileRoute("/admin/leads")({
 
 type InquiryStatus = keyof typeof INQUIRY_STATUS_TONE;
 
-const COLUMNS: { status: InquiryStatus; label: string }[] = [
-  { status: "pending", label: DEFAULT_PIPELINE_LABELS.pending },
-  { status: "reviewed", label: DEFAULT_PIPELINE_LABELS.reviewed },
-  { status: "approved", label: DEFAULT_PIPELINE_LABELS.approved },
-  { status: "rejected", label: DEFAULT_PIPELINE_LABELS.rejected },
-];
+const BUCKET_ORDER: InquiryStatus[] = ["pending", "reviewed", "approved", "rejected"];
+
+/** One Kanban column — either a bucket's own base position (stageId null)
+ * or a custom stage within that bucket (Phase 35). */
+type LeadColumn = { key: string; bucket: InquiryStatus; stageId: string | null; label: string };
+
+function leadColumnKeyFor(inquiry: Pick<Inquiry, "status" | "pipeline_stage_id">): string {
+  const stageId = inquiry.pipeline_stage_id ?? null;
+  return stageId ? `stage:${stageId}` : inquiry.status;
+}
 
 function getInitials(name: string) {
   return name
@@ -241,7 +249,8 @@ function LeadCard({
 }
 
 function KanbanColumn({
-  status,
+  columnKey,
+  bucket,
   label,
   leads,
   bookedInquiryIds,
@@ -250,7 +259,8 @@ function KanbanColumn({
   staff,
   onAssign,
 }: {
-  status: InquiryStatus;
+  columnKey: string;
+  bucket: InquiryStatus;
   label: string;
   leads: Inquiry[];
   bookedInquiryIds: Set<string>;
@@ -259,7 +269,7 @@ function KanbanColumn({
   staff: AdminUser[];
   onAssign: (inquiryId: string, croName: string | null) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
+  const { setNodeRef, isOver } = useDroppable({ id: columnKey });
 
   return (
     <div
@@ -272,7 +282,7 @@ function KanbanColumn({
     >
       <div className="px-4 py-3.5 border-b border-outline-variant/20 flex items-center justify-between">
         <span className="text-[13px] font-semibold text-primary-container">{label}</span>
-        <StatusBadge tone={INQUIRY_STATUS_TONE[status]}>{leads.length}</StatusBadge>
+        <StatusBadge tone={INQUIRY_STATUS_TONE[bucket]}>{leads.length}</StatusBadge>
       </div>
       <div className="p-3 flex flex-col gap-3 overflow-y-auto flex-1 min-h-[120px]">
         {leads.length === 0 ? (
@@ -310,6 +320,7 @@ function LeadsPipeline() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [pipelineLabels, setPipelineLabels] =
     useState<Record<InquiryStatus, string>>(DEFAULT_PIPELINE_LABELS);
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const [walkInDialogOpen, setWalkInDialogOpen] = useState(false);
@@ -331,6 +342,7 @@ function LeadsPipeline() {
       staffRes,
       offersRes,
       agreementsRes,
+      pipelineStagesRes,
     ] = await Promise.all([
       supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
       supabase.from("bookings").select("inquiry_id"),
@@ -339,6 +351,10 @@ function LeadsPipeline() {
       supabase.from("admin_users").select("*").order("full_name", { ascending: true }),
       supabase.from("offers").select("inquiry_id"),
       supabase.from("agreements").select("inquiry_id"),
+      // pipeline_stages (migration 0026) may not be applied yet on every
+      // environment — a query error here just leaves the board at today's
+      // 4 base columns, never a crash.
+      supabase.from("pipeline_stages").select("*"),
     ]);
     setInquiries((inquiriesRes.data as Inquiry[]) ?? []);
     const bookingRows = (bookingsRes.data ?? []) as { inquiry_id: string | null }[];
@@ -355,6 +371,7 @@ function LeadsPipeline() {
     setAgreementInquiryIds(
       new Set(agreementRows.map((a) => a.inquiry_id).filter(Boolean) as string[]),
     );
+    setPipelineStages((pipelineStagesRes.data as PipelineStage[]) ?? []);
     setLoading(false);
     setLastUpdated(new Date());
   };
@@ -370,12 +387,22 @@ function LeadsPipeline() {
     };
   }, []);
 
-  // Relabel only — inquiries.status itself and every write path are
-  // untouched, just the display label shown per column.
-  const columns = useMemo(
-    () => COLUMNS.map((col) => ({ ...col, label: pipelineLabels[col.status] })),
-    [pipelineLabels],
-  );
+  // 4 fixed bucket columns (relabeled per pipelineLabels, write path
+  // unchanged) plus, per bucket, any admin-configured active custom stages
+  // (Phase 35) as their own additional columns, ordered by display_order.
+  const columns = useMemo<LeadColumn[]>(() => {
+    const result: LeadColumn[] = [];
+    for (const bucket of BUCKET_ORDER) {
+      result.push({ key: bucket, bucket, stageId: null, label: pipelineLabels[bucket] });
+      const bucketStages = pipelineStages
+        .filter((s) => s.bucket === bucket && s.is_active)
+        .sort((a, b) => a.display_order - b.display_order);
+      for (const stage of bucketStages) {
+        result.push({ key: `stage:${stage.id}`, bucket, stageId: stage.id, label: stage.label });
+      }
+    }
+    return result;
+  }, [pipelineLabels, pipelineStages]);
 
   // ── Lead scoring (Part 2, Module 4) — rules-based, computed live from
   // the same `inquiries`/`bookings`/`interaction_log` fetch above. See
@@ -474,7 +501,7 @@ function LeadsPipeline() {
 
     const funnelData = columns.map((col) => ({
       name: col.label,
-      value: inquiries.filter((i) => i.status === col.status).length,
+      value: inquiries.filter((i) => leadColumnKeyFor(i) === col.key).length,
     }));
 
     const sourceCounts = new Map<string, number>();
@@ -535,12 +562,30 @@ function LeadsPipeline() {
     if (!over) return;
 
     const inquiryId = String(active.id);
-    const newStatus = over.id as InquiryStatus;
+    const overId = String(over.id);
+    // A "stage:<uuid>" droppable resolves to that stage's own bucket; any
+    // other id is a bucket value dropped directly (the bucket's base
+    // column, stageId null).
+    const targetStageId = overId.startsWith("stage:") ? overId.slice("stage:".length) : null;
+    const targetStage = targetStageId
+      ? pipelineStages.find((s) => s.id === targetStageId)
+      : undefined;
+    const targetBucket = (targetStage ? targetStage.bucket : overId) as InquiryStatus;
+
     const current = inquiries.find((i) => i.id === inquiryId);
-    if (!current || current.status === newStatus) return;
+    if (!current) return;
+    const currentStageId = current.pipeline_stage_id ?? null;
+    // Real no-op check on the (bucket, stage) pair — not status alone, so a
+    // same-bucket drag between two custom stages (status unchanged, only
+    // the stage differs) is never silently skipped.
+    if (current.status === targetBucket && currentStageId === targetStageId) return;
 
     // Optimistic update, rolled back on server error.
-    setInquiries((prev) => prev.map((i) => (i.id === inquiryId ? { ...i, status: newStatus } : i)));
+    setInquiries((prev) =>
+      prev.map((i) =>
+        i.id === inquiryId ? { ...i, status: targetBucket, pipeline_stage_id: targetStageId } : i,
+      ),
+    );
     setError(null);
 
     const { data: sessionData } = await supabase.auth.getSession();
@@ -548,19 +593,32 @@ function LeadsPipeline() {
     if (!accessToken) {
       setError("Session expired — please refresh and sign in again.");
       setInquiries((prev) =>
-        prev.map((i) => (i.id === inquiryId ? { ...i, status: current.status } : i)),
+        prev.map((i) =>
+          i.id === inquiryId
+            ? { ...i, status: current.status, pipeline_stage_id: current.pipeline_stage_id }
+            : i,
+        ),
       );
       return;
     }
 
     const result = await updateInquiryStatusFn({
-      data: { callerAccessToken: accessToken, inquiryId, newStatus },
+      data: {
+        callerAccessToken: accessToken,
+        inquiryId,
+        newStatus: targetBucket,
+        pipelineStageId: targetStageId,
+      },
     });
 
     if (!result.success) {
       setError(result.error ?? "Failed to update lead status.");
       setInquiries((prev) =>
-        prev.map((i) => (i.id === inquiryId ? { ...i, status: current.status } : i)),
+        prev.map((i) =>
+          i.id === inquiryId
+            ? { ...i, status: current.status, pipeline_stage_id: current.pipeline_stage_id }
+            : i,
+        ),
       );
     }
   };
@@ -786,10 +844,11 @@ function LeadsPipeline() {
           <div className="flex gap-4 flex-1 overflow-x-auto pb-5">
             {columns.map((col) => (
               <KanbanColumn
-                key={col.status}
-                status={col.status}
+                key={col.key}
+                columnKey={col.key}
+                bucket={col.bucket}
                 label={col.label}
-                leads={filtered.filter((i) => i.status === col.status)}
+                leads={filtered.filter((i) => leadColumnKeyFor(i) === col.key)}
                 bookedInquiryIds={bookedInquiryIds}
                 leadScores={leadScores}
                 lifecycleStages={lifecycleStages}

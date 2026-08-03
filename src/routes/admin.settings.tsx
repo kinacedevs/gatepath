@@ -26,7 +26,12 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { DEFAULT_PIPELINE_LABELS, savePipelineLabelsFn } from "@/lib/pipelineLabelsActions";
+import {
+  DEFAULT_PIPELINE_LABELS,
+  savePipelineLabelsFn,
+  savePipelineStageFn,
+  deactivatePipelineStageFn,
+} from "@/lib/pipelineLabelsActions";
 import { saveMessageTemplateFn, resetMessageTemplateFn } from "@/lib/messageTemplateActions";
 import { saveFxRatesFn } from "@/lib/fxRateActions";
 import { exportTableCsvFn } from "@/lib/dataExportActions";
@@ -35,7 +40,7 @@ import {
   deactivateCustomFieldDefinitionFn,
 } from "@/lib/customFieldActions";
 import { CURRENCY_RATES, CURRENCIES, type Currency } from "@/lib/currency";
-import type { MessageTemplate, CustomFieldDefinition } from "@/lib/types";
+import type { MessageTemplate, CustomFieldDefinition, PipelineStage } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +60,6 @@ const ROLE_TONE = {
 } as const;
 
 const ROADMAP_ITEMS = [
-  "Full pipeline restructuring (add/remove/reorder stages, not just relabel)",
   "Scheduled/automatic refresh (backups, FX rates) — needs the Automation/n8n module",
 ];
 
@@ -84,6 +88,17 @@ function SystemSettings() {
 
   const [pipelineSaving, setPipelineSaving] = useState(false);
   const [pipelineMsg, setPipelineMsg] = useState<string | null>(null);
+
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
+  const [stageDialogOpen, setStageDialogOpen] = useState(false);
+  const [editingStageId, setEditingStageId] = useState<string | null>(null);
+  const [stageBucket, setStageBucket] = useState<"pending" | "reviewed" | "approved" | "rejected">(
+    "pending",
+  );
+  const [stageLabel, setStageLabel] = useState("");
+  const [stageOrder, setStageOrder] = useState(0);
+  const [stageSaving, setStageSaving] = useState(false);
+  const [stageMsg, setStageMsg] = useState<string | null>(null);
 
   const [editingTemplateKey, setEditingTemplateKey] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState("");
@@ -115,10 +130,11 @@ function SystemSettings() {
 
   const loadData = async () => {
     setLoading(true);
-    const [bannersRes, templatesRes, customFieldsRes] = await Promise.all([
+    const [bannersRes, templatesRes, customFieldsRes, pipelineStagesRes] = await Promise.all([
       supabase.from("site_banners").select("*").in("id", ["pipeline_labels", "fx_rates"]),
       supabase.from("message_templates").select("*").order("name"),
       supabase.from("custom_field_definitions").select("*").order("display_order"),
+      supabase.from("pipeline_stages").select("*").order("display_order"),
     ]);
 
     const banners = (bannersRes.data as { id: string; data: any }[]) ?? [];
@@ -133,6 +149,7 @@ function SystemSettings() {
 
     setSavedTemplates((templatesRes.data as MessageTemplate[]) ?? []);
     setCustomFields((customFieldsRes.data as CustomFieldDefinition[]) ?? []);
+    setPipelineStages((pipelineStagesRes.data as PipelineStage[]) ?? []);
     setLoading(false);
   };
 
@@ -155,6 +172,83 @@ function SystemSettings() {
     });
     setPipelineMsg(result.success ? "Saved." : "Error: " + result.error);
     setPipelineSaving(false);
+  };
+
+  const resetStageForm = () => {
+    setEditingStageId(null);
+    setStageBucket("pending");
+    setStageLabel("");
+    setStageOrder(0);
+    setStageMsg(null);
+  };
+
+  const openCreateStage = (bucket: "pending" | "reviewed" | "approved" | "rejected") => {
+    resetStageForm();
+    setStageBucket(bucket);
+    setStageOrder(pipelineStages.filter((s) => s.bucket === bucket && s.is_active).length);
+    setStageDialogOpen(true);
+  };
+
+  const openEditStage = (stage: PipelineStage) => {
+    setEditingStageId(stage.id);
+    setStageBucket(stage.bucket);
+    setStageLabel(stage.label);
+    setStageOrder(stage.display_order);
+    setStageMsg(null);
+    setStageDialogOpen(true);
+  };
+
+  const submitStage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stageLabel.trim()) {
+      setStageMsg("Label is required.");
+      return;
+    }
+    setStageSaving(true);
+    setStageMsg(null);
+    const token = await getAccessToken();
+    if (!token) {
+      setStageMsg("Your session expired — please sign in again.");
+      setStageSaving(false);
+      return;
+    }
+    const result = await (savePipelineStageFn as any)({
+      data: {
+        callerAccessToken: token,
+        stageId: editingStageId ?? undefined,
+        bucket: stageBucket,
+        label: stageLabel.trim(),
+        displayOrder: stageOrder,
+      },
+    });
+    if (!result.success) {
+      setStageMsg("Error: " + result.error);
+    } else {
+      setStageDialogOpen(false);
+      resetStageForm();
+      loadData();
+    }
+    setStageSaving(false);
+  };
+
+  const deactivateStage = async (id: string) => {
+    if (
+      !confirm(
+        "Deactivate this stage? Any leads currently in it will move back to its bucket's main column.",
+      )
+    ) {
+      return;
+    }
+    const token = await getAccessToken();
+    if (!token) {
+      setStageMsg("Your session expired — please sign in again.");
+      return;
+    }
+    const result = await (deactivatePipelineStageFn as any)({
+      data: { callerAccessToken: token, stageId: id },
+    });
+    if (!result.success) setStageMsg("Error: " + result.error);
+    else loadData();
   };
 
   const openTemplateEditor = (key: string) => {
@@ -511,6 +605,82 @@ function SystemSettings() {
               </form>
             )}
           </SectionCard>
+
+          <SectionCard title="Pipeline Stages" className="mt-6">
+            <p className="text-[13px] text-on-surface-variant mb-4">
+              Optional custom stages inside each status bucket — real add/remove/reorder, shown as
+              their own columns on the Leads Kanban. The 4 buckets and every screen's underlying
+              write logic stay exactly as they are; a stage is just a finer position within one.
+            </p>
+            {!canWrite ? (
+              <EmptyState title="Pipeline stages are restricted to the CEO and managers." />
+            ) : loading ? (
+              <Skeleton className="h-40 rounded-xl" />
+            ) : (
+              <div className="flex flex-col gap-5">
+                {(["pending", "reviewed", "approved", "rejected"] as const).map((bucket) => {
+                  const bucketStages = pipelineStages
+                    .filter((s) => s.bucket === bucket && s.is_active)
+                    .sort((a, b) => a.display_order - b.display_order);
+                  return (
+                    <div key={bucket}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-on-surface uppercase tracking-wide">
+                          {pipelineLabels[bucket]}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openCreateStage(bucket)}
+                          className="flex items-center gap-1 text-[12px] text-secondary underline"
+                        >
+                          <Plus size={12} /> Add Stage
+                        </button>
+                      </div>
+                      {bucketStages.length === 0 ? (
+                        <p className="text-[12px] text-on-surface-variant pl-1">
+                          No custom stages — leads in {pipelineLabels[bucket]} show in one column.
+                        </p>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          {bucketStages.map((stage) => (
+                            <div
+                              key={stage.id}
+                              className="flex items-center justify-between p-2.5 bg-surface-container-low rounded-lg"
+                            >
+                              <span className="text-[13px] text-primary-container">
+                                {stage.label}{" "}
+                                <span className="text-[11px] text-on-surface-variant">
+                                  (order {stage.display_order})
+                                </span>
+                              </span>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditStage(stage)}
+                                  className="text-xs text-secondary underline"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deactivateStage(stage.id)}
+                                  className="p-1 rounded-lg text-error hover:bg-error/10 transition-colors"
+                                  title="Deactivate"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {stageMsg && <p className="text-[13px] text-on-surface">{stageMsg}</p>}
+              </div>
+            )}
+          </SectionCard>
         </TabsContent>
 
         {/* ── MESSAGE TEMPLATES ── */}
@@ -764,6 +934,71 @@ function SystemSettings() {
           </SectionCard>
         </TabsContent>
       </Tabs>
+
+      {/* ══════ MODAL: CREATE/EDIT PIPELINE STAGE ══════ */}
+      <Dialog
+        open={stageDialogOpen}
+        onOpenChange={(open) => {
+          setStageDialogOpen(open);
+          if (!open) resetStageForm();
+        }}
+      >
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle>{editingStageId ? "Edit Stage" : "Add Stage"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitStage} className="flex flex-col gap-4">
+            <select
+              value={stageBucket}
+              onChange={(e) =>
+                setStageBucket(e.target.value as "pending" | "reviewed" | "approved" | "rejected")
+              }
+              className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none"
+            >
+              {(["pending", "reviewed", "approved", "rejected"] as const).map((bucket) => (
+                <option key={bucket} value={bucket}>
+                  {pipelineLabels[bucket]}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={stageLabel}
+              onChange={(e) => setStageLabel(e.target.value)}
+              placeholder="Stage name (e.g. Site Visit Booked)"
+              className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none"
+            />
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                Order within this bucket
+              </label>
+              <input
+                type="number"
+                value={stageOrder}
+                onChange={(e) => setStageOrder(Number(e.target.value))}
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-md py-2.5 px-3 outline-none"
+              />
+            </div>
+            {stageMsg && <p className="text-[13px] text-on-surface">{stageMsg}</p>}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <button
+                type="button"
+                onClick={() => setStageDialogOpen(false)}
+                className="px-4 py-2 rounded-lg border border-outline-variant/40 text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={stageSaving}
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold inline-flex items-center gap-1.5"
+              >
+                {stageSaving && <Loader2 size={13} className="animate-spin" />} Save Stage
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* ══════ MODAL: CREATE/EDIT CUSTOM FIELD ══════ */}
       <Dialog

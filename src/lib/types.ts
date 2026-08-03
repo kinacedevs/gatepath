@@ -143,6 +143,10 @@ export type Inquiry = {
    * Added migration 0021. */
   custom_fields: Record<string, string> | null;
   status: "pending" | "reviewed" | "approved" | "rejected";
+  /** Optional finer-grained position within `status`'s bucket — never a
+   * replacement for status itself. null = no custom stage assigned (the
+   * bucket's own base column). Added migration 0026. */
+  pipeline_stage_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -345,6 +349,22 @@ export type Goal = {
   period_type: "month" | "quarter";
   period_start: string;
   target_value: number;
+  created_by_email: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * A custom sub-stage within one of inquiries.status's 4 fixed buckets —
+ * never a replacement for status itself. Added migration 0026.
+ */
+export type PipelineStage = {
+  id: string;
+  bucket: "pending" | "reviewed" | "approved" | "rejected";
+  label: string;
+  display_order: number;
+  is_active: boolean;
   created_by_email: string | null;
   created_by_name: string | null;
   created_at: string;
@@ -579,6 +599,11 @@ export type Database = {
         Row: Goal;
         Insert: Omit<Goal, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<Goal, "id" | "created_at" | "updated_at">>;
+      };
+      pipeline_stages: {
+        Row: PipelineStage;
+        Insert: Omit<PipelineStage, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<PipelineStage, "id" | "created_at" | "updated_at">>;
       };
       api_keys: {
         Row: ApiKey;
