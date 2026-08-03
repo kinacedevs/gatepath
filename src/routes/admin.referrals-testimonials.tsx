@@ -248,7 +248,7 @@ function ReferralsAndTestimonials() {
           <p className="text-body-md text-on-surface-variant">
             "Handover-eligible" means fully paid and finalized — the literal title-deed handover
             isn't independently tracked yet. Review submitted testimonials in{" "}
-            <Link to="/admin/site-content" className="text-secondary underline">
+            <Link to="/admin/site-content" className="text-primary underline">
               Site Content → Testimonials
             </Link>
             .

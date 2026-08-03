@@ -451,7 +451,7 @@ function AdminDashboard() {
             </h2>
             <Link
               to="/admin/plots"
-              className="px-4 py-2 border border-secondary text-secondary font-label-md text-label-md rounded-lg hover:bg-secondary-fixed transition-colors"
+              className="px-4 py-2 border border-primary text-primary font-label-md text-label-md rounded-lg hover:bg-secondary-fixed transition-colors"
             >
               Manage Inventory
             </Link>
@@ -498,7 +498,7 @@ function AdminDashboard() {
             <h2 className="font-headline-md text-headline-md text-primary font-bold">Top Agents</h2>
             <Link
               to="/admin/agents"
-              className="text-[12px] text-secondary font-label-md hover:underline"
+              className="text-[12px] text-primary font-label-md hover:underline"
             >
               View All
             </Link>
@@ -528,7 +528,7 @@ function AdminDashboard() {
             </h2>
             <Link
               to="/admin/inquiries"
-              className="text-[12px] text-secondary font-label-md hover:underline"
+              className="text-[12px] text-primary font-label-md hover:underline"
             >
               View All
             </Link>

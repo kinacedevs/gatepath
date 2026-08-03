@@ -306,7 +306,7 @@ function AgentPerformance() {
       header: "Revenue Contribution",
       accessorFn: (row) => row.revenue,
       cell: (info) => (
-        <span className="font-semibold text-secondary">
+        <span className="font-semibold text-primary">
           {formatFromKes(info.getValue() as number, "KES")}
         </span>
       ),

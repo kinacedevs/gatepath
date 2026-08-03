@@ -673,7 +673,7 @@ function LandInventory() {
         header: "Price",
         cell: (ctx) =>
           ctx.getValue() > 0 ? (
-            <span className="font-semibold text-secondary">
+            <span className="font-semibold text-primary">
               {formatFromKes(ctx.getValue(), "KES")}
             </span>
           ) : (
@@ -1033,13 +1033,13 @@ function LandInventory() {
                     <td className="py-2.5 pr-4 font-semibold">
                       {size.label}
                       {size.is_default && (
-                        <span className="ml-2 text-[10px] text-secondary font-bold uppercase">
+                        <span className="ml-2 text-[10px] text-primary font-bold uppercase">
                           Default
                         </span>
                       )}
                     </td>
                     <td className="py-2.5 pr-4">{size.area_ha ? `${size.area_ha} ha` : "—"}</td>
-                    <td className="py-2.5 pr-4 font-semibold text-secondary">
+                    <td className="py-2.5 pr-4 font-semibold text-primary">
                       {formatFromKes(size.cash_price, "KES")}
                     </td>
                     <td className="py-2.5 pr-4">

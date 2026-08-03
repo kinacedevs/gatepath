@@ -364,7 +364,7 @@ function PropertyMatching() {
                               <div className="text-[12px] font-semibold text-primary-container">
                                 {m.phase.name} · Plot #{m.plot.plot_number}
                               </div>
-                              <div className="text-[13px] font-bold text-secondary mt-0.5">
+                              <div className="text-[13px] font-bold text-primary mt-0.5">
                                 {formatFromKes(m.cashPriceKes, pref.stated_currency as Currency)}
                               </div>
                             </div>

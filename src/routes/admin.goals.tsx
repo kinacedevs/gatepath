@@ -328,7 +328,7 @@ function GoalsAndQuotas() {
                 setEditingGoal(row.original);
                 setEditTargetValue(String(row.original.target));
               }}
-              className="text-xs text-secondary underline"
+              className="text-xs text-primary underline"
             >
               Edit Target
             </button>

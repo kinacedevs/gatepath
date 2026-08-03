@@ -239,7 +239,7 @@ function ReportsAndAnalytics() {
                       <td className="px-4 py-2.5 text-[13px] text-on-surface">
                         {s.conversionPct}%
                       </td>
-                      <td className="px-4 py-2.5 text-[13px] font-semibold text-secondary">
+                      <td className="px-4 py-2.5 text-[13px] font-semibold text-primary">
                         {formatFromKes(s.revenue, "KES")}
                       </td>
                       <td className="px-4 py-2.5 text-[13px] text-on-surface-variant">

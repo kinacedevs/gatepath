@@ -231,7 +231,7 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
                 href={`https://maps.google.com/?q=${gpsCoords.lat},${gpsCoords.lng}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[12px] text-secondary underline"
+                className="text-[12px] text-primary underline"
               >
                 View on Map
               </a>
@@ -293,7 +293,7 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
                         href={`https://maps.google.com/?q=${entry.latitude},${entry.longitude}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-secondary underline inline-flex items-center gap-1 mt-0.5"
+                        className="text-[11px] text-primary underline inline-flex items-center gap-1 mt-0.5"
                       >
                         <MapPin size={11} /> View on Map
                       </a>

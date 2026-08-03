@@ -217,7 +217,7 @@ function ClientDirectory() {
       header: "Lifetime Value",
       accessorFn: (row) => row.lifetimeValue,
       cell: (info) => (
-        <span className="font-semibold text-secondary">
+        <span className="font-semibold text-primary">
           {formatFromKes(info.getValue() as number, "KES")}
         </span>
       ),
@@ -360,7 +360,7 @@ function ClientDirectory() {
                 <Link
                   to="/admin/plots/$plotId"
                   params={{ plotId: p.plotId }}
-                  className="text-[11px] font-bold text-secondary hover:underline"
+                  className="text-[11px] font-bold text-primary hover:underline"
                 >
                   Review &amp; Log Check
                 </Link>

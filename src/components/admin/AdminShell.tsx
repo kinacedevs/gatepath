@@ -19,7 +19,6 @@ import {
   Megaphone,
   UserCheck,
   Settings,
-  Shield,
   LogOut,
   Plus,
   BarChart2,
@@ -38,6 +37,7 @@ import {
   Webhook,
   type LucideIcon,
 } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
 import {
   Sidebar,
   SidebarContent,
@@ -143,14 +143,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <Sidebar collapsible="icon">
         <SidebarHeader className="px-4 py-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center shrink-0">
-              <Shield size={20} className="text-on-secondary-container" />
-            </div>
-            <div className="group-data-[collapsible=icon]:hidden">
-              <h1 className="font-headline-md text-headline-md font-bold text-sidebar-foreground tracking-tight">
+            <img
+              src={logoIcon}
+              alt="Gatepath Realtors"
+              className="w-12 h-12 shrink-0 object-contain"
+              style={{ filter: "drop-shadow(0 2px 6px rgba(232,160,32,0.3))" }}
+            />
+            <div className="group-data-[collapsible=icon]:hidden min-w-0">
+              <h1 className="font-serif font-bold text-[19px] leading-tight tracking-[0.02em] text-sidebar-foreground truncate">
                 Gatepath Realtors
               </h1>
-              <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/70">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/70">
                 CRM Dashboard
               </p>
             </div>
@@ -229,7 +232,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-gutter space-y-6 bg-background">{children}</div>
+        {/* overflow-x-hidden + min-w-0: without this, a wide child (the
+            Leads Kanban's horizontally-scrolling column strip, which can
+            now grow arbitrarily wide with custom pipeline stages) forces
+            this whole flex column — sidebar included — to grow and scroll
+            with it, instead of only its own inner strip scrolling. */}
+        <div className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-gutter space-y-6 bg-background">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

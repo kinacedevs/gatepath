@@ -223,7 +223,7 @@ function Commissions() {
                     : "",
                 );
               }}
-              className="text-xs text-secondary underline"
+              className="text-xs text-primary underline"
             >
               Edit
             </button>
@@ -242,7 +242,7 @@ function Commissions() {
       header: "Total Commission",
       accessorFn: (row) => row.totalCommissionKes,
       cell: (info) => (
-        <span className="font-semibold text-secondary">
+        <span className="font-semibold text-primary">
           {formatFromKes(info.getValue() as number, "KES")}
         </span>
       ),

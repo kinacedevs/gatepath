@@ -716,7 +716,7 @@ function LeadsPipeline() {
   );
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="flex flex-col h-full min-w-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="mb-6 flex justify-between items-end shrink-0 flex-wrap gap-3">
         <div>
           <h1 className="font-headline-md text-headline-md text-primary font-bold">
@@ -841,7 +841,12 @@ function LeadsPipeline() {
         </div>
       ) : (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="flex gap-4 flex-1 overflow-x-auto pb-5">
+          {/* min-w-0 on the parent (above) plus this being the only
+              overflow-x-auto in the tree means only this column strip ever
+              scrolls horizontally, however many stages get added — the
+              header, sidebar, and rest of the desktop screen stay put.
+              scroll-smooth softens wheel/trackpad horizontal scrolling. */}
+          <div className="flex gap-4 flex-1 min-w-0 overflow-x-auto overflow-y-hidden scroll-smooth pb-5">
             {columns.map((col) => (
               <KanbanColumn
                 key={col.key}

@@ -295,7 +295,7 @@ function PlotDetail() {
     return (
       <div className="text-center py-20">
         <p className="text-on-surface-variant text-[14px] mb-4">Plot not found.</p>
-        <Link to="/admin/plots" className="text-secondary font-semibold text-sm hover:underline">
+        <Link to="/admin/plots" className="text-primary font-semibold text-sm hover:underline">
           Back to Inventory
         </Link>
       </div>
@@ -307,17 +307,17 @@ function PlotDetail() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-4 border-b border-outline-variant/30">
         <div>
           <nav className="flex items-center gap-2 text-on-surface-variant text-[11px] uppercase tracking-widest font-bold mb-2">
-            <Link to="/admin/plots" className="hover:text-secondary flex items-center gap-1">
+            <Link to="/admin/plots" className="hover:text-primary flex items-center gap-1">
               <ChevronRight size={12} className="rotate-180" /> Inventory
             </Link>
             <span>/</span>
-            <span className="text-secondary">Plot Details</span>
+            <span className="text-primary">Plot Details</span>
           </nav>
           <h2 className="font-headline-lg text-headline-lg text-primary-container font-bold">
             Plot #{plot.plot_number} — {phase?.name || "Phase View"}
           </h2>
           <div className="flex items-center gap-3 mt-1 text-xs">
-            <span className="flex items-center gap-1 text-secondary font-bold">
+            <span className="flex items-center gap-1 text-primary font-bold">
               <MapPin size={14} /> {phase?.location || "Kenya Project Site"}
             </span>
             <span className="text-on-surface-variant">•</span>
@@ -385,7 +385,7 @@ function PlotDetail() {
                 />
               ) : (
                 <div className="text-center p-8 text-on-surface-variant">
-                  <MapPin size={48} className="mx-auto mb-3 opacity-40 text-secondary" />
+                  <MapPin size={48} className="mx-auto mb-3 opacity-40 text-primary" />
                   <p className="font-headline-md text-headline-md font-bold text-primary">
                     Plot #{plot.plot_number}
                   </p>
@@ -398,7 +398,7 @@ function PlotDetail() {
           <div className="grid grid-cols-3 gap-4">
             <div className="luxury-card p-5 rounded-xl bg-white">
               <p className="text-label-md text-on-surface-variant mb-1">Asking Price</p>
-              <h3 className="font-stat-lg text-stat-lg text-secondary">
+              <h3 className="font-stat-lg text-stat-lg text-primary">
                 {plot.plot_sizes?.cash_price
                   ? formatFromKes(plot.plot_sizes.cash_price, "KES")
                   : "Not set"}
@@ -467,7 +467,7 @@ function PlotDetail() {
                     : "opacity-50 pointer-events-none"
                 }`}
               >
-                <FileText size={18} className="text-secondary shrink-0" />
+                <FileText size={18} className="text-primary shrink-0" />
                 <span className="text-xs font-medium">
                   {phase?.brochure_url ? "Phase Brochure.pdf" : "No brochure uploaded"}
                 </span>
@@ -482,7 +482,7 @@ function PlotDetail() {
                     : "opacity-50 pointer-events-none"
                 }`}
               >
-                <MapIcon size={18} className="text-secondary shrink-0" />
+                <MapIcon size={18} className="text-primary shrink-0" />
                 <span className="text-xs font-medium">
                   {phase?.plot_map_url ? "Plot Map.pdf" : "No plot map uploaded"}
                 </span>
@@ -496,7 +496,7 @@ function PlotDetail() {
                 </h4>
                 <button
                   onClick={() => setLoggingVerification(true)}
-                  className="flex items-center gap-1 text-[11px] font-bold text-secondary hover:underline"
+                  className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
                 >
                   <Plus size={13} /> Log a check
                 </button>
@@ -607,7 +607,7 @@ function PlotDetail() {
                       </span>
                       <a
                         href={`mailto:${lead.client_email}`}
-                        className="flex items-center gap-1 hover:text-secondary truncate"
+                        className="flex items-center gap-1 hover:text-primary truncate"
                       >
                         <Mail size={11} /> {lead.client_email}
                       </a>

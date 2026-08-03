@@ -631,7 +631,7 @@ function SystemSettings() {
                         <button
                           type="button"
                           onClick={() => openCreateStage(bucket)}
-                          className="flex items-center gap-1 text-[12px] text-secondary underline"
+                          className="flex items-center gap-1 text-[12px] text-primary underline"
                         >
                           <Plus size={12} /> Add Stage
                         </button>
@@ -657,7 +657,7 @@ function SystemSettings() {
                                 <button
                                   type="button"
                                   onClick={() => openEditStage(stage)}
-                                  className="text-xs text-secondary underline"
+                                  className="text-xs text-primary underline"
                                 >
                                   Edit
                                 </button>
@@ -714,7 +714,7 @@ function SystemSettings() {
                           <button
                             type="button"
                             onClick={() => openTemplateEditor(def.key)}
-                            className="text-xs text-secondary underline"
+                            className="text-xs text-primary underline"
                           >
                             Edit
                           </button>
@@ -912,7 +912,7 @@ function SystemSettings() {
                       <button
                         type="button"
                         onClick={() => openEditField(field)}
-                        className="text-xs text-secondary underline"
+                        className="text-xs text-primary underline"
                       >
                         Edit
                       </button>
