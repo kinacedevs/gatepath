@@ -76,6 +76,10 @@ function NotificationsCenter() {
 
   const [feedbackBookingId, setFeedbackBookingId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
+  // Shared by both dialogs below — only one is ever open at a time, and
+  // blocks a fast double-click on "Log It"/"Save Feedback" from firing
+  // logInteractionFn/logBookingFeedbackFn twice.
+  const [dialogSubmitting, setDialogSubmitting] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -129,9 +133,13 @@ function NotificationsCenter() {
 
   const submitQuickLog = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loggingInquiryId) return;
+    if (!loggingInquiryId || dialogSubmitting) return;
+    setDialogSubmitting(true);
     const accessToken = await getAccessToken();
-    if (!accessToken) return;
+    if (!accessToken) {
+      setDialogSubmitting(false);
+      return;
+    }
     await logInteractionFn({
       data: {
         callerAccessToken: accessToken,
@@ -141,6 +149,7 @@ function NotificationsCenter() {
         notes: quickNotes.trim(),
       },
     });
+    setDialogSubmitting(false);
     setLoggingInquiryId(null);
     setToast("Interaction logged.");
     loadData();
@@ -153,9 +162,13 @@ function NotificationsCenter() {
 
   const submitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!feedbackBookingId || !feedbackText.trim()) return;
+    if (!feedbackBookingId || !feedbackText.trim() || dialogSubmitting) return;
+    setDialogSubmitting(true);
     const accessToken = await getAccessToken();
-    if (!accessToken) return;
+    if (!accessToken) {
+      setDialogSubmitting(false);
+      return;
+    }
     await logBookingFeedbackFn({
       data: {
         callerAccessToken: accessToken,
@@ -163,6 +176,7 @@ function NotificationsCenter() {
         feedback: feedbackText.trim(),
       },
     });
+    setDialogSubmitting(false);
     setFeedbackBookingId(null);
     setToast("Feedback logged.");
     loadData();
@@ -277,6 +291,9 @@ function NotificationsCenter() {
               icon={CATEGORY_ICON[item.category]}
               actionLabel={actionLabel(item)}
               onAction={() => runAction(item)}
+              disabled={
+                item.category === "expiring_grace_period" && busyId === item.relatedInquiryId
+              }
             />
           ))}
         </div>
@@ -317,9 +334,10 @@ function NotificationsCenter() {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold"
+                disabled={dialogSubmitting}
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-50"
               >
-                Log It
+                {dialogSubmitting ? "Logging…" : "Log It"}
               </button>
             </DialogFooter>
           </form>
@@ -354,9 +372,10 @@ function NotificationsCenter() {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold"
+                disabled={dialogSubmitting}
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-50"
               >
-                Save Feedback
+                {dialogSubmitting ? "Saving…" : "Save Feedback"}
               </button>
             </DialogFooter>
           </form>

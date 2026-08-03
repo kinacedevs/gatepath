@@ -18,6 +18,7 @@ export function EscalationCard({
   actionLabel,
   onAction,
   icon: Icon,
+  disabled = false,
 }: {
   title: string;
   description: string;
@@ -25,6 +26,9 @@ export function EscalationCard({
   actionLabel: string;
   onAction: () => void;
   icon?: LucideIcon;
+  /** Blocks a fast double-click from firing onAction twice (e.g. two
+   * reminder emails from one click) — the caller owns the busy state. */
+  disabled?: boolean;
 }) {
   const ToneIcon = Icon ?? (urgency === "error" ? AlertOctagon : AlertTriangle);
 
@@ -57,8 +61,9 @@ export function EscalationCard({
       </div>
       <button
         onClick={onAction}
+        disabled={disabled}
         className={cn(
-          "shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-bold whitespace-nowrap transition-colors",
+          "shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-bold whitespace-nowrap transition-colors disabled:opacity-50 disabled:pointer-events-none",
           urgency === "error"
             ? "bg-error text-white hover:opacity-90"
             : "bg-warning-container text-on-warning-container hover:opacity-90",

@@ -70,11 +70,14 @@ export function PlotPanel({
           <h4 className="font-serif font-semibold text-[22px] text-primary">Plot Reserved</h4>
           <p className="mt-3 text-[14px] text-muted-foreground leading-[1.7]">
             This plot has been reserved by another buyer. However, reservations are sometimes
-            released. Join our waitlist to be notified first.
+            released. Let us know you're interested and we'll reach out if it opens up.
           </p>
-          <button className="mt-5 w-full border-2 border-[#F59E0B] text-[#92400E] font-semibold text-[14px] py-3 rounded-lg hover:bg-[#FEF3C7] transition-colors">
-            Join Waitlist for This Plot
-          </button>
+          <a
+            href={`/inquire?phase=${phase.slug}&phaseName=${encodeURIComponent(phase.name)}&phaseNumber=${phase.phaseNumber || ""}&location=${encodeURIComponent(phase.location + ", " + phase.region)}&intent=free_visit`}
+            className="mt-5 flex items-center justify-center w-full border-2 border-[#F59E0B] text-[#92400E] font-semibold text-[14px] py-3 rounded-lg hover:bg-[#FEF3C7] transition-colors"
+          >
+            Notify Me If This Plot Opens Up
+          </a>
           <div className="my-5 h-px bg-stone" />
           <p className="text-[13px] text-muted-foreground mb-3">
             Or explore other available plots in this phase:
