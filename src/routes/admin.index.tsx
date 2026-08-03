@@ -126,7 +126,8 @@ function AdminDashboard() {
         supabase
           .from("bookings")
           .select("*", { count: "exact", head: true })
-          .eq("visit_date", today),
+          .eq("visit_date", today)
+          .neq("status", "cancelled"),
         supabase.from("phases").select("available_count, booked_count, sold_count"),
         supabase.from("inquiries").select("*"),
         supabase

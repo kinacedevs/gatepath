@@ -31,8 +31,14 @@ export const Route = createFileRoute("/about")({
   }),
 });
 
+const DEFAULT_OFFICE_CONTACT = {
+  addressLine: "1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi",
+  phone: "+254 799 488 488",
+};
+
 function AboutPage() {
   const [staffMembers, setStaffMembers] = useState<TeamProfile[]>([]);
+  const [officeContact, setOfficeContact] = useState(DEFAULT_OFFICE_CONTACT);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -44,6 +50,32 @@ function AboutPage() {
       setStaffMembers((data as TeamProfile[]) ?? []);
     };
     fetchTeam();
+
+    // Same site_banners "contact_info" row Footer.tsx already reads — this
+    // block previously hardcoded the address/phone independently, so an
+    // edit in Site Content never reached this page.
+    const fetchContactInfo = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("site_banners")
+          .select("data")
+          .eq("id", "contact_info")
+          .maybeSingle();
+        const d = data?.data;
+        if (d) {
+          setOfficeContact({
+            addressLine:
+              d.address_line1 && d.address_line2
+                ? `${d.address_line1}, ${d.address_line2}`
+                : DEFAULT_OFFICE_CONTACT.addressLine,
+            phone: d.phone || DEFAULT_OFFICE_CONTACT.phone,
+          });
+        }
+      } catch {
+        /* defaults already showing */
+      }
+    };
+    fetchContactInfo();
   }, []);
 
   const milestones = [
@@ -226,12 +258,11 @@ function AboutPage() {
             </div>
             <div className="text-xs text-slate-600 space-y-1">
               <p className="flex items-center gap-2">
-                <MapPin size={14} className="text-accent" /> 1st Floor, CNM Centre, Ruiru Eastern
-                Bypass, Nairobi
+                <MapPin size={14} className="text-accent" /> {officeContact.addressLine}
               </p>
               <p className="flex items-center gap-2">
-                <Phone size={14} className="text-accent" /> +254 799 488 488 | Office Hours: Mon–Sat
-                (8am – 6pm)
+                <Phone size={14} className="text-accent" /> {officeContact.phone} | Office Hours:
+                Mon–Sat (8am – 6pm)
               </p>
             </div>
           </div>

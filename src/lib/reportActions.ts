@@ -116,5 +116,8 @@ export const sendExecutiveReportFn = createServerFn({ method: "POST" })
     const emailHtml = renderTemplate(template.body, vars);
 
     const emailResult = await sendResendEmail(ceoRow.email, subject, emailHtml);
+    if (!emailResult.success) {
+      return { success: false, error: emailResult.error ?? "Failed to send the report email." };
+    }
     return { success: true, emailResult };
   });

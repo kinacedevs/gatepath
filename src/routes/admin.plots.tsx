@@ -39,6 +39,7 @@ import { updatePlotStatusFn } from "@/lib/plotActions";
 import {
   createPhaseFn,
   updatePhaseDetailsFn,
+  updatePhaseYoutubeFn,
   setPhaseArchivedFn,
   createPlotFn,
   setPlotArchivedFn,
@@ -302,29 +303,43 @@ function LandInventory() {
     }
   };
 
+  const getAccessToken = async (): Promise<string | null> => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    return sessionData.session?.access_token ?? null;
+  };
+
   const handleSavePhaseYoutube = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPhaseId) return;
+    if (adminRole === "agent") {
+      setPhaseSaveMsg("Only the CEO or a manager can edit phase media.");
+      return;
+    }
     setPhaseSaveLoading(true);
     setPhaseSaveMsg(null);
 
-    const { error } = await (supabase as any)
-      .from("phases")
-      .update({ youtube_video_url: editingPhaseYoutube.trim() || null })
-      .eq("id", selectedPhaseId);
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      setPhaseSaveMsg("Session expired — please refresh and sign in again.");
+      setPhaseSaveLoading(false);
+      return;
+    }
 
-    if (error) {
-      setPhaseSaveMsg("Error saving video URL: " + error.message);
+    const result = await updatePhaseYoutubeFn({
+      data: {
+        callerAccessToken: accessToken,
+        phaseId: selectedPhaseId,
+        youtubeVideoUrl: editingPhaseYoutube.trim() || null,
+      },
+    });
+
+    if (!result.success) {
+      setPhaseSaveMsg("Error saving video URL: " + result.error);
     } else {
       setPhaseSaveMsg("YouTube video URL saved successfully!");
       loadData();
     }
     setPhaseSaveLoading(false);
-  };
-
-  const getAccessToken = async (): Promise<string | null> => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    return sessionData.session?.access_token ?? null;
   };
 
   const resetNewPhaseForm = () => {

@@ -157,6 +157,40 @@ export const updatePhaseDetailsFn = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+/**
+ * The one phase-edit action admin.plots.tsx keeps for itself (rather than
+ * Campaigns & Content's Media Manager, which owns every other phase media
+ * field) — previously a raw, ungated (supabase as any) client write with no
+ * CEO/manager check and no audit trail, the one write path on that screen
+ * left out of this file's gate by omission. Fixed to match every sibling
+ * action here.
+ */
+export const updatePhaseYoutubeFn = createServerFn({ method: "POST" })
+  .validator(
+    (d: { callerAccessToken: string; phaseId: string; youtubeVideoUrl: string | null }) => d,
+  )
+  .handler(async ({ data }) => {
+    const caller = await verifyManagerCaller(data.callerAccessToken);
+    if (!caller.ok) return { success: false, error: caller.error };
+
+    const { error } = await (caller.serviceClient as any)
+      .from("phases")
+      .update({ youtube_video_url: data.youtubeVideoUrl })
+      .eq("id", data.phaseId);
+
+    if (error) return { success: false, error: error.message };
+
+    await logAuditEvent(caller.serviceClient, {
+      actorEmail: caller.caller.email,
+      actorName: caller.caller.full_name,
+      action: "phase.update_youtube",
+      entityType: "phases",
+      entityId: data.phaseId,
+    });
+
+    return { success: true };
+  });
+
 export const setPhaseArchivedFn = createServerFn({ method: "POST" })
   .validator((d: { callerAccessToken: string; phaseId: string; archived: boolean }) => d)
   .handler(async ({ data }) => {

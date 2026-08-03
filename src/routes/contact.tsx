@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
@@ -19,6 +19,18 @@ function sanitize(val: string): string {
   return val.replace(/[<>"'&]/g, "").trim();
 }
 
+// Same site_banners "contact_info" row Footer.tsx/WhatsAppButton.tsx/
+// CTABanner.tsx already read — this is the page most directly about
+// contact info, but it never queried it at all, so an edit in Site
+// Content updated every other surface except this one.
+const DEFAULT_CONTACT = {
+  phone: "+254 799 488 488",
+  whatsappNumber: "254799488488",
+  email: "info@gatepathrealtors.com",
+  addressLine1: "CNM Centre, 1st Floor",
+  addressLine2: "Ruiru Eastern Bypass, Nairobi, Kenya",
+};
+
 export const Route = createFileRoute("/contact")({
   component: ContactPage,
   head: () => ({
@@ -37,6 +49,7 @@ function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [contact, setContact] = useState(DEFAULT_CONTACT);
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
@@ -44,6 +57,33 @@ function ContactPage() {
     subject: "Inquiry about Plots",
     message: "",
   });
+
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("site_banners")
+          .select("data")
+          .eq("id", "contact_info")
+          .maybeSingle();
+        // Only override a field if the CEO has actually set it — otherwise
+        // keep the matching default, no flash-to-empty.
+        const d = data?.data;
+        if (d) {
+          setContact({
+            phone: d.phone || DEFAULT_CONTACT.phone,
+            whatsappNumber: d.whatsapp_number || DEFAULT_CONTACT.whatsappNumber,
+            email: d.email || DEFAULT_CONTACT.email,
+            addressLine1: d.address_line1 || DEFAULT_CONTACT.addressLine1,
+            addressLine2: d.address_line2 || DEFAULT_CONTACT.addressLine2,
+          });
+        }
+      } catch {
+        // Defaults are already showing — nothing to do.
+      }
+    };
+    fetchContactInfo();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,15 +151,15 @@ function ContactPage() {
               </div>
               <div className="pt-2 border-t border-slate-100 space-y-2">
                 <a
-                  href="https://wa.me/254799488488?text=Hello%20Gatepath%20Realtors%2C%20I%20would%20like%20to%20inquire."
+                  href={`https://wa.me/${contact.whatsappNumber}?text=Hello%20Gatepath%20Realtors%2C%20I%20would%20like%20to%20inquire.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-bold text-[#25D366] hover:underline"
                 >
-                  <MessageCircle size={16} /> WhatsApp: +254 799 488 488
+                  <MessageCircle size={16} /> WhatsApp: {contact.phone}
                 </a>
                 <p className="text-xs font-semibold text-slate-700 flex items-center gap-2">
-                  <Phone size={14} className="text-accent" /> Phone: +254 799 488 488
+                  <Phone size={14} className="text-accent" /> Phone: {contact.phone}
                 </p>
               </div>
             </div>
@@ -141,14 +181,14 @@ function ContactPage() {
                 <p className="flex items-start gap-2">
                   <MapPin size={16} className="text-accent shrink-0 mt-0.5" />
                   <span>
-                    <strong>CNM Centre, 1st Floor</strong>
+                    <strong>{contact.addressLine1}</strong>
                     <br />
-                    Ruiru Eastern Bypass, Nairobi, Kenya
+                    {contact.addressLine2}
                   </span>
                 </p>
                 <p className="flex items-center gap-2 pt-1">
                   <Mail size={16} className="text-accent shrink-0" />
-                  <span>info@gatepathrealtors.com</span>
+                  <span>{contact.email}</span>
                 </p>
               </div>
             </div>

@@ -473,11 +473,13 @@ function GoalsAndQuotas() {
                       {a.full_name || a.email}
                     </option>
                   ))
-                : phases.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                : phases
+                    .filter((p) => (p as any).is_archived !== true)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
             </select>
 
             <select
