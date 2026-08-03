@@ -8,6 +8,7 @@ import { InquiryStepper } from "@/components/InquiryStepper";
 import { PlotSummaryCard } from "@/components/inquiry/PlotSummaryCard";
 import { useInquiry } from "@/context/InquiryContext";
 import { verifyPaymentFn } from "@/lib/paymentActions";
+import { computeInstallmentPricing } from "@/lib/pricing";
 
 const PAYSTACK_KEY = (import.meta.env?.VITE_PAYSTACK_PUBLIC_KEY ||
   "pk_test_b0065a39ea3c50c3b60c0ab7a84832b0ea31080a") as string;
@@ -60,22 +61,15 @@ function PaymentPage() {
   }, [totalPrice]);
 
   const { adjustedPrice, balance, monthly, totalPayable, pct } = useMemo(() => {
-    let surcharge = 0;
-    let discount = 0;
-
-    if (period === 0 || deposit >= totalPrice) {
-      discount = totalPrice * 0.05;
-    } else if (period === 3) {
-      surcharge = 30000;
-    } else if (period === 6) {
-      surcharge = 50000;
-    } else if (period === 12) {
-      surcharge = 100000;
-    }
-
-    const adj = totalPrice + surcharge - discount;
-    const bal = Math.max(0, adj - deposit);
-    const m = period > 0 && bal > 0 ? Math.ceil(bal / period) : 0;
+    const {
+      adjustedPrice: adj,
+      balance: bal,
+      monthlyPayment: m,
+    } = computeInstallmentPricing({
+      cashPrice: totalPrice,
+      depositAmount: deposit,
+      periodMonths: period,
+    });
 
     return {
       adjustedPrice: adj,
@@ -127,7 +121,7 @@ function PaymentPage() {
       callback: (response) => {
         setVerifying(true);
         (verifyPaymentFn as any)({
-          data: { reference: response.reference, inquiryId: form.inquiryId },
+          data: { reference: response.reference, inquiryId: form.inquiryId, periodMonths: period },
         })
           .then((result: any) => {
             setVerifying(false);
@@ -791,10 +785,7 @@ function PaymentPage() {
                             color: "var(--primary)",
                           }}
                         >
-                          <m.icon
-                            size={18}
-                            style={{ marginBottom: 4, color: "var(--primary)" }}
-                          />
+                          <m.icon size={18} style={{ marginBottom: 4, color: "var(--primary)" }} />
                           {m.label}
                         </button>
                       );

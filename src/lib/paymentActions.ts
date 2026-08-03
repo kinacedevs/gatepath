@@ -13,6 +13,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient } from "./supabaseAdmin";
 import { sendResendEmail, sendAfricaTalkingSms, getReservationEmailHtml } from "./notifications";
+import { recomputePhaseCounts } from "./plotActions";
+import { computeInstallmentPricing } from "./pricing";
 
 type PaystackVerifyData = {
   status: "success" | "failed" | "abandoned" | string;
@@ -51,7 +53,11 @@ async function verifyPaystackTransaction(reference: string): Promise<PaystackVer
  * safe to call more than once for the same reference (client retry, or a
  * future webhook landing on top of an already-processed client verify).
  */
-async function recordVerifiedPayment(params: { reference: string; inquiryId: string }) {
+async function recordVerifiedPayment(params: {
+  reference: string;
+  inquiryId: string;
+  periodMonths?: number;
+}) {
   const service = getServiceClient();
 
   const { data: existing } = await service
@@ -93,6 +99,8 @@ async function recordVerifiedPayment(params: { reference: string; inquiryId: str
         paystack_reference: params.reference,
         amount: amountKes,
         deposit_amount: amountKes,
+        loan_period_months:
+          params.periodMonths && params.periodMonths > 0 ? params.periodMonths : null,
         payment_method: paystackData.channel ?? null,
         currency: paystackData.currency ?? "KES",
         status: "success",
@@ -135,6 +143,45 @@ async function recordVerifiedPayment(params: { reference: string; inquiryId: str
         .from("offers")
         .insert({ inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false });
     }
+  }
+
+  // Real, final pricing lock-in. inquire.tsx's Step 1 price/deposit/
+  // balance/monthly_payment are a pre-checkout ESTIMATE — the buyer's
+  // actual deposit and installment period are only chosen later, at
+  // payment.tsx's checkout step. Recomputed here, server-side, from the
+  // plot's real cash price plus what Paystack actually confirms was paid
+  // (never trusted from the client), using the same formula payment.tsx
+  // itself uses (src/lib/pricing.ts) — so the price/balance/monthly figures
+  // that end up on the Offer Letter, Agreement, and Receipt are always
+  // what the buyer actually agreed to and paid, not a superseded guess.
+  if (isFirstPayment && typeof params.periodMonths === "number") {
+    const cashPrice = Number(inquiry.plot_price ?? inquiry.price ?? 0);
+    const { adjustedPrice, balance, monthlyPayment } = computeInstallmentPricing({
+      cashPrice,
+      depositAmount: amountKes,
+      periodMonths: params.periodMonths,
+    });
+
+    await (service as any)
+      .from("inquiries")
+      .update({
+        price: adjustedPrice,
+        deposit: amountKes,
+        balance,
+        monthly_payment: monthlyPayment,
+        payment_period_months: params.periodMonths,
+        terms_of_payment: params.periodMonths === 0 ? "cash" : "installment",
+      })
+      .eq("id", inquiry.id);
+
+    // Keep the in-memory copy in sync — the agreement-trigger check below
+    // and the confirmation email both need the real, just-locked-in price,
+    // not the stale value fetched before this update.
+    inquiry.price = adjustedPrice;
+    inquiry.deposit = amountKes;
+    inquiry.balance = balance;
+    inquiry.monthly_payment = monthlyPayment;
+    inquiry.payment_period_months = params.periodMonths;
   }
 
   const { data: successfulPayments } = await (service as any)
@@ -190,6 +237,12 @@ async function recordVerifiedPayment(params: { reference: string; inquiryId: str
         console.error(
           `[Payment] Plot conflict: inquiry ${inquiry.id}, phase ${inquiry.phase_slug}, plot #${inquiry.plot_number_ref}, payment ${payment.id}`,
         );
+      } else {
+        // The status flip above bypasses every other write path that keeps
+        // phases.total_plots/available_count/booked_count/sold_count in
+        // sync (updatePlotStatusFn, inventoryActions.ts) — without this,
+        // a real customer payment silently leaves those rollups stale.
+        await recomputePhaseCounts(service, (phase as any).id);
       }
     }
   }
@@ -221,7 +274,7 @@ async function recordVerifiedPayment(params: { reference: string; inquiryId: str
 }
 
 export const verifyPaymentFn = createServerFn({ method: "POST" })
-  .validator((d: { reference: string; inquiryId: string }) => d)
+  .validator((d: { reference: string; inquiryId: string; periodMonths?: number }) => d)
   .handler(async ({ data }) => {
     if (!data.reference || !data.inquiryId) {
       return { success: false as const, error: "Missing payment reference or inquiry id." };

@@ -53,11 +53,11 @@ function ReceiptDocumentPage() {
         }
 
         // Fetch custom branding
-        const { data: brandingData } = await ((supabase as any)
+        const { data: brandingData } = await (supabase as any)
           .from("site_banners")
           .select("data")
           .eq("id", "custom_branding")
-          .maybeSingle());
+          .maybeSingle();
 
         if (brandingData?.data) {
           if (brandingData.data.logo_url) setBrandingLogo(brandingData.data.logo_url);
@@ -65,7 +65,7 @@ function ReceiptDocumentPage() {
             setCompanyBrandingName(
               brandingData.data.company_name.toLowerCase().includes("limited")
                 ? brandingData.data.company_name
-                : `${brandingData.data.company_name} Limited`
+                : `${brandingData.data.company_name} Limited`,
             );
           }
         }
@@ -224,7 +224,7 @@ function ReceiptDocumentPage() {
                 <td className="py-4">
                   <span className="font-semibold text-primary">Property Reservation Deposit</span>
                   <p className="text-[12px] text-muted-foreground mt-0.5">
-                    Deposit to lock Plot #{inquiry.plot_number}
+                    Deposit to lock Plot #{inquiry.plot_number_ref}
                   </p>
                 </td>
                 <td className="py-4 text-right">
@@ -246,7 +246,7 @@ function ReceiptDocumentPage() {
                     </span>
                   </td>
                   <td className="py-3 text-right text-[12px] font-mono text-muted-foreground">
-                    Bal: KES {(inquiry.plot_price - payment.amount).toLocaleString()}
+                    Bal: KES {(inquiry.price - payment.amount).toLocaleString()}
                   </td>
                 </tr>
               )}

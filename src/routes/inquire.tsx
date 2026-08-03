@@ -13,6 +13,7 @@ import { InquiryStepper } from "@/components/InquiryStepper";
 import { PlotSummaryCard } from "@/components/inquiry/PlotSummaryCard";
 import { useInquiry } from "@/context/InquiryContext";
 import { supabase } from "@/lib/supabase";
+import { computeInstallmentPricing } from "@/lib/pricing";
 import type { CustomFieldDefinition } from "@/lib/types";
 
 type Search = {
@@ -316,12 +317,22 @@ function InquiryPage() {
     setBannerError(false);
     setLoading(true);
 
-    // Calculate payment figures
+    // Calculate payment figures — an ESTIMATE only, using the same shared
+    // formula payment.tsx's actual checkout step uses (src/lib/pricing.ts),
+    // so this preview doesn't disagree with what the buyer will see there.
+    // The real, final numbers (their actual chosen deposit/period) are
+    // recomputed and overwritten server-side by paymentActions.ts the
+    // moment payment is verified — this is only ever what's shown before
+    // that happens.
     const cashPrice = form.plotPrice;
-    const installmentPrice = cashPrice * 1.1; // 10% markup for installments if no DB value
-    const finalPrice = form.termsOfPayment === "cash" ? cashPrice : installmentPrice;
-    const deposit = Math.round(finalPrice * 0.3);
-    const balance = finalPrice - deposit - (form.discount || 0);
+    const periodMonthsEstimate = form.termsOfPayment === "cash" ? 0 : form.paymentPeriodMonths;
+    const deposit = Math.round(cashPrice * 0.3);
+    const { adjustedPrice: finalPrice, balance: preDiscountBalance } = computeInstallmentPricing({
+      cashPrice,
+      depositAmount: deposit,
+      periodMonths: periodMonthsEstimate,
+    });
+    const balance = preDiscountBalance - (form.discount || 0);
     const monthly =
       form.paymentPeriodMonths > 0 ? Math.round(balance / form.paymentPeriodMonths) : 0;
 

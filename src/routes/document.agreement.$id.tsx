@@ -76,12 +76,16 @@ function AgreementDocumentPage() {
           }
         }
 
+        // Ascending — the Agreement's "Deposit Date" clause means the buyer's
+        // FIRST payment, same as document.offer.$id.tsx. An installment
+        // buyer's most recent payment (e.g. their final installment) is not
+        // their deposit date.
         const { data: payment } = await (supabase as any)
           .from("payments")
           .select("*")
           .eq("inquiry_id", inquiry.id)
           .eq("status", "success")
-          .order("created_at", { ascending: false })
+          .order("created_at", { ascending: true })
           .limit(1)
           .maybeSingle();
 

@@ -486,8 +486,18 @@ function InquiriesQueue() {
                       value: `Ksh ${selectedInquiry.price?.toLocaleString() || "—"}`,
                     },
                     {
-                      label: "Deposit Paid",
-                      value: `Ksh ${selectedInquiry.deposit?.toLocaleString() || "—"}`,
+                      // Real, verified payments — not selectedInquiry.deposit,
+                      // which is a pre-checkout plan figure that can be set
+                      // (and shown here) even for a lead who never actually
+                      // paid anything. See paymentActions.ts for the only
+                      // place a `payments` row is ever created.
+                      label: "Amount Paid (Verified)",
+                      value: `Ksh ${payments
+                        .filter(
+                          (p) => p.inquiry_id === selectedInquiry.id && p.status === "success",
+                        )
+                        .reduce((sum, p) => sum + Number(p.amount), 0)
+                        .toLocaleString()}`,
                     },
                   ],
                 },
@@ -551,7 +561,7 @@ function InquiriesQueue() {
                     onClick={() => handleApproveInquiry(selectedInquiry.id)}
                     className="px-5 py-2.5 bg-info-container rounded-lg text-white font-semibold text-[13px]"
                   >
-                    Approve &amp; Draft Agreement
+                    Approve Inquiry
                   </button>
                 </>
               )}
