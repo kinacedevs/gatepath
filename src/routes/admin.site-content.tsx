@@ -33,6 +33,7 @@ import { SectionCard } from "@/components/admin/SectionCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { FreshnessStamp } from "@/components/admin/FreshnessStamp";
+import { MediaDropzone } from "@/components/admin/MediaDropzone";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { SiteBanner, Testimonial, TeamProfile, Faq } from "@/lib/types";
@@ -57,7 +58,7 @@ function SiteContent() {
   const [faqs, setFaqs] = useState<Faq[]>([]);
 
   // ── Branding & Banners form state ──
-  const [homepageHeroImages, setHomepageHeroImages] = useState("");
+  const [homepageHeroImages, setHomepageHeroImages] = useState<string[]>([]);
   const [diasporaHeroImage, setDiasporaHeroImage] = useState("");
   const [brandingLogoUrl, setBrandingLogoUrl] = useState("");
   const [brandingCompanyName, setBrandingCompanyName] = useState("");
@@ -126,7 +127,7 @@ function SiteContent() {
       setFaqs((faqsRes.data as Faq[]) ?? []);
 
       const heroData = findBanner(bannerRows, "homepage_hero");
-      setHomepageHeroImages(Array.isArray(heroData.images) ? heroData.images.join("\n") : "");
+      setHomepageHeroImages(Array.isArray(heroData.images) ? heroData.images : []);
       const diasporaData = findBanner(bannerRows, "diaspora_hero");
       setDiasporaHeroImage(diasporaData.image_url ?? "");
       const brandingData = findBanner(bannerRows, "custom_branding");
@@ -163,10 +164,7 @@ function SiteContent() {
     setBrandingSaveLoading(true);
     setBrandingSaveMsg(null);
     const now = new Date().toISOString();
-    const heroImages = homepageHeroImages
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const heroImages = homepageHeroImages.map((s) => s.trim()).filter(Boolean);
     const { error } = await (supabase as any).from("site_banners").upsert([
       { id: "homepage_hero", data: { images: heroImages }, updated_at: now },
       { id: "diaspora_hero", data: { image_url: diasporaHeroImage.trim() }, updated_at: now },
@@ -462,39 +460,34 @@ function SiteContent() {
               <form onSubmit={handleSaveBranding} className="flex flex-col gap-5">
                 <div>
                   <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
-                    Homepage Hero Images (one URL per line, rotates as a carousel)
+                    Homepage Hero Images (rotates as a carousel, drag to reorder)
                   </label>
-                  <textarea
-                    rows={4}
+                  <MediaDropzone
                     value={homepageHeroImages}
-                    onChange={(e) => setHomepageHeroImages(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none resize-y"
+                    onChange={(v) => setHomepageHeroImages(v as string[])}
+                    multi
+                    category="hero"
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
-                    Diaspora Hub Hero Image URL
+                    Diaspora Hub Hero Image
                   </label>
-                  <input
-                    type="url"
+                  <MediaDropzone
                     value={diasporaHeroImage}
-                    onChange={(e) => setDiasporaHeroImage(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                    onChange={(v) => setDiasporaHeroImage(v as string)}
+                    category="diaspora-hero"
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
-                      Logo URL (used on generated documents)
+                      Logo (used on generated documents)
                     </label>
-                    <input
-                      type="url"
+                    <MediaDropzone
                       value={brandingLogoUrl}
-                      onChange={(e) => setBrandingLogoUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                      onChange={(v) => setBrandingLogoUrl(v as string)}
+                      category="logo"
                     />
                   </div>
                   <div>
@@ -1058,14 +1051,12 @@ function SiteContent() {
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
-                  Photo URL
+                  Photo
                 </label>
-                <input
-                  type="url"
+                <MediaDropzone
                   value={teamPhotoUrl}
-                  onChange={(e) => setTeamPhotoUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                  onChange={(v) => setTeamPhotoUrl(v as string)}
+                  category="team"
                 />
               </div>
               <div>

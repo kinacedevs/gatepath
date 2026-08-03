@@ -29,6 +29,7 @@ import { TrendChart } from "@/components/admin/charts/TrendChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { locationToSlug } from "@/lib/locations";
+import { MediaDropzone } from "@/components/admin/MediaDropzone";
 import type { Phase, Affiliate, BlogPost, NewsletterSubscriber } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/campaigns")({
@@ -49,12 +50,13 @@ function CampaignsAndContent() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Media Manager states — unchanged
+  // Media Manager states
   const [mediaEditingPhaseId, setMediaEditingPhaseId] = useState("");
-  const [mediaHeroImage, setMediaHeroImage] = useState("");
+  const [mediaHeroImages, setMediaHeroImages] = useState<string[]>([]);
   const [mediaDiasporaImage, setMediaDiasporaImage] = useState("");
   const [mediaThumbnail, setMediaThumbnail] = useState("");
   const [mediaBrochure, setMediaBrochure] = useState("");
+  const [mediaPlotMap, setMediaPlotMap] = useState("");
   const [mediaSaveLoading, setMediaSaveLoading] = useState(false);
   const [mediaSaveMsg, setMediaSaveMsg] = useState<string | null>(null);
 
@@ -125,10 +127,11 @@ function CampaignsAndContent() {
     const { error } = await (supabase as any)
       .from("phases")
       .update({
-        hero_image_urls: mediaHeroImage.trim() ? [mediaHeroImage.trim()] : null,
+        hero_image_urls: mediaHeroImages.length ? mediaHeroImages : null,
         diaspora_image_url: mediaDiasporaImage.trim() || null,
         image_url: mediaThumbnail.trim() || null,
         brochure_url: mediaBrochure.trim() || null,
+        plot_map_url: mediaPlotMap.trim() || null,
       })
       .eq("id", mediaEditingPhaseId);
 
@@ -471,10 +474,11 @@ function CampaignsAndContent() {
                   setMediaEditingPhaseId(id);
                   const p = phases.find((ph) => ph.id === id);
                   if (p) {
-                    setMediaHeroImage(p.hero_image_urls?.[0] || "");
+                    setMediaHeroImages(Array.isArray(p.hero_image_urls) ? p.hero_image_urls : []);
                     setMediaDiasporaImage(p.diaspora_image_url || "");
                     setMediaBrochure(p.brochure_url || "");
                     setMediaThumbnail(p.image_url || "");
+                    setMediaPlotMap(p.plot_map_url || "");
                   }
                 }}
                 className="w-full px-4 py-3 rounded-lg border border-outline-variant/40 text-[14px] outline-none"
@@ -496,50 +500,55 @@ function CampaignsAndContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
-                      Hero Section Image URL (Main Poster)
+                      Hero Section Images (rotates as a carousel, drag to reorder)
                     </label>
-                    <input
-                      type="url"
-                      value={mediaHeroImage}
-                      onChange={(e) => setMediaHeroImage(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full p-2.5 rounded-md border border-outline-variant/40 text-[13px]"
+                    <MediaDropzone
+                      value={mediaHeroImages}
+                      onChange={(v) => setMediaHeroImages(v as string[])}
+                      multi
+                      category="phase-hero"
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
-                      Diaspora Hub Banner URL
+                      Diaspora Hub Banner
                     </label>
-                    <input
-                      type="url"
+                    <MediaDropzone
                       value={mediaDiasporaImage}
-                      onChange={(e) => setMediaDiasporaImage(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full p-2.5 rounded-md border border-outline-variant/40 text-[13px]"
+                      onChange={(v) => setMediaDiasporaImage(v as string)}
+                      category="phase-diaspora"
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
                       Project Thumbnail (Card Image)
                     </label>
-                    <input
-                      type="url"
+                    <MediaDropzone
                       value={mediaThumbnail}
-                      onChange={(e) => setMediaThumbnail(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full p-2.5 rounded-md border border-outline-variant/40 text-[13px]"
+                      onChange={(v) => setMediaThumbnail(v as string)}
+                      category="phase-thumbnail"
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
-                      Brochure PDF URL
+                      Brochure PDF
                     </label>
-                    <input
-                      type="url"
+                    <MediaDropzone
                       value={mediaBrochure}
-                      onChange={(e) => setMediaBrochure(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full p-2.5 rounded-md border border-outline-variant/40 text-[13px]"
+                      onChange={(v) => setMediaBrochure(v as string)}
+                      category="phase-brochure"
+                      accept=".pdf,application/pdf"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
+                      Plot Map PDF
+                    </label>
+                    <MediaDropzone
+                      value={mediaPlotMap}
+                      onChange={(v) => setMediaPlotMap(v as string)}
+                      category="phase-plot-map"
+                      accept=".pdf,application/pdf"
                     />
                   </div>
                 </div>
@@ -735,14 +744,12 @@ function CampaignsAndContent() {
                     <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
                       {name}
                     </label>
-                    <input
-                      type="url"
+                    <MediaDropzone
                       value={locationImages[name] || ""}
-                      onChange={(e) =>
-                        setLocationImages((prev) => ({ ...prev, [name]: e.target.value }))
+                      onChange={(v) =>
+                        setLocationImages((prev) => ({ ...prev, [name]: v as string }))
                       }
-                      placeholder="https://..."
-                      className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                      category="location"
                     />
                   </div>
                 ))}
@@ -1086,14 +1093,12 @@ function CampaignsAndContent() {
 
               <div>
                 <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
-                  Featured Image URL
+                  Featured Image
                 </label>
-                <input
-                  type="text"
+                <MediaDropzone
                   value={blogImage}
-                  onChange={(e) => setBlogImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                  onChange={(v) => setBlogImage(v as string)}
+                  category="blog"
                 />
               </div>
 

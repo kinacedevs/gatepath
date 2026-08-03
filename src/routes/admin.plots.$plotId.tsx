@@ -43,6 +43,7 @@ import { updatePlotStatusFn } from "@/lib/plotActions";
 import { updatePlotDetailsFn, setPlotArchivedFn } from "@/lib/inventoryActions";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { QuickCallLogger } from "@/components/admin/QuickCallLogger";
+import { MediaDropzone } from "@/components/admin/MediaDropzone";
 import {
   Dialog,
   DialogContent,
@@ -94,7 +95,7 @@ function PlotDetail() {
   const [editingDetails, setEditingDetails] = useState(false);
   const [editSizeId, setEditSizeId] = useState("");
   const [editNotes, setEditNotes] = useState("");
-  const [editPhotoUrls, setEditPhotoUrls] = useState("");
+  const [editPhotoUrls, setEditPhotoUrls] = useState<string[]>([]);
   const [editDetailsSaving, setEditDetailsSaving] = useState(false);
   const [editDetailsError, setEditDetailsError] = useState<string | null>(null);
 
@@ -120,7 +121,7 @@ function PlotDetail() {
       setNewPlotStatus(plotData.status);
       setEditSizeId(plotData.size_id ?? "");
       setEditNotes(plotData.notes ?? "");
-      setEditPhotoUrls((plotData.photo_urls ?? []).join("\n"));
+      setEditPhotoUrls(plotData.photo_urls ?? []);
     }
 
     if (plotData?.phase_id) {
@@ -215,12 +216,7 @@ function PlotDetail() {
         plotId: plot.id,
         sizeId: editSizeId || null,
         notes: editNotes || null,
-        photoUrls: editPhotoUrls
-          ? editPhotoUrls
-              .split("\n")
-              .map((u) => u.trim())
-              .filter(Boolean)
-          : null,
+        photoUrls: editPhotoUrls.length > 0 ? editPhotoUrls : null,
       },
     });
 
@@ -707,14 +703,13 @@ function PlotDetail() {
             </div>
             <div>
               <label className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide block mb-1.5">
-                Photo URLs (one per line)
+                Photos
               </label>
-              <textarea
+              <MediaDropzone
                 value={editPhotoUrls}
-                onChange={(e) => setEditPhotoUrls(e.target.value)}
-                rows={3}
-                placeholder="https://..."
-                className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-sm outline-none resize-none"
+                onChange={(v) => setEditPhotoUrls(v as string[])}
+                multi
+                category="plot"
               />
             </div>
             <DialogFooter className="gap-2 sm:gap-0">

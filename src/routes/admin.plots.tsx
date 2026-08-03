@@ -53,6 +53,7 @@ import { KpiCard } from "@/components/admin/KpiCard";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { FreshnessStamp } from "@/components/admin/FreshnessStamp";
+import { MediaDropzone } from "@/components/admin/MediaDropzone";
 import { CategoryBarChart } from "@/components/admin/charts/CategoryBarChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -155,7 +156,7 @@ function LandInventory() {
   const [newPlotCol, setNewPlotCol] = useState("");
   const [newPlotSizeId, setNewPlotSizeId] = useState("");
   const [newPlotNotes, setNewPlotNotes] = useState("");
-  const [newPlotPhotoUrls, setNewPlotPhotoUrls] = useState("");
+  const [newPlotPhotoUrls, setNewPlotPhotoUrls] = useState<string[]>([]);
   const [addPlotSaving, setAddPlotSaving] = useState(false);
   const [addPlotError, setAddPlotError] = useState<string | null>(null);
 
@@ -476,7 +477,7 @@ function LandInventory() {
     setNewPlotCol("");
     setNewPlotSizeId("");
     setNewPlotNotes("");
-    setNewPlotPhotoUrls("");
+    setNewPlotPhotoUrls([]);
     setAddPlotError(null);
   };
 
@@ -502,12 +503,7 @@ function LandInventory() {
         colNum: Number(newPlotCol),
         sizeId: newPlotSizeId || undefined,
         notes: newPlotNotes || undefined,
-        photoUrls: newPlotPhotoUrls
-          ? newPlotPhotoUrls
-              .split("\n")
-              .map((u) => u.trim())
-              .filter(Boolean)
-          : undefined,
+        photoUrls: newPlotPhotoUrls.length > 0 ? newPlotPhotoUrls : undefined,
       },
     });
 
@@ -1511,13 +1507,12 @@ function LandInventory() {
               />
             </div>
             <div>
-              <label className={LABEL_CLS}>Photo URLs (one per line)</label>
-              <textarea
-                rows={2}
+              <label className={LABEL_CLS}>Photos</label>
+              <MediaDropzone
                 value={newPlotPhotoUrls}
-                onChange={(e) => setNewPlotPhotoUrls(e.target.value)}
-                className={INPUT_CLS}
-                placeholder="https://..."
+                onChange={(v) => setNewPlotPhotoUrls(v as string[])}
+                multi
+                category="plot"
               />
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
