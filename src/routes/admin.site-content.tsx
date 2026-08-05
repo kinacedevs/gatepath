@@ -170,25 +170,30 @@ function SiteContent() {
     }
     setBrandingSaveLoading(true);
     setBrandingSaveMsg(null);
-    const now = new Date().toISOString();
-    const heroImages = homepageHeroImages.map((s) => s.trim()).filter(Boolean);
-    const diasporaImages = diasporaHeroImages.map((s) => s.trim()).filter(Boolean);
-    const { error } = await (supabase as any).from("site_banners").upsert([
-      { id: "homepage_hero", data: { images: heroImages }, updated_at: now },
-      { id: "diaspora_hero", data: { images: diasporaImages }, updated_at: now },
-      {
-        id: "custom_branding",
-        data: { logo_url: brandingLogoUrl.trim(), company_name: brandingCompanyName.trim() },
-        updated_at: now,
-      },
-    ]);
-    if (error) {
-      setBrandingSaveMsg("Error saving: " + error.message);
-    } else {
-      setBrandingSaveMsg("Branding & banners saved successfully!");
-      loadData();
+    try {
+      const now = new Date().toISOString();
+      const heroImages = homepageHeroImages.map((s) => s.trim()).filter(Boolean);
+      const diasporaImages = diasporaHeroImages.map((s) => s.trim()).filter(Boolean);
+      const { error } = await (supabase as any).from("site_banners").upsert([
+        { id: "homepage_hero", data: { images: heroImages }, updated_at: now },
+        { id: "diaspora_hero", data: { images: diasporaImages }, updated_at: now },
+        {
+          id: "custom_branding",
+          data: { logo_url: brandingLogoUrl.trim(), company_name: brandingCompanyName.trim() },
+          updated_at: now,
+        },
+      ]);
+      if (error) {
+        setBrandingSaveMsg("Error saving: " + error.message);
+      } else {
+        setBrandingSaveMsg("Branding & banners saved successfully!");
+        loadData();
+      }
+    } catch (err: any) {
+      setBrandingSaveMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setBrandingSaveLoading(false);
     }
-    setBrandingSaveLoading(false);
   };
 
   const handleSaveContactInfo = async (e: React.FormEvent) => {
@@ -199,30 +204,35 @@ function SiteContent() {
     }
     setContactSaveLoading(true);
     setContactSaveMsg(null);
-    const { error } = await (supabase as any).from("site_banners").upsert([
-      {
-        id: "contact_info",
-        data: {
-          phone: contactPhone.trim(),
-          whatsapp_number: contactWhatsapp.trim(),
-          email: contactEmail.trim(),
-          address_line1: contactAddressLine1.trim(),
-          address_line2: contactAddressLine2.trim(),
-          hours: contactHours.trim(),
-          facebook_url: contactFacebook.trim(),
-          instagram_url: contactInstagram.trim(),
-          tiktok_url: contactTiktok.trim(),
+    try {
+      const { error } = await (supabase as any).from("site_banners").upsert([
+        {
+          id: "contact_info",
+          data: {
+            phone: contactPhone.trim(),
+            whatsapp_number: contactWhatsapp.trim(),
+            email: contactEmail.trim(),
+            address_line1: contactAddressLine1.trim(),
+            address_line2: contactAddressLine2.trim(),
+            hours: contactHours.trim(),
+            facebook_url: contactFacebook.trim(),
+            instagram_url: contactInstagram.trim(),
+            tiktok_url: contactTiktok.trim(),
+          },
+          updated_at: new Date().toISOString(),
         },
-        updated_at: new Date().toISOString(),
-      },
-    ]);
-    if (error) {
-      setContactSaveMsg("Error saving: " + error.message);
-    } else {
-      setContactSaveMsg("Contact info saved successfully!");
-      loadData();
+      ]);
+      if (error) {
+        setContactSaveMsg("Error saving: " + error.message);
+      } else {
+        setContactSaveMsg("Contact info saved successfully!");
+        loadData();
+      }
+    } catch (err: any) {
+      setContactSaveMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setContactSaveLoading(false);
     }
-    setContactSaveLoading(false);
   };
 
   // ── Testimonials handlers ──
@@ -252,22 +262,29 @@ function SiteContent() {
       alert("Access Denied: Agents cannot manage site content.");
       return;
     }
-    const payload = {
-      client_name: tClientName.trim(),
-      client_initials: tClientInitials.trim().toUpperCase(),
-      quote: tQuote.trim(),
-      tag: tTag.trim() || null,
-      is_published: tIsPublished,
-      display_order: tDisplayOrder,
-    };
-    const { error } = editingTestimonial
-      ? await (supabase as any).from("testimonials").update(payload).eq("id", editingTestimonial.id)
-      : await (supabase as any).from("testimonials").insert(payload);
-    if (error) {
-      alert("Error saving testimonial: " + error.message);
-    } else {
-      setCreatingTestimonial(false);
-      loadData();
+    try {
+      const payload = {
+        client_name: tClientName.trim(),
+        client_initials: tClientInitials.trim().toUpperCase(),
+        quote: tQuote.trim(),
+        tag: tTag.trim() || null,
+        is_published: tIsPublished,
+        display_order: tDisplayOrder,
+      };
+      const { error } = editingTestimonial
+        ? await (supabase as any)
+            .from("testimonials")
+            .update(payload)
+            .eq("id", editingTestimonial.id)
+        : await (supabase as any).from("testimonials").insert(payload);
+      if (error) {
+        alert("Error saving testimonial: " + error.message);
+      } else {
+        setCreatingTestimonial(false);
+        loadData();
+      }
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
     }
   };
   const handleDeleteTestimonial = async (id: string) => {
@@ -276,9 +293,13 @@ function SiteContent() {
       return;
     }
     if (!confirm("Delete this testimonial?")) return;
-    const { error } = await supabase.from("testimonials").delete().eq("id", id);
-    if (error) alert("Error deleting: " + error.message);
-    else loadData();
+    try {
+      const { error } = await supabase.from("testimonials").delete().eq("id", id);
+      if (error) alert("Error deleting: " + error.message);
+      else loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
   // Client-submitted testimonials (Module 14) start as is_published: false —
   // approving flips the same flag that already gates the public site.
@@ -287,12 +308,16 @@ function SiteContent() {
       alert("Access Denied: Agents cannot manage site content.");
       return;
     }
-    const { error } = await (supabase as any)
-      .from("testimonials")
-      .update({ is_published: true })
-      .eq("id", id);
-    if (error) alert("Error approving: " + error.message);
-    else loadData();
+    try {
+      const { error } = await (supabase as any)
+        .from("testimonials")
+        .update({ is_published: true })
+        .eq("id", id);
+      if (error) alert("Error approving: " + error.message);
+      else loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
   const handleRejectTestimonial = async (id: string) => {
     if (!canWrite) {
@@ -300,9 +325,13 @@ function SiteContent() {
       return;
     }
     if (!confirm("Reject and delete this submitted testimonial?")) return;
-    const { error } = await supabase.from("testimonials").delete().eq("id", id);
-    if (error) alert("Error rejecting: " + error.message);
-    else loadData();
+    try {
+      const { error } = await supabase.from("testimonials").delete().eq("id", id);
+      if (error) alert("Error rejecting: " + error.message);
+      else loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
 
   // ── Team Profiles handlers ──
@@ -332,22 +361,26 @@ function SiteContent() {
       alert("Access Denied: Agents cannot manage site content.");
       return;
     }
-    const payload = {
-      full_name: teamFullName.trim(),
-      role_title: teamRoleTitle.trim(),
-      photo_urls: teamPhotoUrls.length ? teamPhotoUrls : null,
-      bio: teamBio.trim() || null,
-      is_published: teamIsPublished,
-      display_order: teamDisplayOrder,
-    };
-    const { error } = editingTeam
-      ? await (supabase as any).from("team_profiles").update(payload).eq("id", editingTeam.id)
-      : await (supabase as any).from("team_profiles").insert(payload);
-    if (error) {
-      alert("Error saving team profile: " + error.message);
-    } else {
-      setCreatingTeam(false);
-      loadData();
+    try {
+      const payload = {
+        full_name: teamFullName.trim(),
+        role_title: teamRoleTitle.trim(),
+        photo_urls: teamPhotoUrls.length ? teamPhotoUrls : null,
+        bio: teamBio.trim() || null,
+        is_published: teamIsPublished,
+        display_order: teamDisplayOrder,
+      };
+      const { error } = editingTeam
+        ? await (supabase as any).from("team_profiles").update(payload).eq("id", editingTeam.id)
+        : await (supabase as any).from("team_profiles").insert(payload);
+      if (error) {
+        alert("Error saving team profile: " + error.message);
+      } else {
+        setCreatingTeam(false);
+        loadData();
+      }
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
     }
   };
   const handleDeleteTeam = async (id: string) => {
@@ -356,9 +389,13 @@ function SiteContent() {
       return;
     }
     if (!confirm("Delete this team profile?")) return;
-    const { error } = await supabase.from("team_profiles").delete().eq("id", id);
-    if (error) alert("Error deleting: " + error.message);
-    else loadData();
+    try {
+      const { error } = await supabase.from("team_profiles").delete().eq("id", id);
+      if (error) alert("Error deleting: " + error.message);
+      else loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
 
   // ── FAQs handlers ──
@@ -393,14 +430,18 @@ function SiteContent() {
       is_published: faqIsPublished,
       display_order: faqDisplayOrder,
     };
-    const { error } = editingFaq
-      ? await (supabase as any).from("faqs").update(payload).eq("id", editingFaq.id)
-      : await (supabase as any).from("faqs").insert(payload);
-    if (error) {
-      alert("Error saving FAQ: " + error.message);
-    } else {
-      setCreatingFaq(false);
-      loadData();
+    try {
+      const { error } = editingFaq
+        ? await (supabase as any).from("faqs").update(payload).eq("id", editingFaq.id)
+        : await (supabase as any).from("faqs").insert(payload);
+      if (error) {
+        alert("Error saving FAQ: " + error.message);
+      } else {
+        setCreatingFaq(false);
+        loadData();
+      }
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
     }
   };
   const handleDeleteFaq = async (id: string) => {
@@ -409,9 +450,13 @@ function SiteContent() {
       return;
     }
     if (!confirm("Delete this FAQ?")) return;
-    const { error } = await supabase.from("faqs").delete().eq("id", id);
-    if (error) alert("Error deleting: " + error.message);
-    else loadData();
+    try {
+      const { error } = await supabase.from("faqs").delete().eq("id", id);
+      if (error) alert("Error deleting: " + error.message);
+      else loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
 
   const publishedTestimonials = useMemo(

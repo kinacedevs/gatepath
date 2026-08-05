@@ -133,43 +133,51 @@ function Integrations() {
     }
     setSaving(true);
     setErrorMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setErrorMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setErrorMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (generateApiKeyFn as any)({
+        data: {
+          callerAccessToken: token,
+          name: keyName.trim(),
+          scopes: keyScopes,
+          fieldMapping: parseFieldMapping(fieldMappingText),
+        },
+      });
+      if (!result.success) {
+        setErrorMsg(result.error);
+      } else {
+        setCreateOpen(false);
+        setKeyName("");
+        setKeyScopes([]);
+        setFieldMappingText("");
+        setRevealedKey(result.rawKey);
+        loadData();
+      }
+    } catch (err: any) {
+      setErrorMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSaving(false);
-      return;
     }
-    const result = await (generateApiKeyFn as any)({
-      data: {
-        callerAccessToken: token,
-        name: keyName.trim(),
-        scopes: keyScopes,
-        fieldMapping: parseFieldMapping(fieldMappingText),
-      },
-    });
-    if (!result.success) {
-      setErrorMsg(result.error);
-    } else {
-      setCreateOpen(false);
-      setKeyName("");
-      setKeyScopes([]);
-      setFieldMappingText("");
-      setRevealedKey(result.rawKey);
-      loadData();
-    }
-    setSaving(false);
   };
 
   const handleRevoke = async (keyId: string) => {
     if (!confirm("Revoke this API key? Any tool using it will stop working immediately.")) return;
-    const token = await getAccessToken();
-    if (!token) {
-      setErrorMsg("Your session expired — please sign in again.");
-      return;
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setErrorMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (revokeApiKeyFn as any)({ data: { callerAccessToken: token, keyId } });
+      if (!result.success) setErrorMsg(result.error);
+      else loadData();
+    } catch (err: any) {
+      setErrorMsg("Something went wrong revoking the key: " + (err?.message || "Unknown error."));
     }
-    const result = await (revokeApiKeyFn as any)({ data: { callerAccessToken: token, keyId } });
-    if (!result.success) setErrorMsg(result.error);
-    else loadData();
   };
 
   const copyKey = async () => {

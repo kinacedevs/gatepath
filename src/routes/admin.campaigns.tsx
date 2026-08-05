@@ -133,23 +133,28 @@ function CampaignsAndContent() {
     setMediaSaveLoading(true);
     setMediaSaveMsg(null);
 
-    const { error } = await (supabase as any)
-      .from("phases")
-      .update({
-        hero_image_urls: mediaHeroImages.length ? mediaHeroImages : null,
-        image_urls: mediaThumbnails.length ? mediaThumbnails : null,
-        brochure_url: mediaBrochure.trim() || null,
-        plot_map_url: mediaPlotMap.trim() || null,
-      })
-      .eq("id", mediaEditingPhaseId);
+    try {
+      const { error } = await (supabase as any)
+        .from("phases")
+        .update({
+          hero_image_urls: mediaHeroImages.length ? mediaHeroImages : null,
+          image_urls: mediaThumbnails.length ? mediaThumbnails : null,
+          brochure_url: mediaBrochure.trim() || null,
+          plot_map_url: mediaPlotMap.trim() || null,
+        })
+        .eq("id", mediaEditingPhaseId);
 
-    if (error) {
-      setMediaSaveMsg("Error saving media URLs: " + error.message);
-    } else {
-      setMediaSaveMsg("Media URLs saved successfully!");
-      loadData();
+      if (error) {
+        setMediaSaveMsg("Error saving media URLs: " + error.message);
+      } else {
+        setMediaSaveMsg("Media URLs saved successfully!");
+        loadData();
+      }
+    } catch (err: any) {
+      setMediaSaveMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setMediaSaveLoading(false);
     }
-    setMediaSaveLoading(false);
   };
 
   const handleSaveBlogPost = async (e: React.FormEvent) => {
@@ -182,28 +187,32 @@ function CampaignsAndContent() {
       meta_description: blogMetaDescription.trim() || null,
     };
 
-    if (editingBlog) {
-      const { error } = await (supabase as any)
-        .from("blog_posts")
-        .update(postData)
-        .eq("id", editingBlog.id);
+    try {
+      if (editingBlog) {
+        const { error } = await (supabase as any)
+          .from("blog_posts")
+          .update(postData)
+          .eq("id", editingBlog.id);
 
-      if (error) {
-        alert("Error updating blog post: " + error.message);
+        if (error) {
+          alert("Error updating blog post: " + error.message);
+        } else {
+          setEditingBlog(null);
+          setCreatingBlog(false);
+          loadData();
+        }
       } else {
-        setEditingBlog(null);
-        setCreatingBlog(false);
-        loadData();
-      }
-    } else {
-      const { error } = await (supabase as any).from("blog_posts").insert(postData);
+        const { error } = await (supabase as any).from("blog_posts").insert(postData);
 
-      if (error) {
-        alert("Error creating blog post: " + error.message);
-      } else {
-        setCreatingBlog(false);
-        loadData();
+        if (error) {
+          alert("Error creating blog post: " + error.message);
+        } else {
+          setCreatingBlog(false);
+          loadData();
+        }
       }
+    } catch (err: any) {
+      alert("Something went wrong saving the blog post: " + (err?.message || "Unknown error."));
     }
   };
 
@@ -215,12 +224,16 @@ function CampaignsAndContent() {
 
     if (!confirm("Are you sure you want to delete this blog post?")) return;
 
-    const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+    try {
+      const { error } = await supabase.from("blog_posts").delete().eq("id", id);
 
-    if (error) {
-      alert("Error deleting post: " + error.message);
-    } else {
-      loadData();
+      if (error) {
+        alert("Error deleting post: " + error.message);
+      } else {
+        loadData();
+      }
+    } catch (err: any) {
+      alert("Something went wrong deleting the post: " + (err?.message || "Unknown error."));
     }
   };
 
@@ -290,22 +303,27 @@ function CampaignsAndContent() {
     setHotPickSaving(phaseId);
     setHotPickMsg(null);
 
-    const { error } = await (supabase as any)
-      .from("phases")
-      .update({
-        is_hot_pick: draft.isHotPick,
-        hot_pick_order: Number(draft.order) || 0,
-        hot_pick_expires_at: draft.expiresAt || null,
-        hot_pick_badge_text: draft.badgeText.trim() || null,
-      })
-      .eq("id", phaseId);
+    try {
+      const { error } = await (supabase as any)
+        .from("phases")
+        .update({
+          is_hot_pick: draft.isHotPick,
+          hot_pick_order: Number(draft.order) || 0,
+          hot_pick_expires_at: draft.expiresAt || null,
+          hot_pick_badge_text: draft.badgeText.trim() || null,
+        })
+        .eq("id", phaseId);
 
-    setHotPickSaving(null);
-    if (error) {
-      setHotPickMsg("Error saving: " + error.message);
-    } else {
-      setHotPickMsg("Saved.");
-      loadData();
+      if (error) {
+        setHotPickMsg("Error saving: " + error.message);
+      } else {
+        setHotPickMsg("Saved.");
+        loadData();
+      }
+    } catch (err: any) {
+      setHotPickMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setHotPickSaving(null);
     }
   };
 
@@ -324,15 +342,19 @@ function CampaignsAndContent() {
     setHomeContentSaving(true);
     setHomeContentMsg(null);
 
-    const { error } = await (supabase as any)
-      .from("site_banners")
-      .upsert(
-        { id: "location_images", data: locationImages, updated_at: new Date().toISOString() },
-        { onConflict: "id" },
-      );
-
-    setHomeContentSaving(false);
-    setHomeContentMsg(error ? "Error saving: " + error.message : "Location images saved.");
+    try {
+      const { error } = await (supabase as any)
+        .from("site_banners")
+        .upsert(
+          { id: "location_images", data: locationImages, updated_at: new Date().toISOString() },
+          { onConflict: "id" },
+        );
+      setHomeContentMsg(error ? "Error saving: " + error.message : "Location images saved.");
+    } catch (err: any) {
+      setHomeContentMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setHomeContentSaving(false);
+    }
   };
 
   const handleSaveTrustBarStats = async () => {
@@ -343,20 +365,24 @@ function CampaignsAndContent() {
     setHomeContentSaving(true);
     setHomeContentMsg(null);
 
-    const { error } = await (supabase as any).from("site_banners").upsert(
-      {
-        id: "trust_bar_stats",
-        data: {
-          trusted_since_year: trustSinceYear ? Number(trustSinceYear) : null,
-          client_satisfaction_label: trustSatisfactionLabel.trim() || null,
+    try {
+      const { error } = await (supabase as any).from("site_banners").upsert(
+        {
+          id: "trust_bar_stats",
+          data: {
+            trusted_since_year: trustSinceYear ? Number(trustSinceYear) : null,
+            client_satisfaction_label: trustSatisfactionLabel.trim() || null,
+          },
+          updated_at: new Date().toISOString(),
         },
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
-
-    setHomeContentSaving(false);
-    setHomeContentMsg(error ? "Error saving: " + error.message : "Trust bar stats saved.");
+        { onConflict: "id" },
+      );
+      setHomeContentMsg(error ? "Error saving: " + error.message : "Trust bar stats saved.");
+    } catch (err: any) {
+      setHomeContentMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setHomeContentSaving(false);
+    }
   };
 
   // ── KPIs & charts (docs/VIZ_SPEC.md §10 — only the real items) ──

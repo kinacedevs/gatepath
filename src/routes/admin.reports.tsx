@@ -99,16 +99,20 @@ function ReportsAndAnalytics() {
   const sendReport = async () => {
     setSending(true);
     setSendMsg(null);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setSendMsg("Your session expired — please sign in again.");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setSendMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await sendExecutiveReportFn({ data: { callerAccessToken: accessToken } });
+      setSendMsg(result.success ? "Report sent to the CEO." : "Error: " + result.error);
+    } catch (err: any) {
+      setSendMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSending(false);
-      return;
     }
-    const result = await sendExecutiveReportFn({ data: { callerAccessToken: accessToken } });
-    setSendMsg(result.success ? "Report sent to the CEO." : "Error: " + result.error);
-    setSending(false);
   };
 
   return (

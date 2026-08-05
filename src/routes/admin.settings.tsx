@@ -161,17 +161,21 @@ function SystemSettings() {
     e.preventDefault();
     setPipelineSaving(true);
     setPipelineMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setPipelineMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setPipelineMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (savePipelineLabelsFn as any)({
+        data: { callerAccessToken: token, labels: pipelineLabels },
+      });
+      setPipelineMsg(result.success ? "Saved." : "Error: " + result.error);
+    } catch (err: any) {
+      setPipelineMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setPipelineSaving(false);
-      return;
     }
-    const result = await (savePipelineLabelsFn as any)({
-      data: { callerAccessToken: token, labels: pipelineLabels },
-    });
-    setPipelineMsg(result.success ? "Saved." : "Error: " + result.error);
-    setPipelineSaving(false);
   };
 
   const resetStageForm = () => {
@@ -206,29 +210,33 @@ function SystemSettings() {
     }
     setStageSaving(true);
     setStageMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setStageMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setStageMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (savePipelineStageFn as any)({
+        data: {
+          callerAccessToken: token,
+          stageId: editingStageId ?? undefined,
+          bucket: stageBucket,
+          label: stageLabel.trim(),
+          displayOrder: stageOrder,
+        },
+      });
+      if (!result.success) {
+        setStageMsg("Error: " + result.error);
+      } else {
+        setStageDialogOpen(false);
+        resetStageForm();
+        loadData();
+      }
+    } catch (err: any) {
+      setStageMsg("Something went wrong saving the stage: " + (err?.message || "Unknown error."));
+    } finally {
       setStageSaving(false);
-      return;
     }
-    const result = await (savePipelineStageFn as any)({
-      data: {
-        callerAccessToken: token,
-        stageId: editingStageId ?? undefined,
-        bucket: stageBucket,
-        label: stageLabel.trim(),
-        displayOrder: stageOrder,
-      },
-    });
-    if (!result.success) {
-      setStageMsg("Error: " + result.error);
-    } else {
-      setStageDialogOpen(false);
-      resetStageForm();
-      loadData();
-    }
-    setStageSaving(false);
   };
 
   const deactivateStage = async (id: string) => {
@@ -239,16 +247,20 @@ function SystemSettings() {
     ) {
       return;
     }
-    const token = await getAccessToken();
-    if (!token) {
-      setStageMsg("Your session expired — please sign in again.");
-      return;
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setStageMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (deactivatePipelineStageFn as any)({
+        data: { callerAccessToken: token, stageId: id },
+      });
+      if (!result.success) setStageMsg("Error: " + result.error);
+      else loadData();
+    } catch (err: any) {
+      setStageMsg("Something went wrong: " + (err?.message || "Unknown error."));
     }
-    const result = await (deactivatePipelineStageFn as any)({
-      data: { callerAccessToken: token, stageId: id },
-    });
-    if (!result.success) setStageMsg("Error: " + result.error);
-    else loadData();
   };
 
   const openTemplateEditor = (key: string) => {
@@ -264,85 +276,103 @@ function SystemSettings() {
     if (!editingTemplateKey) return;
     setTemplateSaving(true);
     setTemplateMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setTemplateMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setTemplateMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const def = TEMPLATE_DEFS.find((t) => t.key === editingTemplateKey)!;
+      const result = await (saveMessageTemplateFn as any)({
+        data: {
+          callerAccessToken: token,
+          key: editingTemplateKey,
+          name: def.name,
+          subject: editSubject,
+          body: editBody,
+        },
+      });
+      if (!result.success) {
+        setTemplateMsg("Error: " + result.error);
+      } else {
+        setEditingTemplateKey(null);
+        loadData();
+      }
+    } catch (err: any) {
+      setTemplateMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setTemplateSaving(false);
-      return;
     }
-    const def = TEMPLATE_DEFS.find((t) => t.key === editingTemplateKey)!;
-    const result = await (saveMessageTemplateFn as any)({
-      data: {
-        callerAccessToken: token,
-        key: editingTemplateKey,
-        name: def.name,
-        subject: editSubject,
-        body: editBody,
-      },
-    });
-    if (!result.success) {
-      setTemplateMsg("Error: " + result.error);
-    } else {
-      setEditingTemplateKey(null);
-      loadData();
-    }
-    setTemplateSaving(false);
   };
 
   const resetTemplate = async (key: string) => {
     if (!confirm("Reset this template to the default? Your custom version will be deleted."))
       return;
-    const token = await getAccessToken();
-    if (!token) {
-      setTemplateMsg("Your session expired — please sign in again.");
-      return;
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setTemplateMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (resetMessageTemplateFn as any)({
+        data: { callerAccessToken: token, key },
+      });
+      if (!result.success) setTemplateMsg("Error: " + result.error);
+      else loadData();
+    } catch (err: any) {
+      setTemplateMsg("Something went wrong: " + (err?.message || "Unknown error."));
     }
-    const result = await (resetMessageTemplateFn as any)({
-      data: { callerAccessToken: token, key },
-    });
-    if (!result.success) setTemplateMsg("Error: " + result.error);
-    else loadData();
   };
 
   const saveFxRates = async (e: React.FormEvent) => {
     e.preventDefault();
     setFxSaving(true);
     setFxMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setFxMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setFxMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (saveFxRatesFn as any)({
+        data: { callerAccessToken: token, rates: fxRates },
+      });
+      setFxMsg(result.success ? "Saved." : "Error: " + result.error);
+    } catch (err: any) {
+      setFxMsg("Something went wrong saving rates: " + (err?.message || "Unknown error."));
+    } finally {
       setFxSaving(false);
-      return;
     }
-    const result = await (saveFxRatesFn as any)({
-      data: { callerAccessToken: token, rates: fxRates },
-    });
-    setFxMsg(result.success ? "Saved." : "Error: " + result.error);
-    setFxSaving(false);
   };
 
   const runExport = async (table: "inquiries" | "payments" | "plots") => {
     setExportingTable(table);
     setExportMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setExportMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setExportMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (exportTableCsvFn as any)({
+        data: { callerAccessToken: token, table },
+      });
+      if (!result.success) {
+        setExportMsg("Error: " + result.error);
+      } else {
+        const blob = new Blob([result.csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = result.filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err: any) {
+      setExportMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setExportingTable(null);
-      return;
     }
-    const result = await (exportTableCsvFn as any)({ data: { callerAccessToken: token, table } });
-    if (!result.success) {
-      setExportMsg("Error: " + result.error);
-    } else {
-      const blob = new Blob([result.csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = result.filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-    setExportingTable(null);
   };
 
   const resetFieldForm = () => {
@@ -379,54 +409,62 @@ function SystemSettings() {
     }
     setFieldSaving(true);
     setFieldMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setFieldMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setFieldMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (saveCustomFieldDefinitionFn as any)({
+        data: {
+          callerAccessToken: token,
+          id: editingFieldId ?? undefined,
+          key: fieldKey.trim(),
+          label: fieldLabel.trim(),
+          fieldType,
+          options:
+            fieldType === "select"
+              ? fieldOptionsText
+                  .split(",")
+                  .map((o) => o.trim())
+                  .filter(Boolean)
+              : undefined,
+          isRequired: fieldRequired,
+          displayOrder: customFields.length,
+        },
+      });
+      if (!result.success) {
+        setFieldMsg("Error: " + result.error);
+      } else {
+        setFieldDialogOpen(false);
+        resetFieldForm();
+        loadData();
+      }
+    } catch (err: any) {
+      setFieldMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setFieldSaving(false);
-      return;
     }
-    const result = await (saveCustomFieldDefinitionFn as any)({
-      data: {
-        callerAccessToken: token,
-        id: editingFieldId ?? undefined,
-        key: fieldKey.trim(),
-        label: fieldLabel.trim(),
-        fieldType,
-        options:
-          fieldType === "select"
-            ? fieldOptionsText
-                .split(",")
-                .map((o) => o.trim())
-                .filter(Boolean)
-            : undefined,
-        isRequired: fieldRequired,
-        displayOrder: customFields.length,
-      },
-    });
-    if (!result.success) {
-      setFieldMsg("Error: " + result.error);
-    } else {
-      setFieldDialogOpen(false);
-      resetFieldForm();
-      loadData();
-    }
-    setFieldSaving(false);
   };
 
   const deactivateField = async (id: string) => {
     if (!confirm("Deactivate this field? It will no longer appear on the public inquiry form.")) {
       return;
     }
-    const token = await getAccessToken();
-    if (!token) {
-      setFieldMsg("Your session expired — please sign in again.");
-      return;
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setFieldMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (deactivateCustomFieldDefinitionFn as any)({
+        data: { callerAccessToken: token, id },
+      });
+      if (!result.success) setFieldMsg("Error: " + result.error);
+      else loadData();
+    } catch (err: any) {
+      setFieldMsg("Something went wrong: " + (err?.message || "Unknown error."));
     }
-    const result = await (deactivateCustomFieldDefinitionFn as any)({
-      data: { callerAccessToken: token, id },
-    });
-    if (!result.success) setFieldMsg("Error: " + result.error);
-    else loadData();
   };
 
   return (

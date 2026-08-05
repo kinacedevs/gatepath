@@ -133,41 +133,49 @@ function ReferralsAndTestimonials() {
   const sendTestimonialRequest = async (inquiryId: string) => {
     setSendingId(inquiryId);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (sendTestimonialRequestFn as any)({
+        data: { callerAccessToken: token, inquiryId },
+      });
+      if (!result.success) {
+        setActionMsg("Error: " + result.error);
+      } else {
+        loadData();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSendingId(null);
-      return;
     }
-    const result = await (sendTestimonialRequestFn as any)({
-      data: { callerAccessToken: token, inquiryId },
-    });
-    if (!result.success) {
-      setActionMsg("Error: " + result.error);
-    } else {
-      loadData();
-    }
-    setSendingId(null);
   };
 
   const sendReferralInvite = async (inquiryId: string) => {
     setSendingId(inquiryId);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (sendReferralInviteFn as any)({
+        data: { callerAccessToken: token, inquiryId },
+      });
+      if (!result.success) {
+        setActionMsg("Error: " + result.error);
+      } else {
+        loadData();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSendingId(null);
-      return;
     }
-    const result = await (sendReferralInviteFn as any)({
-      data: { callerAccessToken: token, inquiryId },
-    });
-    if (!result.success) {
-      setActionMsg("Error: " + result.error);
-    } else {
-      loadData();
-    }
-    setSendingId(null);
   };
 
   const columns: ColumnDef<EligibleClient, any>[] = [
