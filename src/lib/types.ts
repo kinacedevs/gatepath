@@ -17,6 +17,10 @@ export type Phase = {
   description: string | null;
   features: string[];
   image_url: string | null;
+  /** Multi-file thumbnail/cover gallery (photos or videos, Phase 38) —
+   * image_urls[0] is the effective cover wherever a single image was used
+   * before; image_url is kept for pre-Phase-38 rows and read as a fallback. */
+  image_urls: string[] | null;
   youtube_video_url: string | null;
   /** PDF brochure URL (uploaded & managed from admin Media tab) */
   brochure_url: string | null;
@@ -267,6 +271,9 @@ export type TeamProfile = {
   full_name: string;
   role_title: string;
   photo_url: string | null;
+  /** Multi-file gallery (Phase 38) — photo_urls[0] is the effective avatar;
+   * photo_url is kept for pre-Phase-38 rows and read as a fallback. */
+  photo_urls: string[] | null;
   bio: string | null;
   is_published: boolean;
   display_order: number;
@@ -454,6 +461,10 @@ export type BlogPost = {
   summary: string;
   content: string;
   featured_image: string | null;
+  /** Multi-file gallery (Phase 38) — featured_images[0] is the effective
+   * cover; featured_image is kept for pre-Phase-38 rows and read as a
+   * fallback. */
+  featured_images: string[] | null;
   category: "Investment" | "Legal" | "Buying Guide" | "Company News";
   author_name: string;
   tags: string[];

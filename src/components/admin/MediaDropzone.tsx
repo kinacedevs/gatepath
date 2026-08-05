@@ -25,14 +25,16 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Upload, X, Link2, Loader2, ImageOff } from "lucide-react";
+import { GripVertical, Upload, X, Link2, Loader2, ImageOff, Play } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { requestMediaUploadUrlFn } from "@/lib/mediaUploadActions";
+import { isImageUrl, isVideoUrl } from "@/lib/media";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const BUCKET = "site-assets";
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 80 * 1024 * 1024;
 
 type MediaDropzoneProps = {
   value: string | string[];
@@ -42,10 +44,6 @@ type MediaDropzoneProps = {
   category: string;
   label?: string;
 };
-
-function isImageUrl(url: string) {
-  return /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(url);
-}
 
 async function getAccessToken() {
   const { data } = await supabase.auth.getSession();
@@ -75,8 +73,10 @@ async function uploadFile(
   if (!matchesAccept(file, accept)) {
     return { error: `"${file.name}" isn't an accepted file type for this field.` };
   }
-  if (file.size > MAX_FILE_BYTES) {
-    return { error: "File is too large (max 8MB)." };
+  const isVideo = file.type.startsWith("video/");
+  const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (file.size > maxBytes) {
+    return { error: `File is too large (max ${isVideo ? "80MB" : "8MB"}).` };
   }
   try {
     const accessToken = await getAccessToken();
@@ -104,10 +104,17 @@ async function uploadFile(
 function MediaThumb({ url, className = "" }: { url: string; className?: string }) {
   return (
     <div
-      className={`rounded-md overflow-hidden bg-surface-container-low shrink-0 flex items-center justify-center ${className}`}
+      className={`relative rounded-md overflow-hidden bg-surface-container-low shrink-0 flex items-center justify-center ${className}`}
     >
       {isImageUrl(url) ? (
         <img src={url} alt="" className="w-full h-full object-cover" />
+      ) : isVideoUrl(url) ? (
+        <>
+          <video src={url} muted preload="metadata" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <Play size={16} className="text-white drop-shadow" fill="white" />
+          </div>
+        </>
       ) : (
         <ImageOff size={18} className="text-on-surface-variant" />
       )}

@@ -71,6 +71,7 @@ Your advocate will draft or review the Agreement for Sale, verify the seller's d
 By taking these measured steps, you protect your hard-earned foreign income and build long-term generational wealth in Kenya.`,
     featured_image:
       "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    featured_images: null,
     category: "Buying Guide",
     author_name: "Joe Muchiri",
     tags: ["Diaspora", "Title Deeds", "Legal Checks"],
@@ -104,6 +105,7 @@ Under the Sectional Properties Act, individual units within a shared block or ga
 At Gatepath Realtors, we specialize in providing freehold titles for our plots in places like Malindi, Sagana, and Diani, giving you permanent control over your asset.`,
     featured_image:
       "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=1200&q=80",
+    featured_images: null,
     category: "Legal",
     author_name: "Joe Muchiri",
     tags: ["Title Deeds", "Legal", "Land Rates"],
@@ -135,6 +137,7 @@ The establishment of regional agro-processing hubs and warehouses is creating th
 Investing in projects like **Baraka Plains Phase 6** or **Amani Gardens Phase 3** places you directly in the path of this high-yield growth curve.`,
     featured_image:
       "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
+    featured_images: null,
     category: "Investment",
     author_name: "Joe Muchiri",
     tags: ["Sagana", "Infrastructure", "Appreciation"],
