@@ -178,22 +178,26 @@ function PlotDetail() {
     }
     setStatusSaveError(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setStatusSaveError("Session expired — please refresh and sign in again.");
-      return;
-    }
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setStatusSaveError("Session expired — please refresh and sign in again.");
+        return;
+      }
 
-    const result = await updatePlotStatusFn({
-      data: { callerAccessToken: accessToken, plotId: plot.id, status: newPlotStatus },
-    });
+      const result = await updatePlotStatusFn({
+        data: { callerAccessToken: accessToken, plotId: plot.id, status: newPlotStatus },
+      });
 
-    if (!result.success) {
-      setStatusSaveError(result.error ?? "Error updating plot status.");
-    } else {
-      setEditingStatus(false);
-      loadData();
+      if (!result.success) {
+        setStatusSaveError(result.error ?? "Error updating plot status.");
+      } else {
+        setEditingStatus(false);
+        loadData();
+      }
+    } catch (err: any) {
+      setStatusSaveError("Something went wrong: " + (err?.message || "Unknown error."));
     }
   };
 
@@ -203,31 +207,35 @@ function PlotDetail() {
     setEditDetailsSaving(true);
     setEditDetailsError(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setEditDetailsError("Session expired — please refresh and sign in again.");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setEditDetailsError("Session expired — please refresh and sign in again.");
+        return;
+      }
+
+      const result = await updatePlotDetailsFn({
+        data: {
+          callerAccessToken: accessToken,
+          plotId: plot.id,
+          sizeId: editSizeId || null,
+          notes: editNotes || null,
+          photoUrls: editPhotoUrls.length > 0 ? editPhotoUrls : null,
+        },
+      });
+
+      if (!result.success) {
+        setEditDetailsError(result.error ?? "Error saving plot details.");
+        return;
+      }
+      setEditingDetails(false);
+      loadData();
+    } catch (err: any) {
+      setEditDetailsError("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setEditDetailsSaving(false);
-      return;
     }
-
-    const result = await updatePlotDetailsFn({
-      data: {
-        callerAccessToken: accessToken,
-        plotId: plot.id,
-        sizeId: editSizeId || null,
-        notes: editNotes || null,
-        photoUrls: editPhotoUrls.length > 0 ? editPhotoUrls : null,
-      },
-    });
-
-    setEditDetailsSaving(false);
-    if (!result.success) {
-      setEditDetailsError(result.error ?? "Error saving plot details.");
-      return;
-    }
-    setEditingDetails(false);
-    loadData();
   };
 
   const handleToggleArchived = async (archived: boolean) => {
@@ -240,13 +248,23 @@ function PlotDetail() {
     ) {
       return;
     }
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) return;
-    await setPlotArchivedFn({
-      data: { callerAccessToken: accessToken, plotId: plot.id, archived },
-    });
-    loadData();
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        alert("Session expired — please refresh and sign in again.");
+        return;
+      }
+      const result = await setPlotArchivedFn({
+        data: { callerAccessToken: accessToken, plotId: plot.id, archived },
+      });
+      if (!(result as any)?.success) {
+        alert("Error: " + ((result as any)?.error ?? "Unknown error."));
+      }
+      loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
 
   const handleLogVerification = async (e: React.FormEvent) => {
@@ -255,33 +273,37 @@ function PlotDetail() {
     setVerifySubmitting(true);
     setVerifyError(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setVerifyError("Session expired — please refresh and sign in again.");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setVerifyError("Session expired — please refresh and sign in again.");
+        return;
+      }
+
+      const result = await logPlotTitleVerificationFn({
+        data: {
+          callerAccessToken: accessToken,
+          plotId: plot.id,
+          outcome: verifyOutcome,
+          reference: verifyReference,
+          notes: verifyNotes,
+        },
+      });
+
+      if (!result.success) {
+        setVerifyError(result.error ?? "Failed to log the verification check.");
+      } else {
+        setLoggingVerification(false);
+        setVerifyReference("");
+        setVerifyNotes("");
+        loadData();
+      }
+    } catch (err: any) {
+      setVerifyError("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setVerifySubmitting(false);
-      return;
     }
-
-    const result = await logPlotTitleVerificationFn({
-      data: {
-        callerAccessToken: accessToken,
-        plotId: plot.id,
-        outcome: verifyOutcome,
-        reference: verifyReference,
-        notes: verifyNotes,
-      },
-    });
-
-    if (!result.success) {
-      setVerifyError(result.error ?? "Failed to log the verification check.");
-    } else {
-      setLoggingVerification(false);
-      setVerifyReference("");
-      setVerifyNotes("");
-      loadData();
-    }
-    setVerifySubmitting(false);
   };
 
   if (loading) {

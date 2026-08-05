@@ -588,10 +588,7 @@ function LeadsPipeline() {
     );
     setError(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setError("Session expired — please refresh and sign in again.");
+    const rollback = () => {
       setInquiries((prev) =>
         prev.map((i) =>
           i.id === inquiryId
@@ -599,27 +596,33 @@ function LeadsPipeline() {
             : i,
         ),
       );
-      return;
-    }
+    };
 
-    const result = await updateInquiryStatusFn({
-      data: {
-        callerAccessToken: accessToken,
-        inquiryId,
-        newStatus: targetBucket,
-        pipelineStageId: targetStageId,
-      },
-    });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setError("Session expired — please refresh and sign in again.");
+        rollback();
+        return;
+      }
 
-    if (!result.success) {
-      setError(result.error ?? "Failed to update lead status.");
-      setInquiries((prev) =>
-        prev.map((i) =>
-          i.id === inquiryId
-            ? { ...i, status: current.status, pipeline_stage_id: current.pipeline_stage_id }
-            : i,
-        ),
-      );
+      const result = await updateInquiryStatusFn({
+        data: {
+          callerAccessToken: accessToken,
+          inquiryId,
+          newStatus: targetBucket,
+          pipelineStageId: targetStageId,
+        },
+      });
+
+      if (!result.success) {
+        setError(result.error ?? "Failed to update lead status.");
+        rollback();
+      }
+    } catch (err: any) {
+      setError("Something went wrong moving the lead: " + (err?.message || "Unknown error."));
+      rollback();
     }
   };
 
@@ -634,25 +637,32 @@ function LeadsPipeline() {
     setInquiries((prev) => prev.map((i) => (i.id === inquiryId ? { ...i, cro_name: croName } : i)));
     setError(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setError("Session expired — please refresh and sign in again.");
+    const rollback = () => {
       setInquiries((prev) =>
         prev.map((i) => (i.id === inquiryId ? { ...i, cro_name: previousCroName } : i)),
       );
-      return;
-    }
+    };
 
-    const result = await assignLeadFn({
-      data: { callerAccessToken: accessToken, inquiryId, croName },
-    });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setError("Session expired — please refresh and sign in again.");
+        rollback();
+        return;
+      }
 
-    if (!result.success) {
-      setError(result.error ?? "Failed to assign lead.");
-      setInquiries((prev) =>
-        prev.map((i) => (i.id === inquiryId ? { ...i, cro_name: previousCroName } : i)),
-      );
+      const result = await assignLeadFn({
+        data: { callerAccessToken: accessToken, inquiryId, croName },
+      });
+
+      if (!result.success) {
+        setError(result.error ?? "Failed to assign lead.");
+        rollback();
+      }
+    } catch (err: any) {
+      setError("Something went wrong assigning the lead: " + (err?.message || "Unknown error."));
+      rollback();
     }
   };
 
@@ -688,26 +698,31 @@ function LeadsPipeline() {
     setWalkInSubmitting(true);
     setWalkInError(null);
 
-    const { error: insertErr } = await (supabase as any).from("inquiries").insert({
-      client_full_name: walkInName.trim(),
-      client_phone: walkInPhone.trim(),
-      client_email: walkInEmail.trim().toLowerCase(),
-      client_id_passport: walkInIdPassport.trim().toUpperCase(),
-      questions: walkInNotes.trim() || null,
-      cro_name: walkInAssignTo || null,
-      heard_from: "Walk-In",
-      status: "pending",
-    });
+    try {
+      const { error: insertErr } = await (supabase as any).from("inquiries").insert({
+        client_full_name: walkInName.trim(),
+        client_phone: walkInPhone.trim(),
+        client_email: walkInEmail.trim().toLowerCase(),
+        client_id_passport: walkInIdPassport.trim().toUpperCase(),
+        questions: walkInNotes.trim() || null,
+        cro_name: walkInAssignTo || null,
+        heard_from: "Walk-In",
+        status: "pending",
+      });
 
-    setWalkInSubmitting(false);
-    if (insertErr) {
-      setWalkInError(insertErr.message);
-      return;
+      if (insertErr) {
+        setWalkInError(insertErr.message);
+        return;
+      }
+
+      setWalkInDialogOpen(false);
+      resetWalkInForm();
+      await loadData();
+    } catch (err: any) {
+      setWalkInError(err?.message || "Something went wrong. Please try again.");
+    } finally {
+      setWalkInSubmitting(false);
     }
-
-    setWalkInDialogOpen(false);
-    resetWalkInForm();
-    await loadData();
   };
 
   const filtered = inquiries.filter(

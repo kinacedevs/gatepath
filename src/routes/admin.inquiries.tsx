@@ -21,7 +21,7 @@
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, Check, PenTool, Lock } from "lucide-react";
+import { Search, X, Check, PenTool, Lock, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAdminSession } from "@/context/AdminSessionContext";
 import { sendAgreementSignedNotificationFn } from "@/lib/notifications";
@@ -85,6 +85,7 @@ function InquiriesQueue() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [signing, setSigning] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -154,30 +155,40 @@ function InquiriesQueue() {
       alert("Critical Operation: Only the CEO (Joe Muchiri) can sign purchase agreements.");
       return;
     }
+    setSigning(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        alert("Session expired — please refresh and sign in again.");
+        return;
+      }
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      alert("Session expired — please refresh and sign in again.");
-      return;
+      const result = await signAgreementFn({
+        data: { callerAccessToken: accessToken, inquiryId },
+      });
+
+      if (!result.success) {
+        alert("Error signing agreement: " + result.error);
+        return;
+      }
+
+      alert("Purchase Agreement successfully signed digitally by CEO!");
+
+      (sendAgreementSignedNotificationFn as any)({ data: { inquiryId } }).catch((err: any) => {
+        console.error("[Gatepath CEO Sign] Notification error:", err);
+      });
+
+      loadData();
+    } catch (err: any) {
+      alert(
+        "Something went wrong signing the agreement: " +
+          (err?.message || "Unknown error. Check your connection and try again."),
+      );
+      console.error("[Gatepath CEO Sign] handleCeoSignature failed:", err);
+    } finally {
+      setSigning(false);
     }
-
-    const result = await signAgreementFn({
-      data: { callerAccessToken: accessToken, inquiryId },
-    });
-
-    if (!result.success) {
-      alert("Error signing agreement: " + result.error);
-      return;
-    }
-
-    alert("Purchase Agreement successfully signed digitally by CEO!");
-
-    (sendAgreementSignedNotificationFn as any)({ data: { inquiryId } }).catch((err: any) => {
-      console.error("[Gatepath CEO Sign] Notification error:", err);
-    });
-
-    loadData();
   };
 
   const handleCeoSignOffer = async (inquiryId: string) => {
@@ -185,25 +196,35 @@ function InquiriesQueue() {
       alert("Critical Operation: Only the CEO (Joe Muchiri) can sign offer letters.");
       return;
     }
+    setSigning(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        alert("Session expired — please refresh and sign in again.");
+        return;
+      }
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      alert("Session expired — please refresh and sign in again.");
-      return;
+      const result = await signOfferFn({
+        data: { callerAccessToken: accessToken, inquiryId },
+      });
+
+      if (!result.success) {
+        alert("Error signing offer letter: " + result.error);
+        return;
+      }
+
+      alert("Offer Letter successfully signed digitally by CEO!");
+      loadData();
+    } catch (err: any) {
+      alert(
+        "Something went wrong signing the offer letter: " +
+          (err?.message || "Unknown error. Check your connection and try again."),
+      );
+      console.error("[Gatepath CEO Sign] handleCeoSignOffer failed:", err);
+    } finally {
+      setSigning(false);
     }
-
-    const result = await signOfferFn({
-      data: { callerAccessToken: accessToken, inquiryId },
-    });
-
-    if (!result.success) {
-      alert("Error signing offer letter: " + result.error);
-      return;
-    }
-
-    alert("Offer Letter successfully signed digitally by CEO!");
-    loadData();
   };
 
   const filteredInquiries = useMemo(() => {
@@ -607,9 +628,15 @@ function InquiriesQueue() {
                             ) : adminRole === "ceo" ? (
                               <button
                                 onClick={() => handleCeoSignOffer(selectedInquiry.id)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-accent rounded-lg text-white font-semibold text-[13px] hover:bg-accent-dark"
+                                disabled={signing}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-accent rounded-lg text-white font-semibold text-[13px] hover:bg-accent-dark disabled:opacity-60"
                               >
-                                <PenTool size={14} /> Sign Offer
+                                {signing ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <PenTool size={14} />
+                                )}
+                                {signing ? "Signing…" : "Sign Offer"}
                               </button>
                             ) : (
                               <span className="text-[13px] text-on-surface-variant italic">
@@ -649,9 +676,15 @@ function InquiriesQueue() {
                             ) : adminRole === "ceo" ? (
                               <button
                                 onClick={() => handleCeoSignature(selectedInquiry.id)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-accent rounded-lg text-white font-semibold text-[13px] hover:bg-accent-dark"
+                                disabled={signing}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-accent rounded-lg text-white font-semibold text-[13px] hover:bg-accent-dark disabled:opacity-60"
                               >
-                                <PenTool size={14} /> Sign Agreement
+                                {signing ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <PenTool size={14} />
+                                )}
+                                {signing ? "Signing…" : "Sign Agreement"}
                               </button>
                             ) : (
                               <span className="text-[13px] text-on-surface-variant italic">

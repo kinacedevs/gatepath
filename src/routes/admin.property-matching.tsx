@@ -140,23 +140,47 @@ function PropertyMatching() {
 
   const toggleActive = async (pref: BuyerPreference) => {
     setActionState((s) => ({ ...s, [pref.id]: true }));
-    const accessToken = await getAccessToken();
-    if (accessToken) {
-      await updateBuyerPreferenceFn({
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        alert("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await updateBuyerPreferenceFn({
         data: { callerAccessToken: accessToken, preferenceId: pref.id, isActive: !pref.is_active },
       });
+      if (!(result as any)?.success) {
+        alert("Error updating preference: " + ((result as any)?.error ?? "Unknown error."));
+      }
       await loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setActionState((s) => ({ ...s, [pref.id]: false }));
     }
-    setActionState((s) => ({ ...s, [pref.id]: false }));
   };
 
   const sendAlert = async (preferenceId: string) => {
     setActionState((s) => ({ ...s, [preferenceId]: true }));
-    const accessToken = await getAccessToken();
-    if (accessToken) {
-      await sendMatchAlertFn({ data: { callerAccessToken: accessToken, preferenceId } });
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        alert("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await sendMatchAlertFn({
+        data: { callerAccessToken: accessToken, preferenceId },
+      });
+      if (!(result as any)?.success) {
+        alert("Error sending alert: " + ((result as any)?.error ?? "Unknown error."));
+      } else {
+        alert("Match alert sent.");
+      }
+    } catch (err: any) {
+      alert("Something went wrong sending the alert: " + (err?.message || "Unknown error."));
+    } finally {
+      setActionState((s) => ({ ...s, [preferenceId]: false }));
     }
-    setActionState((s) => ({ ...s, [preferenceId]: false }));
   };
 
   const openCreate = () => {
@@ -177,33 +201,37 @@ function PropertyMatching() {
     e.preventDefault();
     setCreateSaving(true);
     setCreateMsg(null);
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      setCreateMsg("Your session expired — please sign in again.");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setCreateMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await createBuyerPreferenceFn({
+        data: {
+          callerAccessToken: accessToken,
+          clientName: clientName.trim(),
+          clientEmail: clientEmail.trim() || undefined,
+          clientPhone: clientPhone.trim() || undefined,
+          preferredPhaseId: preferredPhaseId || undefined,
+          preferredLocation: preferredPhaseId ? undefined : preferredLocation.trim() || undefined,
+          minBudgetKes: minBudget ? toKes(Number(minBudget), statedCurrency) : undefined,
+          maxBudgetKes: maxBudget ? toKes(Number(maxBudget), statedCurrency) : undefined,
+          statedCurrency,
+          notes: notes.trim() || undefined,
+        },
+      });
+      if (!result.success) {
+        setCreateMsg("Error saving: " + result.error);
+      } else {
+        setCreating(false);
+        loadData();
+      }
+    } catch (err: any) {
+      setCreateMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setCreateSaving(false);
-      return;
     }
-    const result = await createBuyerPreferenceFn({
-      data: {
-        callerAccessToken: accessToken,
-        clientName: clientName.trim(),
-        clientEmail: clientEmail.trim() || undefined,
-        clientPhone: clientPhone.trim() || undefined,
-        preferredPhaseId: preferredPhaseId || undefined,
-        preferredLocation: preferredPhaseId ? undefined : preferredLocation.trim() || undefined,
-        minBudgetKes: minBudget ? toKes(Number(minBudget), statedCurrency) : undefined,
-        maxBudgetKes: maxBudget ? toKes(Number(maxBudget), statedCurrency) : undefined,
-        statedCurrency,
-        notes: notes.trim() || undefined,
-      },
-    });
-    if (!result.success) {
-      setCreateMsg("Error saving: " + result.error);
-    } else {
-      setCreating(false);
-      loadData();
-    }
-    setCreateSaving(false);
   };
 
   return (

@@ -285,22 +285,26 @@ function LandInventory() {
     if (!editingPlot) return;
     setStatusSaveError(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setStatusSaveError("Session expired — please refresh and sign in again.");
-      return;
-    }
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setStatusSaveError("Session expired — please refresh and sign in again.");
+        return;
+      }
 
-    const result = await updatePlotStatusFn({
-      data: { callerAccessToken: accessToken, plotId: editingPlot.id, status: newPlotStatus },
-    });
+      const result = await updatePlotStatusFn({
+        data: { callerAccessToken: accessToken, plotId: editingPlot.id, status: newPlotStatus },
+      });
 
-    if (!result.success) {
-      setStatusSaveError(result.error ?? "Error updating plot status.");
-    } else {
-      setEditingPlot(null);
-      loadData();
+      if (!result.success) {
+        setStatusSaveError(result.error ?? "Error updating plot status.");
+      } else {
+        setEditingPlot(null);
+        loadData();
+      }
+    } catch (err: any) {
+      setStatusSaveError("Something went wrong: " + (err?.message || "Unknown error."));
     }
   };
 
@@ -319,28 +323,32 @@ function LandInventory() {
     setPhaseSaveLoading(true);
     setPhaseSaveMsg(null);
 
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      setPhaseSaveMsg("Session expired — please refresh and sign in again.");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setPhaseSaveMsg("Session expired — please refresh and sign in again.");
+        return;
+      }
+
+      const result = await updatePhaseYoutubeFn({
+        data: {
+          callerAccessToken: accessToken,
+          phaseId: selectedPhaseId,
+          youtubeVideoUrl: editingPhaseYoutube.trim() || null,
+        },
+      });
+
+      if (!result.success) {
+        setPhaseSaveMsg("Error saving video URL: " + result.error);
+      } else {
+        setPhaseSaveMsg("YouTube video URL saved successfully!");
+        loadData();
+      }
+    } catch (err: any) {
+      setPhaseSaveMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setPhaseSaveLoading(false);
-      return;
     }
-
-    const result = await updatePhaseYoutubeFn({
-      data: {
-        callerAccessToken: accessToken,
-        phaseId: selectedPhaseId,
-        youtubeVideoUrl: editingPhaseYoutube.trim() || null,
-      },
-    });
-
-    if (!result.success) {
-      setPhaseSaveMsg("Error saving video URL: " + result.error);
-    } else {
-      setPhaseSaveMsg("YouTube video URL saved successfully!");
-      loadData();
-    }
-    setPhaseSaveLoading(false);
   };
 
   const resetNewPhaseForm = () => {
@@ -361,41 +369,45 @@ function LandInventory() {
     setNewPhaseSaving(true);
     setNewPhaseError(null);
 
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      setNewPhaseError("Session expired — please refresh and sign in again.");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setNewPhaseError("Session expired — please refresh and sign in again.");
+        return;
+      }
+
+      const result = await createPhaseFn({
+        data: {
+          callerAccessToken: accessToken,
+          slug: newPhaseSlug || slugify(newPhaseName),
+          name: newPhaseName,
+          phaseNumber: newPhaseNumber ? Number(newPhaseNumber) : undefined,
+          location: newPhaseLocation,
+          region: newPhaseRegion,
+          county: newPhaseCounty || undefined,
+          description: newPhaseDescription || undefined,
+          features: newPhaseFeatures
+            ? newPhaseFeatures
+                .split(",")
+                .map((f) => f.trim())
+                .filter(Boolean)
+            : undefined,
+        },
+      });
+
+      if (!result.success) {
+        setNewPhaseError(result.error ?? "Error creating phase.");
+        return;
+      }
+      setNewPhaseDialogOpen(false);
+      resetNewPhaseForm();
+      await loadData();
+      if (result.phaseId) setSelectedPhaseId(result.phaseId);
+    } catch (err: any) {
+      setNewPhaseError("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setNewPhaseSaving(false);
-      return;
     }
-
-    const result = await createPhaseFn({
-      data: {
-        callerAccessToken: accessToken,
-        slug: newPhaseSlug || slugify(newPhaseName),
-        name: newPhaseName,
-        phaseNumber: newPhaseNumber ? Number(newPhaseNumber) : undefined,
-        location: newPhaseLocation,
-        region: newPhaseRegion,
-        county: newPhaseCounty || undefined,
-        description: newPhaseDescription || undefined,
-        features: newPhaseFeatures
-          ? newPhaseFeatures
-              .split(",")
-              .map((f) => f.trim())
-              .filter(Boolean)
-          : undefined,
-      },
-    });
-
-    setNewPhaseSaving(false);
-    if (!result.success) {
-      setNewPhaseError(result.error ?? "Error creating phase.");
-      return;
-    }
-    setNewPhaseDialogOpen(false);
-    resetNewPhaseForm();
-    await loadData();
-    if (result.phaseId) setSelectedPhaseId(result.phaseId);
   };
 
   const openEditPhase = () => {
@@ -418,38 +430,42 @@ function LandInventory() {
     setEditPhaseSaving(true);
     setEditPhaseError(null);
 
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      setEditPhaseError("Session expired — please refresh and sign in again.");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setEditPhaseError("Session expired — please refresh and sign in again.");
+        return;
+      }
+
+      const result = await updatePhaseDetailsFn({
+        data: {
+          callerAccessToken: accessToken,
+          phaseId: activePhase.id,
+          name: editPhaseName,
+          phaseNumber: editPhaseNumber ? Number(editPhaseNumber) : null,
+          location: editPhaseLocation,
+          region: editPhaseRegion,
+          county: editPhaseCounty || null,
+          status: editPhaseStatus,
+          description: editPhaseDescription || null,
+          features: editPhaseFeatures
+            .split(",")
+            .map((f) => f.trim())
+            .filter(Boolean),
+        },
+      });
+
+      if (!result.success) {
+        setEditPhaseError(result.error ?? "Error saving phase details.");
+        return;
+      }
+      setEditPhaseDialogOpen(false);
+      loadData();
+    } catch (err: any) {
+      setEditPhaseError("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setEditPhaseSaving(false);
-      return;
     }
-
-    const result = await updatePhaseDetailsFn({
-      data: {
-        callerAccessToken: accessToken,
-        phaseId: activePhase.id,
-        name: editPhaseName,
-        phaseNumber: editPhaseNumber ? Number(editPhaseNumber) : null,
-        location: editPhaseLocation,
-        region: editPhaseRegion,
-        county: editPhaseCounty || null,
-        status: editPhaseStatus,
-        description: editPhaseDescription || null,
-        features: editPhaseFeatures
-          .split(",")
-          .map((f) => f.trim())
-          .filter(Boolean),
-      },
-    });
-
-    setEditPhaseSaving(false);
-    if (!result.success) {
-      setEditPhaseError(result.error ?? "Error saving phase details.");
-      return;
-    }
-    setEditPhaseDialogOpen(false);
-    loadData();
   };
 
   const handleTogglePhaseArchived = async (archived: boolean) => {
@@ -462,13 +478,24 @@ function LandInventory() {
     ) {
       return;
     }
-    const accessToken = await getAccessToken();
-    if (!accessToken) return;
-    await setPhaseArchivedFn({
-      data: { callerAccessToken: accessToken, phaseId: activePhase.id, archived },
-    });
-    setEditPhaseDialogOpen(false);
-    loadData();
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setEditPhaseError("Session expired — please refresh and sign in again.");
+        return;
+      }
+      const result = await setPhaseArchivedFn({
+        data: { callerAccessToken: accessToken, phaseId: activePhase.id, archived },
+      });
+      if (!(result as any)?.success) {
+        setEditPhaseError((result as any)?.error ?? "Error archiving phase.");
+        return;
+      }
+      setEditPhaseDialogOpen(false);
+      loadData();
+    } catch (err: any) {
+      setEditPhaseError("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
 
   const resetAddPlotForm = () => {
@@ -487,34 +514,38 @@ function LandInventory() {
     setAddPlotSaving(true);
     setAddPlotError(null);
 
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      setAddPlotError("Session expired — please refresh and sign in again.");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setAddPlotError("Session expired — please refresh and sign in again.");
+        return;
+      }
+
+      const result = await createPlotFn({
+        data: {
+          callerAccessToken: accessToken,
+          phaseId: selectedPhaseId,
+          plotNumber: Number(newPlotNumber),
+          rowNum: Number(newPlotRow),
+          colNum: Number(newPlotCol),
+          sizeId: newPlotSizeId || undefined,
+          notes: newPlotNotes || undefined,
+          photoUrls: newPlotPhotoUrls.length > 0 ? newPlotPhotoUrls : undefined,
+        },
+      });
+
+      if (!result.success) {
+        setAddPlotError(result.error ?? "Error adding plot.");
+        return;
+      }
+      setAddPlotDialogOpen(false);
+      resetAddPlotForm();
+      loadData();
+    } catch (err: any) {
+      setAddPlotError("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setAddPlotSaving(false);
-      return;
     }
-
-    const result = await createPlotFn({
-      data: {
-        callerAccessToken: accessToken,
-        phaseId: selectedPhaseId,
-        plotNumber: Number(newPlotNumber),
-        rowNum: Number(newPlotRow),
-        colNum: Number(newPlotCol),
-        sizeId: newPlotSizeId || undefined,
-        notes: newPlotNotes || undefined,
-        photoUrls: newPlotPhotoUrls.length > 0 ? newPlotPhotoUrls : undefined,
-      },
-    });
-
-    setAddPlotSaving(false);
-    if (!result.success) {
-      setAddPlotError(result.error ?? "Error adding plot.");
-      return;
-    }
-    setAddPlotDialogOpen(false);
-    resetAddPlotForm();
-    loadData();
   };
 
   const handleTogglePlotArchived = async (plot: PlotWithSize, archived: boolean) => {
@@ -526,12 +557,22 @@ function LandInventory() {
     ) {
       return;
     }
-    const accessToken = await getAccessToken();
-    if (!accessToken) return;
-    await setPlotArchivedFn({
-      data: { callerAccessToken: accessToken, plotId: plot.id, archived },
-    });
-    loadData();
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        alert("Session expired — please refresh and sign in again.");
+        return;
+      }
+      const result = await setPlotArchivedFn({
+        data: { callerAccessToken: accessToken, plotId: plot.id, archived },
+      });
+      if (!(result as any)?.success) {
+        alert("Error: " + ((result as any)?.error ?? "Unknown error."));
+      }
+      loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
 
   const resetSizeForm = () => {
@@ -580,52 +621,66 @@ function LandInventory() {
     setSizeSaving(true);
     setSizeError(null);
 
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      setSizeError("Session expired — please refresh and sign in again.");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setSizeError("Session expired — please refresh and sign in again.");
+        return;
+      }
+
+      const result = await savePlotSizeFn({
+        data: {
+          callerAccessToken: accessToken,
+          id: editingSizeId ?? undefined,
+          phaseId: selectedPhaseId,
+          label: sizeLabel,
+          sizeDescription: sizeDescription || undefined,
+          areaHa: sizeAreaHa ? Number(sizeAreaHa) : undefined,
+          cashPrice: Number(sizeCashPrice),
+          installmentPrice: sizeInstallmentPrice ? Number(sizeInstallmentPrice) : undefined,
+          installmentMonths: sizeInstallmentMonths ? Number(sizeInstallmentMonths) : undefined,
+          plotType: sizePlotType,
+          isDefault: sizeIsDefault,
+          promoActive: sizePromoActive,
+          promoLabel: sizePromoLabel || undefined,
+          promoPrice: sizePromoPrice ? Number(sizePromoPrice) : undefined,
+        },
+      });
+
+      if (!result.success) {
+        setSizeError(result.error ?? "Error saving pricing tier.");
+        return;
+      }
+      setSizeDialogOpen(false);
+      resetSizeForm();
+      loadData();
+    } catch (err: any) {
+      setSizeError("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSizeSaving(false);
-      return;
     }
-
-    const result = await savePlotSizeFn({
-      data: {
-        callerAccessToken: accessToken,
-        id: editingSizeId ?? undefined,
-        phaseId: selectedPhaseId,
-        label: sizeLabel,
-        sizeDescription: sizeDescription || undefined,
-        areaHa: sizeAreaHa ? Number(sizeAreaHa) : undefined,
-        cashPrice: Number(sizeCashPrice),
-        installmentPrice: sizeInstallmentPrice ? Number(sizeInstallmentPrice) : undefined,
-        installmentMonths: sizeInstallmentMonths ? Number(sizeInstallmentMonths) : undefined,
-        plotType: sizePlotType,
-        isDefault: sizeIsDefault,
-        promoActive: sizePromoActive,
-        promoLabel: sizePromoLabel || undefined,
-        promoPrice: sizePromoPrice ? Number(sizePromoPrice) : undefined,
-      },
-    });
-
-    setSizeSaving(false);
-    if (!result.success) {
-      setSizeError(result.error ?? "Error saving pricing tier.");
-      return;
-    }
-    setSizeDialogOpen(false);
-    resetSizeForm();
-    loadData();
   };
 
   const handleDeactivateSize = async (size: PlotSize) => {
     if (!confirm(`Deactivate "${size.label}"? It will no longer be selectable for new plots.`)) {
       return;
     }
-    const accessToken = await getAccessToken();
-    if (!accessToken) return;
-    await setPlotSizeActiveFn({
-      data: { callerAccessToken: accessToken, sizeId: size.id, active: false },
-    });
-    loadData();
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        alert("Session expired — please refresh and sign in again.");
+        return;
+      }
+      const result = await setPlotSizeActiveFn({
+        data: { callerAccessToken: accessToken, sizeId: size.id, active: false },
+      });
+      if (!(result as any)?.success) {
+        alert("Error: " + ((result as any)?.error ?? "Unknown error."));
+      }
+      loadData();
+    } catch (err: any) {
+      alert("Something went wrong: " + (err?.message || "Unknown error."));
+    }
   };
 
   // PlotMap's `id` is the plot NUMBER (see src/lib/phases.ts's adaptPhase),

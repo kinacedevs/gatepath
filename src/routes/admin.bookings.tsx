@@ -106,17 +106,21 @@ function SiteVisits() {
     setCapacitySaving(true);
     setCapacityMsg(null);
 
-    const { error } = await (supabase as any).from("site_banners").upsert(
-      {
-        id: "booking_capacity",
-        data: { max_per_day: Number(dailyCapacity) || 8 },
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
-
-    setCapacitySaving(false);
-    setCapacityMsg(error ? "Error saving: " + error.message : "Saved.");
+    try {
+      const { error } = await (supabase as any).from("site_banners").upsert(
+        {
+          id: "booking_capacity",
+          data: { max_per_day: Number(dailyCapacity) || 8 },
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      );
+      setCapacityMsg(error ? "Error saving: " + error.message : "Saved.");
+    } catch (err: any) {
+      setCapacityMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setCapacitySaving(false);
+    }
   };
 
   const bookedDateObjs = useMemo(() => {
@@ -147,15 +151,25 @@ function SiteVisits() {
 
   const runAction = async (bookingId: string, patch: BookingPatch) => {
     setActionState((s) => ({ ...s, [bookingId]: true }));
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        alert("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await updateBookingFn({
+        data: { ...patch, callerAccessToken: accessToken, bookingId },
+      });
+      if (!(result as any)?.success) {
+        alert("Error updating booking: " + ((result as any)?.error ?? "Unknown error."));
+      }
+      await loadData();
+    } catch (err: any) {
+      alert("Something went wrong updating the booking: " + (err?.message || "Unknown error."));
+    } finally {
       setActionState((s) => ({ ...s, [bookingId]: false }));
-      return;
     }
-    await updateBookingFn({ data: { ...patch, callerAccessToken: accessToken, bookingId } });
-    await loadData();
-    setActionState((s) => ({ ...s, [bookingId]: false }));
   };
 
   const openReschedule = (booking: Booking) => {
