@@ -317,136 +317,144 @@ function InquiryPage() {
     setBannerError(false);
     setLoading(true);
 
-    // Calculate payment figures — an ESTIMATE only, using the same shared
-    // formula payment.tsx's actual checkout step uses (src/lib/pricing.ts),
-    // so this preview doesn't disagree with what the buyer will see there.
-    // The real, final numbers (their actual chosen deposit/period) are
-    // recomputed and overwritten server-side by paymentActions.ts the
-    // moment payment is verified — this is only ever what's shown before
-    // that happens.
-    const cashPrice = form.plotPrice;
-    const periodMonthsEstimate = form.termsOfPayment === "cash" ? 0 : form.paymentPeriodMonths;
-    const deposit = Math.round(cashPrice * 0.3);
-    const { adjustedPrice: finalPrice, balance: preDiscountBalance } = computeInstallmentPricing({
-      cashPrice,
-      depositAmount: deposit,
-      periodMonths: periodMonthsEstimate,
-    });
-    const balance = preDiscountBalance - (form.discount || 0);
-    const monthly = periodMonthsEstimate > 0 ? Math.round(balance / periodMonthsEstimate) : 0;
+    try {
+      // Calculate payment figures — an ESTIMATE only, using the same shared
+      // formula payment.tsx's actual checkout step uses (src/lib/pricing.ts),
+      // so this preview doesn't disagree with what the buyer will see there.
+      // The real, final numbers (their actual chosen deposit/period) are
+      // recomputed and overwritten server-side by paymentActions.ts the
+      // moment payment is verified — this is only ever what's shown before
+      // that happens.
+      const cashPrice = form.plotPrice;
+      const periodMonthsEstimate = form.termsOfPayment === "cash" ? 0 : form.paymentPeriodMonths;
+      const deposit = Math.round(cashPrice * 0.3);
+      const { adjustedPrice: finalPrice, balance: preDiscountBalance } = computeInstallmentPricing({
+        cashPrice,
+        depositAmount: deposit,
+        periodMonths: periodMonthsEstimate,
+      });
+      const balance = preDiscountBalance - (form.discount || 0);
+      const monthly = periodMonthsEstimate > 0 ? Math.round(balance / periodMonthsEstimate) : 0;
 
-    // Update form with calculated values
-    setForm({ deposit, balance, monthlyPayment: monthly, price: finalPrice });
+      // Update form with calculated values
+      setForm({ deposit, balance, monthlyPayment: monthly, price: finalPrice });
 
-    let referralCode = null;
-    if (typeof window !== "undefined") {
-      referralCode = localStorage.getItem("gatepath_ref");
-    }
-
-    // Validate CEO / Staff / Influencer Referral Codes
-    if (["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)) {
-      if (!referralCodeInput.trim()) {
-        setDbError(
-          "A registered referral code is required for CEO, Gatepath Staff, or Influencer selections.",
-        );
-        setLoading(false);
-        setBannerError(true);
-        return;
+      let referralCode = null;
+      if (typeof window !== "undefined") {
+        referralCode = localStorage.getItem("gatepath_ref");
       }
-      const { data: aff, error: affErr } = await (supabase as any)
-        .from("affiliates")
-        .select("id, partner_name")
-        .eq("referral_code", referralCodeInput.trim().toUpperCase())
+
+      // Validate CEO / Staff / Influencer Referral Codes
+      if (["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)) {
+        if (!referralCodeInput.trim()) {
+          setDbError(
+            "A registered referral code is required for CEO, Gatepath Staff, or Influencer selections.",
+          );
+          setBannerError(true);
+          return;
+        }
+        const { data: aff, error: affErr } = await (supabase as any)
+          .from("affiliates")
+          .select("id, partner_name")
+          .eq("referral_code", referralCodeInput.trim().toUpperCase())
+          .single();
+
+        if (affErr || !aff) {
+          setDbError(
+            "Invalid referral code. Please enter a valid registered CEO, Staff, or Influencer referral code.",
+          );
+          setBannerError(true);
+          return;
+        }
+      }
+
+      // Write to Supabase
+      const { data: insertedInq, error: insertErr } = await (supabase as any)
+        .from("inquiries")
+        .insert({
+          phase_name: sanitize(form.phaseName),
+          phase_slug: form.phaseSlug,
+          plot_number_ref: form.plotNumber ? parseInt(form.plotNumber) : null,
+          plot_size: form.plotSize,
+          plot_price: form.plotPrice,
+          plot_location: sanitize(form.plotLocation),
+          project_name: sanitize(form.phaseName),
+          booking_date: new Date().toISOString().split("T")[0],
+          terms_of_payment:
+            form.intent === "free_visit"
+              ? null
+              : ((form.termsOfPayment || "cash") as "cash" | "installment"),
+          price: form.intent === "free_visit" ? form.plotPrice : finalPrice,
+          discount: form.intent === "free_visit" ? 0 : form.discount || 0,
+          deposit: form.intent === "free_visit" ? 0 : deposit,
+          balance: form.intent === "free_visit" ? form.plotPrice : balance,
+          payment_period_months: form.intent === "free_visit" ? null : periodMonthsEstimate,
+          monthly_payment: form.intent === "free_visit" ? 0 : monthly,
+          client_full_name: sanitize(form.fullName),
+          client_dob: form.intent === "free_visit" ? null : form.dateOfBirth || null,
+          client_phone: form.phone.replace(/\s/g, ""),
+          client_postal_address:
+            form.intent === "free_visit" ? null : sanitize(form.postalAddress) || null,
+          client_email: form.email.toLowerCase().trim(),
+          client_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kraPin) || null,
+          client_id_passport: sanitize(form.idNumber).toUpperCase(),
+          client_occupation:
+            form.intent === "free_visit" ? null : sanitize(form.occupation) || null,
+          client_country: form.intent === "free_visit" ? null : sanitize(form.country) || null,
+          client_county: form.intent === "free_visit" ? null : sanitize(form.county) || null,
+          client_city: form.intent === "free_visit" ? null : sanitize(form.city) || null,
+          kin_full_name: form.intent === "free_visit" ? null : sanitize(form.kinFullName) || null,
+          kin_phone: form.intent === "free_visit" ? null : form.kinPhone || null,
+          kin_dob: form.intent === "free_visit" ? null : form.kinDob || null,
+          kin_relationship: form.intent === "free_visit" ? null : form.kinRelationship || null,
+          kin_id_passport:
+            form.intent === "free_visit" ? null : sanitize(form.kinIdPassport) || null,
+          kin_occupation:
+            form.intent === "free_visit" ? null : sanitize(form.kinOccupation) || null,
+          kin_country_of_residence:
+            form.intent === "free_visit" ? null : sanitize(form.kinCountryOfResidence) || null,
+          kin_county: form.intent === "free_visit" ? null : sanitize(form.kinCounty) || null,
+          kin_city: form.intent === "free_visit" ? null : sanitize(form.kinCity) || null,
+          kin_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kinKraPin) || null,
+          heard_from: form.heardFrom,
+          marketing_opt_in: form.marketingOptIn,
+          custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : null,
+          payment_preference: form.intent, // Set intent ('free_visit', 'reserve', 'deposit') as payment preference
+          location_preference: sanitize(form.locationPreference),
+          questions: sanitize(form.questions),
+          referred_by: ["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)
+            ? referralCodeInput.trim().toUpperCase()
+            : referralCode,
+          referral_code_used: ["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)
+            ? referralCodeInput.trim().toUpperCase()
+            : null,
+          status: "pending",
+        })
+        .select()
         .single();
 
-      if (affErr || !aff) {
-        setDbError(
-          "Invalid referral code. Please enter a valid registered CEO, Staff, or Influencer referral code.",
-        );
-        setLoading(false);
-        setBannerError(true);
+      if (insertErr) {
+        console.error("[Gatepath] Inquiry insert error:", insertErr.message);
+        setDbError("We couldn't save your inquiry. Please try again or WhatsApp us directly.");
         return;
       }
-    }
 
-    // Write to Supabase
-    const { data: insertedInq, error: insertErr } = await (supabase as any)
-      .from("inquiries")
-      .insert({
-        phase_name: sanitize(form.phaseName),
-        phase_slug: form.phaseSlug,
-        plot_number_ref: form.plotNumber ? parseInt(form.plotNumber) : null,
-        plot_size: form.plotSize,
-        plot_price: form.plotPrice,
-        plot_location: sanitize(form.plotLocation),
-        project_name: sanitize(form.phaseName),
-        booking_date: new Date().toISOString().split("T")[0],
-        terms_of_payment:
-          form.intent === "free_visit"
-            ? null
-            : ((form.termsOfPayment || "cash") as "cash" | "installment"),
-        price: form.intent === "free_visit" ? form.plotPrice : finalPrice,
-        discount: form.intent === "free_visit" ? 0 : form.discount || 0,
-        deposit: form.intent === "free_visit" ? 0 : deposit,
-        balance: form.intent === "free_visit" ? form.plotPrice : balance,
-        payment_period_months: form.intent === "free_visit" ? null : periodMonthsEstimate,
-        monthly_payment: form.intent === "free_visit" ? 0 : monthly,
-        client_full_name: sanitize(form.fullName),
-        client_dob: form.intent === "free_visit" ? null : form.dateOfBirth || null,
-        client_phone: form.phone.replace(/\s/g, ""),
-        client_postal_address:
-          form.intent === "free_visit" ? null : sanitize(form.postalAddress) || null,
-        client_email: form.email.toLowerCase().trim(),
-        client_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kraPin) || null,
-        client_id_passport: sanitize(form.idNumber).toUpperCase(),
-        client_occupation: form.intent === "free_visit" ? null : sanitize(form.occupation) || null,
-        client_country: form.intent === "free_visit" ? null : sanitize(form.country) || null,
-        client_county: form.intent === "free_visit" ? null : sanitize(form.county) || null,
-        client_city: form.intent === "free_visit" ? null : sanitize(form.city) || null,
-        kin_full_name: form.intent === "free_visit" ? null : sanitize(form.kinFullName) || null,
-        kin_phone: form.intent === "free_visit" ? null : form.kinPhone || null,
-        kin_dob: form.intent === "free_visit" ? null : form.kinDob || null,
-        kin_relationship: form.intent === "free_visit" ? null : form.kinRelationship || null,
-        kin_id_passport: form.intent === "free_visit" ? null : sanitize(form.kinIdPassport) || null,
-        kin_occupation: form.intent === "free_visit" ? null : sanitize(form.kinOccupation) || null,
-        kin_country_of_residence:
-          form.intent === "free_visit" ? null : sanitize(form.kinCountryOfResidence) || null,
-        kin_county: form.intent === "free_visit" ? null : sanitize(form.kinCounty) || null,
-        kin_city: form.intent === "free_visit" ? null : sanitize(form.kinCity) || null,
-        kin_kra_pin: form.intent === "free_visit" ? null : sanitize(form.kinKraPin) || null,
-        heard_from: form.heardFrom,
-        marketing_opt_in: form.marketingOptIn,
-        custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : null,
-        payment_preference: form.intent, // Set intent ('free_visit', 'reserve', 'deposit') as payment preference
-        location_preference: sanitize(form.locationPreference),
-        questions: sanitize(form.questions),
-        referred_by: ["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)
-          ? referralCodeInput.trim().toUpperCase()
-          : referralCode,
-        referral_code_used: ["CEO", "Gatepath Staff", "Influencer"].includes(form.heardFrom)
-          ? referralCodeInput.trim().toUpperCase()
-          : null,
-        status: "pending",
-      })
-      .select()
-      .single();
+      if (insertedInq) {
+        setForm({ inquiryId: insertedInq.id });
+      }
 
-    setLoading(false);
-
-    if (insertErr) {
-      console.error("[Gatepath] Inquiry insert error:", insertErr.message);
-      setDbError("We couldn't save your inquiry. Please try again or WhatsApp us directly.");
-      return;
-    }
-
-    if (insertedInq) {
-      setForm({ inquiryId: insertedInq.id });
-    }
-
-    if (form.intent === "free_visit") {
-      navigate({ to: "/book-visit" });
-    } else {
-      navigate({ to: "/payment" });
+      if (form.intent === "free_visit") {
+        navigate({ to: "/book-visit" });
+      } else {
+        navigate({ to: "/payment" });
+      }
+    } catch (err: any) {
+      console.error("[Gatepath] Inquiry submit failed:", err);
+      setDbError(
+        err?.message || "We couldn't save your inquiry. Please try again or WhatsApp us directly.",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 

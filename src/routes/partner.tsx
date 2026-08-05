@@ -49,32 +49,36 @@ function PartnerPage() {
     setLoading(true);
     setError(null);
 
-    const cleanCode = formData.code.toUpperCase().replace(/\s/g, "");
+    try {
+      const cleanCode = formData.code.toUpperCase().replace(/\s/g, "");
 
-    // Insert into Supabase affiliates table
-    const { error: insertErr } = await (supabase as any).from("affiliates").insert({
-      partner_name: formData.name,
-      email: formData.email.toLowerCase().trim(),
-      phone: formData.phone.replace(/\s/g, ""),
-      referral_code: cleanCode,
-      commission_rate: 0.05, // 5% Standard Commission
-    });
+      // Insert into Supabase affiliates table
+      const { error: insertErr } = await (supabase as any).from("affiliates").insert({
+        partner_name: formData.name,
+        email: formData.email.toLowerCase().trim(),
+        phone: formData.phone.replace(/\s/g, ""),
+        referral_code: cleanCode,
+        commission_rate: 0.05, // 5% Standard Commission
+      });
 
-    setLoading(false);
-
-    if (insertErr) {
-      console.error("[Gatepath Affiliates Error]", insertErr.message);
-      if (insertErr.message.includes("unique")) {
-        setError(
-          "This referral code, email or phone is already registered. Please choose another.",
-        );
-      } else {
-        setError("Registration failed. Please verify your details or contact support.");
+      if (insertErr) {
+        console.error("[Gatepath Affiliates Error]", insertErr.message);
+        if (insertErr.message.includes("unique")) {
+          setError(
+            "This referral code, email or phone is already registered. Please choose another.",
+          );
+        } else {
+          setError("Registration failed. Please verify your details or contact support.");
+        }
+        return;
       }
-      return;
-    }
 
-    setSuccess(true);
+      setSuccess(true);
+    } catch {
+      setError("Registration failed. Please verify your details or contact support.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

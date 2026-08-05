@@ -41,21 +41,26 @@ export function Footer() {
     setNewsletterSubmitting(true);
     setNewsletterMsg(null);
 
-    const { error } = await (supabase as any)
-      .from("newsletter_subscribers")
-      .insert({ email: newsletterEmail.trim().toLowerCase(), source: "website" });
+    try {
+      const { error } = await (supabase as any)
+        .from("newsletter_subscribers")
+        .insert({ email: newsletterEmail.trim().toLowerCase(), source: "website" });
 
-    setNewsletterSubmitting(false);
-    if (error) {
-      setNewsletterMsg(
-        error.code === "23505"
-          ? "You're already on the list!"
-          : "Something went wrong — please try again.",
-      );
-      return;
+      if (error) {
+        setNewsletterMsg(
+          error.code === "23505"
+            ? "You're already on the list!"
+            : "Something went wrong — please try again.",
+        );
+        return;
+      }
+      setNewsletterEmail("");
+      setNewsletterMsg("Subscribed! Thanks for joining.");
+    } catch {
+      setNewsletterMsg("Something went wrong — please try again.");
+    } finally {
+      setNewsletterSubmitting(false);
     }
-    setNewsletterEmail("");
-    setNewsletterMsg("Subscribed! Thanks for joining.");
   };
 
   useEffect(() => {

@@ -90,23 +90,30 @@ function ContactPage() {
     setSubmitting(true);
     setSubmitError(null);
 
-    const { error } = await (supabase as any).from("inquiries").insert({
-      client_full_name: sanitize(formData.fullName),
-      client_email: formData.email.toLowerCase().trim(),
-      client_phone: formData.phone.trim(),
-      heard_from: "Contact Page",
-      questions: `[${formData.subject}] ${sanitize(formData.message)}`,
-      status: "pending",
-    });
+    try {
+      const { error } = await (supabase as any).from("inquiries").insert({
+        client_full_name: sanitize(formData.fullName),
+        client_email: formData.email.toLowerCase().trim(),
+        client_phone: formData.phone.trim(),
+        heard_from: "Contact Page",
+        questions: `[${formData.subject}] ${sanitize(formData.message)}`,
+        status: "pending",
+      });
 
-    setSubmitting(false);
-    if (error) {
+      if (error) {
+        setSubmitError(
+          "Something went wrong sending your message. Please call or WhatsApp us directly.",
+        );
+        return;
+      }
+      setSubmitted(true);
+    } catch {
       setSubmitError(
         "Something went wrong sending your message. Please call or WhatsApp us directly.",
       );
-      return;
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitted(true);
   };
 
   return (

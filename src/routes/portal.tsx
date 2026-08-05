@@ -402,9 +402,17 @@ function ClientPortalPage() {
     setPayProcessing(true);
     setPayError(null);
 
-    const ownership = await (assertPortalOwnsInquiryFn as any)({
-      data: { sessionToken, inquiryId: payingInquiry.id },
-    });
+    let ownership: any;
+    try {
+      ownership = await (assertPortalOwnsInquiryFn as any)({
+        data: { sessionToken, inquiryId: payingInquiry.id },
+      });
+    } catch (err: any) {
+      console.error("[Portal] Ownership check failed:", err);
+      setPayError("Something went wrong. Please try again.");
+      setPayProcessing(false);
+      return;
+    }
     if (!ownership?.success) {
       setPayError(ownership?.error || "You don't have permission to pay against this inquiry.");
       setPayProcessing(false);

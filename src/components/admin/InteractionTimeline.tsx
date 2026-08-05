@@ -130,15 +130,14 @@ export function InteractionTimeline({ inquiryId }: { inquiryId: string }) {
     setSaving(true);
     setSaveMsg(null);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setSaveMsg("Your session expired — please sign in again.");
-      setSaving(false);
-      return;
-    }
-
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setSaveMsg("Your session expired — please sign in again.");
+        return;
+      }
+
       const result = await (logInteractionFn as any)({
         data: {
           callerAccessToken: accessToken,

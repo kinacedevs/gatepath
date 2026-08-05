@@ -101,21 +101,25 @@ function AdminPage() {
     setLoginError(null);
     setLoginLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: emailInput.trim().toLowerCase(),
-      password: passwordInput,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: emailInput.trim().toLowerCase(),
+        password: passwordInput,
+      });
 
-    setLoginLoading(false);
+      if (error) {
+        setLoginError("Invalid email or password.");
+        return;
+      }
 
-    if (error) {
-      setLoginError("Invalid email or password.");
-      return;
+      setPasswordInput("");
+      // onAuthStateChange picks up the new session and resolves the
+      // admin_users row above — nothing else to do here.
+    } catch {
+      setLoginError("Something went wrong signing in. Check your connection and try again.");
+    } finally {
+      setLoginLoading(false);
     }
-
-    setPasswordInput("");
-    // onAuthStateChange picks up the new session and resolves the admin_users
-    // row above — nothing else to do here.
   };
 
   // ─── LOADING SCREEN ───────────────────────────────────────────────────────────
