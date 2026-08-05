@@ -15,7 +15,15 @@ import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { supabase } from "@/lib/supabase";
+import { MediaSlide } from "@/components/MediaSlide";
 import type { BlogPost } from "@/lib/types";
+
+const STOCK_FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80";
+
+function featuredImage(post: BlogPost) {
+  return post.featured_images?.[0] ?? post.featured_image ?? STOCK_FALLBACK_IMAGE;
+}
 
 export const Route = createFileRoute("/blog/")({
   component: BlogIndexPage,
@@ -317,11 +325,8 @@ function BlogIndexPage() {
                 >
                   {/* Image container */}
                   <div className="h-[210px] w-full overflow-hidden relative bg-gray-100 shrink-0">
-                    <img
-                      src={
-                        post.featured_image ||
-                        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80"
-                      }
+                    <MediaSlide
+                      src={featuredImage(post)}
                       alt={post.title}
                       loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"

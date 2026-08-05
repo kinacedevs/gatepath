@@ -3,10 +3,12 @@ import { Link } from "@tanstack/react-router";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_HERO_IMAGES } from "@/lib/heroImages";
+import { useRotatingCarousel } from "@/hooks/useRotatingCarousel";
+import { MediaSlide } from "@/components/MediaSlide";
 
 export function Hero() {
   const [images, setImages] = useState<string[]>(DEFAULT_HERO_IMAGES);
-  const [current, setCurrent] = useState(0);
+  const current = useRotatingCarousel(images.length);
 
   useEffect(() => {
     const fetchBanners = async () => {
@@ -28,14 +30,6 @@ export function Hero() {
     fetchBanners();
   }, []);
 
-  useEffect(() => {
-    if (images.length <= 1) return;
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [images]);
-
   return (
     <section className="relative min-h-screen w-full flex items-center pt-28 pb-24 bg-primary-deep overflow-hidden text-white">
       {/* Background Image Carousel with Non-Distorting Cover Fit & Deep Gradient Overlay.
@@ -43,12 +37,13 @@ export function Hero() {
           that) so the photo is actually visible — it was reading as near-black before. */}
       {images.length > 0 && (
         <div className="absolute inset-0 w-full h-full z-0">
-          <img
+          <MediaSlide
             src={images[current]}
             alt="Gatepath Premium Land Hero"
             className="w-full h-full object-cover object-center transition-opacity duration-1000"
             loading="eager"
             fetchPriority="high"
+            autoPlay
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary-deep/90 via-primary-deep/55 to-primary-deep/20" />
           <div className="absolute inset-0 bg-gradient-to-t from-primary-deep/70 via-transparent to-primary-deep/20" />

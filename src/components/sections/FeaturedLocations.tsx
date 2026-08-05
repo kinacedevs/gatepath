@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MapPin, ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/Reveal";
+import { MediaSlide } from "@/components/MediaSlide";
 import { supabase } from "@/lib/supabase";
 import { usePhases } from "@/lib/phases";
 import { formatFromKes } from "@/lib/currency";
@@ -47,7 +48,7 @@ const defaultLocations = [
 
 export function FeaturedLocations() {
   const { phases, loading } = usePhases();
-  const [customLocImages, setCustomLocImages] = useState<Record<string, string>>({});
+  const [customLocImages, setCustomLocImages] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     const fetchLocationImages = async () => {
@@ -58,7 +59,13 @@ export function FeaturedLocations() {
           .eq("id", "location_images")
           .single();
         if (data?.data) {
-          setCustomLocImages(data.data);
+          // Normalize legacy single-string values (pre-Phase 38) into
+          // 1-element arrays so this component only ever deals with arrays.
+          const normalized: Record<string, string[]> = {};
+          for (const [name, val] of Object.entries(data.data as Record<string, unknown>)) {
+            normalized[name] = Array.isArray(val) ? (val as string[]) : val ? [val as string] : [];
+          }
+          setCustomLocImages(normalized);
         }
       } catch (err) {
         // silent fallback
@@ -97,8 +104,8 @@ export function FeaturedLocations() {
         ) : (
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {visibleLocations.map(({ name, img, phase }) => {
-              const hasCustomImg = !!customLocImages[name];
-              const displayImg = customLocImages[name] || img;
+              const hasCustomImg = !!customLocImages[name]?.[0];
+              const displayImg = customLocImages[name]?.[0] || img;
               return (
                 <Reveal key={name}>
                   <Link
@@ -106,7 +113,7 @@ export function FeaturedLocations() {
                     params={{ slug: phase.slug }}
                     className="group relative block h-[420px] rounded-[16px] overflow-hidden shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] transition-all duration-400 hover:scale-[1.02] cursor-pointer bg-primary-deep border border-[#E5E0D8]"
                   >
-                    <img
+                    <MediaSlide
                       src={displayImg}
                       alt={`${name}, Kenya land`}
                       loading="lazy"

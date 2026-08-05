@@ -12,6 +12,7 @@ import {
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { MediaSlide } from "@/components/MediaSlide";
 import { PlotMap } from "@/components/properties/PlotMap";
 import { PlotPanel } from "@/components/properties/PlotPanel";
 import { PhaseCard } from "@/components/properties/PhaseCard";
@@ -98,7 +99,9 @@ export const Route = createFileRoute("/properties/$slug")({
         booked: p.booked_count,
         sold: p.sold_count,
         image:
-          p.image_url ?? "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
+          p.image_urls?.[0] ??
+          p.image_url ??
+          "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
         description: p.description ?? "",
         features: p.features ?? [],
         startingPrice,
@@ -147,6 +150,7 @@ export const Route = createFileRoute("/properties/$slug")({
       booked: dbPhase.booked_count,
       sold: dbPhase.sold_count,
       image:
+        dbPhase.image_urls?.[0] ??
         dbPhase.image_url ??
         "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
       description: dbPhase.description ?? "",
@@ -363,7 +367,7 @@ function PhaseDetailPage() {
                       idx === currentSlide ? "opacity-100" : "opacity-0"
                     }`}
                   >
-                    <img
+                    <MediaSlide
                       src={slideUrl}
                       alt={`${phase.name} view ${idx + 1}`}
                       className="w-full h-full object-cover"

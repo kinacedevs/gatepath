@@ -5,7 +5,15 @@ import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { supabase } from "@/lib/supabase";
+import { MediaSlide } from "@/components/MediaSlide";
 import type { BlogPost } from "@/lib/types";
+
+const STOCK_FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80";
+
+function featuredImage(post: BlogPost) {
+  return post.featured_images?.[0] ?? post.featured_image ?? STOCK_FALLBACK_IMAGE;
+}
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
@@ -39,9 +47,7 @@ export const Route = createFileRoute("/blog/$slug")({
       "@type": "BlogPosting",
       headline: post.title,
       description: post.summary,
-      image:
-        post.featured_image ||
-        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
+      image: featuredImage(post),
       author: {
         "@type": "Person",
         name: post.author_name,
@@ -65,7 +71,7 @@ export const Route = createFileRoute("/blog/$slug")({
         // Open Graph
         { property: "og:title", content: seoTitle },
         { property: "og:description", content: seoDescription },
-        { property: "og:image", content: post.featured_image || "" },
+        { property: "og:image", content: featuredImage(post) },
         { property: "og:type", content: "article" },
         // Twitter
         { name: "twitter:card", content: "summary_large_image" },
@@ -198,11 +204,8 @@ function BlogPostPage() {
 
           {/* Featured Image */}
           <div className="mt-8 rounded-xl overflow-hidden shadow-lg h-[460px] w-full bg-gray-100">
-            <img
-              src={
-                post.featured_image ||
-                "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80"
-              }
+            <MediaSlide
+              src={featuredImage(post)}
               alt={post.title}
               className="w-full h-full object-cover"
               loading="eager"
@@ -280,8 +283,8 @@ function BlogPostPage() {
                     className="group block bg-white rounded-lg border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
                   >
                     <div className="h-[140px] bg-gray-100 overflow-hidden">
-                      <img
-                        src={post.featured_image || ""}
+                      <MediaSlide
+                        src={featuredImage(post)}
                         alt=""
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"

@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { MediaSlide } from "@/components/MediaSlide";
 import {
   ShieldCheck,
   Award,
@@ -220,9 +221,9 @@ function AboutPage() {
                 className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden text-center p-6 space-y-4"
               >
                 <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-2 border-accent bg-slate-100">
-                  {staff.photo_url && (
-                    <img
-                      src={staff.photo_url}
+                  {(staff.photo_urls?.[0] ?? staff.photo_url) && (
+                    <MediaSlide
+                      src={(staff.photo_urls?.[0] ?? staff.photo_url) as string}
                       alt={staff.full_name}
                       loading="lazy"
                       className="w-full h-full object-cover"

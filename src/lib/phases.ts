@@ -47,8 +47,6 @@ export interface Phase {
   brochure_url?: string | null;
   /** Plot map PDF URL for client download. */
   plot_map_url?: string | null;
-  /** Diaspora section banner override — falls back to the phase's main image. */
-  diaspora_image_url?: string | null;
   /** True if any active pricing tier in this phase has a promo on (Part 3, Phase A). */
   hasPromo?: boolean;
   /** Manual homepage "Hot Picks" override (Part 3, Slice B). */
@@ -136,6 +134,7 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
     booked: dbPhase.booked_count,
     sold: dbPhase.sold_count,
     image:
+      dbPhase.image_urls?.[0] ??
       dbPhase.image_url ??
       LOCATION_IMAGES[dbPhase.location.toLowerCase()] ??
       "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
@@ -148,7 +147,6 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
     hero_image_urls: dbPhase.hero_image_urls,
     brochure_url: dbPhase.brochure_url,
     plot_map_url: dbPhase.plot_map_url,
-    diaspora_image_url: dbPhase.diaspora_image_url,
     hasPromo: sizesForPhase.some((s) => (s as any).promo_active),
     isHotPick: (dbPhase as any).is_hot_pick ?? false,
     hotPickOrder: (dbPhase as any).hot_pick_order ?? 0,

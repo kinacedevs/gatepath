@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import diasporaHeroAsset from "@/assets/diaspora.jpg";
+import { useRotatingCarousel } from "@/hooks/useRotatingCarousel";
+import { MediaSlide } from "@/components/MediaSlide";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhases } from "@/lib/phases";
 import { CURRENCIES, formatFromKes, fromKes, setLiveFxRates, type Currency } from "@/lib/currency";
@@ -142,8 +144,12 @@ function DiasporaPage() {
 
   // ─── Hero — CEO-uploaded override (site_banners "diaspora_hero", same
   // pattern as Hero.tsx's "homepage_hero") falls back to the real branded
-  // asset shot, never to generic stock.
-  const [heroImage, setHeroImage] = useState<string>(diasporaHeroAsset);
+  // asset shot, never to generic stock. Rotates through any number of
+  // photos/videos the same way the homepage hero does (Phase 38) — reads
+  // the new .images array, falling back to the old single .image_url for
+  // any row saved before that migration.
+  const [heroImages, setHeroImages] = useState<string[]>([diasporaHeroAsset]);
+  const heroCurrent = useRotatingCarousel(heroImages.length);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -153,9 +159,13 @@ function DiasporaPage() {
           .select("data")
           .eq("id", "diaspora_hero")
           .maybeSingle();
-        const url = data?.data?.image_url;
-        if (!cancelled && typeof url === "string" && url) {
-          setHeroImage(url);
+        const images = Array.isArray(data?.data?.images)
+          ? data.data.images
+          : typeof data?.data?.image_url === "string" && data.data.image_url
+            ? [data.data.image_url]
+            : [];
+        if (!cancelled && images.length > 0) {
+          setHeroImages(images);
         }
       } catch {
         // keep the real asset fallback — never fall through to stock
@@ -331,16 +341,21 @@ function DiasporaPage() {
     <div className="min-h-screen bg-ivory">
       <Navbar />
 
-      {/* HERO — real branded asset (or CEO-uploaded override), never stock */}
-      <section
-        className="relative pt-44 pb-20 bg-primary-deep overflow-hidden"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(7,75,125,0.92) 0%, rgba(7,75,125,0.72) 100%), url(${heroImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="relative mx-auto max-w-7xl px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-12 items-center">
+      {/* HERO — real branded asset (or CEO-uploaded override, now a real
+          rotating photo/video carousel — Phase 38), never stock */}
+      <section className="relative pt-44 pb-20 bg-primary-deep overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <MediaSlide
+            src={heroImages[heroCurrent]}
+            alt="Gatepath Diaspora"
+            className="w-full h-full object-cover object-center transition-opacity duration-1000"
+            loading="eager"
+            fetchPriority="high"
+            autoPlay
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(7,75,125,0.92)_0%,rgba(7,75,125,0.72)_100%)]" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-12 items-center">
           <div className="text-white max-w-2xl">
             <span className="inline-flex items-center gap-2 bg-accent/20 text-accent border border-accent/30 font-semibold tracking-wider uppercase text-[12px] px-3.5 py-1.5 rounded-full mb-6">
               <Globe size={14} /> Certified Diaspora Channel
