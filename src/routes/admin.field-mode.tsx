@@ -101,21 +101,25 @@ function FieldMode() {
   const changeStatus = async (inquiryId: string, newStatus: Inquiry["status"]) => {
     setUpdatingId(inquiryId);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (updateInquiryStatusFn as any)({
+        data: { callerAccessToken: token, inquiryId, newStatus },
+      });
+      if (!result.success) {
+        setActionMsg("Error: " + result.error);
+      } else {
+        loadData();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setUpdatingId(null);
-      return;
     }
-    const result = await (updateInquiryStatusFn as any)({
-      data: { callerAccessToken: token, inquiryId, newStatus },
-    });
-    if (!result.success) {
-      setActionMsg("Error: " + result.error);
-    } else {
-      loadData();
-    }
-    setUpdatingId(null);
   };
 
   const captureLocation = () => {
@@ -149,30 +153,34 @@ function FieldMode() {
     e.preventDefault();
     if (!visitInquiryId) return;
     setSavingVisit(true);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (logInteractionFn as any)({
+        data: {
+          callerAccessToken: token,
+          inquiryId: visitInquiryId,
+          channel: "site_visit",
+          direction: "outbound",
+          notes: visitNotes.trim(),
+          latitude: gpsCoords?.lat,
+          longitude: gpsCoords?.lng,
+        },
+      });
+      if (!result.success) {
+        setActionMsg("Error logging visit: " + result.error);
+      } else {
+        setActionMsg("Visit logged.");
+        closeVisitDialog();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSavingVisit(false);
-      return;
     }
-    const result = await (logInteractionFn as any)({
-      data: {
-        callerAccessToken: token,
-        inquiryId: visitInquiryId,
-        channel: "site_visit",
-        direction: "outbound",
-        notes: visitNotes.trim(),
-        latitude: gpsCoords?.lat,
-        longitude: gpsCoords?.lng,
-      },
-    });
-    if (!result.success) {
-      setActionMsg("Error logging visit: " + result.error);
-    } else {
-      setActionMsg("Visit logged.");
-      closeVisitDialog();
-    }
-    setSavingVisit(false);
   };
 
   return (

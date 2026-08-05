@@ -163,31 +163,35 @@ function GoalsAndQuotas() {
     }
     setSaving(true);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (createGoalFn as any)({
+        data: {
+          callerAccessToken: token,
+          agentId: entityType === "agent" ? entityId : undefined,
+          phaseId: entityType === "phase" ? entityId : undefined,
+          metric,
+          periodType,
+          periodStart,
+          targetValue: val,
+        },
+      });
+      if (!result.success) {
+        setActionMsg("Error: " + result.error);
+      } else {
+        setCreateOpen(false);
+        resetCreateForm();
+        loadData();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSaving(false);
-      return;
     }
-    const result = await (createGoalFn as any)({
-      data: {
-        callerAccessToken: token,
-        agentId: entityType === "agent" ? entityId : undefined,
-        phaseId: entityType === "phase" ? entityId : undefined,
-        metric,
-        periodType,
-        periodStart,
-        targetValue: val,
-      },
-    });
-    if (!result.success) {
-      setActionMsg("Error: " + result.error);
-    } else {
-      setCreateOpen(false);
-      resetCreateForm();
-      loadData();
-    }
-    setSaving(false);
   };
 
   const submitEditTarget = async (e: React.FormEvent) => {
@@ -200,41 +204,49 @@ function GoalsAndQuotas() {
     }
     setSaving(true);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (updateGoalFn as any)({
+        data: { callerAccessToken: token, goalId: editingGoal.goal.id, targetValue: val },
+      });
+      if (!result.success) {
+        setActionMsg("Error: " + result.error);
+      } else {
+        setEditingGoal(null);
+        loadData();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSaving(false);
-      return;
     }
-    const result = await (updateGoalFn as any)({
-      data: { callerAccessToken: token, goalId: editingGoal.goal.id, targetValue: val },
-    });
-    if (!result.success) {
-      setActionMsg("Error: " + result.error);
-    } else {
-      setEditingGoal(null);
-      loadData();
-    }
-    setSaving(false);
   };
 
   const handleDelete = async (goalId: string) => {
     if (!confirm("Delete this goal permanently? This cannot be undone.")) return;
     setSaving(true);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (deleteGoalFn as any)({ data: { callerAccessToken: token, goalId } });
+      if (!result.success) {
+        setActionMsg("Error: " + result.error);
+      } else {
+        loadData();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSaving(false);
-      return;
     }
-    const result = await (deleteGoalFn as any)({ data: { callerAccessToken: token, goalId } });
-    if (!result.success) {
-      setActionMsg("Error: " + result.error);
-    } else {
-      loadData();
-    }
-    setSaving(false);
   };
 
   const formatActual = (p: GoalProgress) =>

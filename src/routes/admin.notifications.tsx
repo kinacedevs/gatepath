@@ -135,24 +135,29 @@ function NotificationsCenter() {
     e.preventDefault();
     if (!loggingInquiryId || dialogSubmitting) return;
     setDialogSubmitting(true);
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setToast("Your session expired — please sign in again.");
+        return;
+      }
+      await logInteractionFn({
+        data: {
+          callerAccessToken: accessToken,
+          inquiryId: loggingInquiryId,
+          channel: quickChannel,
+          direction: "outbound",
+          notes: quickNotes.trim(),
+        },
+      });
+      setLoggingInquiryId(null);
+      setToast("Interaction logged.");
+      loadData();
+    } catch (err: any) {
+      setToast("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setDialogSubmitting(false);
-      return;
     }
-    await logInteractionFn({
-      data: {
-        callerAccessToken: accessToken,
-        inquiryId: loggingInquiryId,
-        channel: quickChannel,
-        direction: "outbound",
-        notes: quickNotes.trim(),
-      },
-    });
-    setDialogSubmitting(false);
-    setLoggingInquiryId(null);
-    setToast("Interaction logged.");
-    loadData();
   };
 
   const openFeedback = (bookingId: string) => {
@@ -164,32 +169,50 @@ function NotificationsCenter() {
     e.preventDefault();
     if (!feedbackBookingId || !feedbackText.trim() || dialogSubmitting) return;
     setDialogSubmitting(true);
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setToast("Your session expired — please sign in again.");
+        return;
+      }
+      await logBookingFeedbackFn({
+        data: {
+          callerAccessToken: accessToken,
+          bookingId: feedbackBookingId,
+          feedback: feedbackText.trim(),
+        },
+      });
+      setFeedbackBookingId(null);
+      setToast("Feedback logged.");
+      loadData();
+    } catch (err: any) {
+      setToast("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setDialogSubmitting(false);
-      return;
     }
-    await logBookingFeedbackFn({
-      data: {
-        callerAccessToken: accessToken,
-        bookingId: feedbackBookingId,
-        feedback: feedbackText.trim(),
-      },
-    });
-    setDialogSubmitting(false);
-    setFeedbackBookingId(null);
-    setToast("Feedback logged.");
-    loadData();
   };
 
   const sendGraceReminder = async (inquiryId: string) => {
     setBusyId(inquiryId);
-    const accessToken = await getAccessToken();
-    if (accessToken) {
-      await sendPaymentReminderFn({ data: { callerAccessToken: accessToken, inquiryId } });
-      setToast("Reminder sent.");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setToast("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await sendPaymentReminderFn({
+        data: { callerAccessToken: accessToken, inquiryId },
+      });
+      if (!(result as any)?.success) {
+        setToast("Error: " + ((result as any)?.error ?? "Failed to send reminder."));
+      } else {
+        setToast("Reminder sent.");
+      }
+    } catch (err: any) {
+      setToast("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setBusyId(null);
     }
-    setBusyId(null);
   };
 
   const runAction = (item: EscalationItem) => {

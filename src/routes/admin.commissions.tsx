@@ -120,23 +120,31 @@ function Commissions() {
     }
     setSaving(true);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (updateAgentCommissionRateFn as any)({
+        data: {
+          callerAccessToken: token,
+          agentUserId: rateEditAgent.id,
+          commissionRate: pct / 100,
+        },
+      });
+      if (!result.success) {
+        setActionMsg("Error: " + result.error);
+      } else {
+        setRateEditAgent(null);
+        setRateInput("");
+        loadData();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSaving(false);
-      return;
     }
-    const result = await (updateAgentCommissionRateFn as any)({
-      data: { callerAccessToken: token, agentUserId: rateEditAgent.id, commissionRate: pct / 100 },
-    });
-    if (!result.success) {
-      setActionMsg("Error: " + result.error);
-    } else {
-      setRateEditAgent(null);
-      setRateInput("");
-      loadData();
-    }
-    setSaving(false);
   };
 
   const markPaid = async (
@@ -146,44 +154,52 @@ function Commissions() {
   ) => {
     setSaving(true);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (markCommissionPaidFn as any)({
+        data: {
+          callerAccessToken: token,
+          inquiryId,
+          agentEmail: summary.agent.email,
+          agentName: summary.agent.full_name,
+          commissionRateApplied: summary.agent.commission_rate,
+          commissionAmountKes: amountKes,
+        },
+      });
+      if (!result.success) {
+        setActionMsg("Error: " + result.error);
+      } else {
+        loadData();
+      }
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSaving(false);
-      return;
     }
-    const result = await (markCommissionPaidFn as any)({
-      data: {
-        callerAccessToken: token,
-        inquiryId,
-        agentEmail: summary.agent.email,
-        agentName: summary.agent.full_name,
-        commissionRateApplied: summary.agent.commission_rate,
-        commissionAmountKes: amountKes,
-      },
-    });
-    if (!result.success) {
-      setActionMsg("Error: " + result.error);
-    } else {
-      loadData();
-    }
-    setSaving(false);
   };
 
   const sendStatement = async (agentEmail: string) => {
     setSaving(true);
     setActionMsg(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setActionMsg("Your session expired — please sign in again.");
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (sendCommissionStatementFn as any)({
+        data: { callerAccessToken: token, agentEmail },
+      });
+      setActionMsg(result.success ? "Statement sent." : "Error: " + result.error);
+    } catch (err: any) {
+      setActionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setSaving(false);
-      return;
     }
-    const result = await (sendCommissionStatementFn as any)({
-      data: { callerAccessToken: token, agentEmail },
-    });
-    setActionMsg(result.success ? "Statement sent." : "Error: " + result.error);
-    setSaving(false);
   };
 
   const columns: ColumnDef<AgentCommissionSummary, any>[] = [

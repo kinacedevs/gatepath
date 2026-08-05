@@ -125,17 +125,21 @@ function InstallmentTracker() {
   const handleSendReminder = async (inquiryId: string) => {
     setReminderState((s) => ({ ...s, [inquiryId]: "sending" }));
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      setReminderState((s) => ({ ...s, [inquiryId]: "error" }));
-      return;
-    }
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setReminderState((s) => ({ ...s, [inquiryId]: "error" }));
+        return;
+      }
 
-    const result = await sendPaymentReminderFn({
-      data: { callerAccessToken: accessToken, inquiryId },
-    });
-    setReminderState((s) => ({ ...s, [inquiryId]: result.success ? "sent" : "error" }));
+      const result = await sendPaymentReminderFn({
+        data: { callerAccessToken: accessToken, inquiryId },
+      });
+      setReminderState((s) => ({ ...s, [inquiryId]: result.success ? "sent" : "error" }));
+    } catch {
+      setReminderState((s) => ({ ...s, [inquiryId]: "error" }));
+    }
   };
 
   const columns: ColumnDef<Ledger, any>[] = [

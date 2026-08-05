@@ -147,74 +147,97 @@ function DocumentVault() {
     setUploadSaving(true);
     setUploadMsg(null);
 
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      setUploadMsg("Your session expired — please sign in again.");
-      setUploadSaving(false);
-      return;
-    }
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setUploadMsg("Your session expired — please sign in again.");
+        return;
+      }
 
-    const urlResult = await requestDocumentUploadUrlFn({
-      data: { callerAccessToken: accessToken, documentType, fileName: file.name },
-    });
-    if (!urlResult.success) {
-      setUploadMsg("Error preparing upload: " + urlResult.error);
-      setUploadSaving(false);
-      return;
-    }
+      const urlResult = await requestDocumentUploadUrlFn({
+        data: { callerAccessToken: accessToken, documentType, fileName: file.name },
+      });
+      if (!urlResult.success) {
+        setUploadMsg("Error preparing upload: " + urlResult.error);
+        return;
+      }
 
-    const { error: uploadErr } = await supabase.storage
-      .from("documents")
-      .uploadToSignedUrl(urlResult.path, urlResult.token, file);
-    if (uploadErr) {
-      setUploadMsg("Error uploading file: " + uploadErr.message);
-      setUploadSaving(false);
-      return;
-    }
+      const { error: uploadErr } = await supabase.storage
+        .from("documents")
+        .uploadToSignedUrl(urlResult.path, urlResult.token, file);
+      if (uploadErr) {
+        setUploadMsg("Error uploading file: " + uploadErr.message);
+        return;
+      }
 
-    const recordResult = await createDocumentRecordFn({
-      data: {
-        callerAccessToken: accessToken,
-        storagePath: urlResult.path,
-        documentType,
-        fileName: file.name,
-        fileSizeBytes: file.size,
-        inquiryId: linkedInquiryId || undefined,
-        notes: notes.trim() || undefined,
-      },
-    });
-    if (!recordResult.success) {
-      setUploadMsg("File uploaded, but saving the record failed: " + recordResult.error);
-    } else {
-      setUploading(false);
-      loadData();
+      const recordResult = await createDocumentRecordFn({
+        data: {
+          callerAccessToken: accessToken,
+          storagePath: urlResult.path,
+          documentType,
+          fileName: file.name,
+          fileSizeBytes: file.size,
+          inquiryId: linkedInquiryId || undefined,
+          notes: notes.trim() || undefined,
+        },
+      });
+      if (!recordResult.success) {
+        setUploadMsg("File uploaded, but saving the record failed: " + recordResult.error);
+      } else {
+        setUploading(false);
+        loadData();
+      }
+    } catch (err: any) {
+      setUploadMsg("Something went wrong uploading: " + (err?.message || "Unknown error."));
+    } finally {
+      setUploadSaving(false);
     }
-    setUploadSaving(false);
   };
 
   const viewDocument = async (documentId: string) => {
     setActionState((s) => ({ ...s, [documentId]: true }));
-    const accessToken = await getAccessToken();
-    if (accessToken) {
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        alert("Your session expired — please sign in again.");
+        return;
+      }
       const result = await getDocumentSignedUrlFn({
         data: { callerAccessToken: accessToken, documentId },
       });
       if (result.success) {
         window.open(result.signedUrl, "_blank", "noopener,noreferrer");
+      } else {
+        alert("Error opening document: " + result.error);
       }
+    } catch (err: any) {
+      alert("Something went wrong opening the document: " + (err?.message || "Unknown error."));
+    } finally {
+      setActionState((s) => ({ ...s, [documentId]: false }));
     }
-    setActionState((s) => ({ ...s, [documentId]: false }));
   };
 
   const removeDocument = async (documentId: string) => {
     if (!confirm("Delete this document permanently? This cannot be undone.")) return;
     setActionState((s) => ({ ...s, [documentId]: true }));
-    const accessToken = await getAccessToken();
-    if (accessToken) {
-      await deleteDocumentRecordFn({ data: { callerAccessToken: accessToken, documentId } });
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        alert("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await deleteDocumentRecordFn({
+        data: { callerAccessToken: accessToken, documentId },
+      });
+      if (!(result as any)?.success) {
+        alert("Error deleting document: " + ((result as any)?.error ?? "Unknown error."));
+      }
       await loadData();
+    } catch (err: any) {
+      alert("Something went wrong deleting the document: " + (err?.message || "Unknown error."));
+    } finally {
+      setActionState((s) => ({ ...s, [documentId]: false }));
     }
-    setActionState((s) => ({ ...s, [documentId]: false }));
   };
 
   return (

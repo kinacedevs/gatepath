@@ -153,21 +153,47 @@ function TasksAndFollowUps() {
 
   const runAction = async (taskId: string, patch: { status?: Task["status"]; dueAt?: string }) => {
     setActionState((s) => ({ ...s, [taskId]: true }));
-    const accessToken = await getAccessToken();
-    if (accessToken) {
-      await updateTaskFn({ data: { ...patch, callerAccessToken: accessToken, taskId } });
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        alert("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await updateTaskFn({
+        data: { ...patch, callerAccessToken: accessToken, taskId },
+      });
+      if (!(result as any)?.success) {
+        alert("Error updating task: " + ((result as any)?.error ?? "Unknown error."));
+      }
       await loadData();
+    } catch (err: any) {
+      alert("Something went wrong updating the task: " + (err?.message || "Unknown error."));
+    } finally {
+      setActionState((s) => ({ ...s, [taskId]: false }));
     }
-    setActionState((s) => ({ ...s, [taskId]: false }));
   };
 
   const sendReminder = async (taskId: string) => {
     setActionState((s) => ({ ...s, [taskId]: true }));
-    const accessToken = await getAccessToken();
-    if (accessToken) {
-      await sendTaskReminderFn({ data: { callerAccessToken: accessToken, taskId } });
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        alert("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await sendTaskReminderFn({
+        data: { callerAccessToken: accessToken, taskId },
+      });
+      if (!(result as any)?.success) {
+        alert("Error sending reminder: " + ((result as any)?.error ?? "Unknown error."));
+      } else {
+        alert("Reminder sent.");
+      }
+    } catch (err: any) {
+      alert("Something went wrong sending the reminder: " + (err?.message || "Unknown error."));
+    } finally {
+      setActionState((s) => ({ ...s, [taskId]: false }));
     }
-    setActionState((s) => ({ ...s, [taskId]: false }));
   };
 
   const openReschedule = (task: Task) => {
@@ -196,31 +222,35 @@ function TasksAndFollowUps() {
     e.preventDefault();
     setCreateSaving(true);
     setCreateMsg(null);
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      setCreateMsg("Your session expired — please sign in again.");
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setCreateMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const assignedStaff = staff.find((s) => s.email === newAssignedEmail);
+      const result = await createTaskFn({
+        data: {
+          callerAccessToken: accessToken,
+          title: newTitle.trim(),
+          description: newDescription.trim() || undefined,
+          dueAt: newDueAt ? new Date(newDueAt).toISOString() : undefined,
+          assignedToEmail: assignedStaff?.email,
+          assignedToName: assignedStaff?.full_name ?? undefined,
+          priority: newPriority,
+        },
+      });
+      if (!result.success) {
+        setCreateMsg("Error creating task: " + result.error);
+      } else {
+        setCreatingTask(false);
+        loadData();
+      }
+    } catch (err: any) {
+      setCreateMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
       setCreateSaving(false);
-      return;
     }
-    const assignedStaff = staff.find((s) => s.email === newAssignedEmail);
-    const result = await createTaskFn({
-      data: {
-        callerAccessToken: accessToken,
-        title: newTitle.trim(),
-        description: newDescription.trim() || undefined,
-        dueAt: newDueAt ? new Date(newDueAt).toISOString() : undefined,
-        assignedToEmail: assignedStaff?.email,
-        assignedToName: assignedStaff?.full_name ?? undefined,
-        priority: newPriority,
-      },
-    });
-    if (!result.success) {
-      setCreateMsg("Error creating task: " + result.error);
-    } else {
-      setCreatingTask(false);
-      loadData();
-    }
-    setCreateSaving(false);
   };
 
   return (

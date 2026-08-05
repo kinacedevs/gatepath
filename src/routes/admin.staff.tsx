@@ -106,21 +106,20 @@ function StaffAccounts() {
 
     setStaffAddLoading(true);
 
-    // Creating a login (auth.users row) requires the service-role key, which
-    // the browser must never hold — that's why this goes through a server
-    // function rather than a direct client insert. The server function
-    // re-verifies the caller is really the CEO from their session token; it
-    // does not trust adminRole as sent from here.
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-
-    if (!accessToken) {
-      setStaffMsg("Your session expired — please sign in again.");
-      setStaffAddLoading(false);
-      return;
-    }
-
     try {
+      // Creating a login (auth.users row) requires the service-role key,
+      // which the browser must never hold — that's why this goes through a
+      // server function rather than a direct client insert. The server
+      // function re-verifies the caller is really the CEO from their
+      // session token; it does not trust adminRole as sent from here.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setStaffMsg("Your session expired — please sign in again.");
+        return;
+      }
+
       const result = await (inviteStaffFn as any)({
         data: { callerAccessToken: accessToken, email, fullName, role: newStaffRole },
       });
