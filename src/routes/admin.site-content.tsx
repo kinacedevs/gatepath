@@ -34,6 +34,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { FreshnessStamp } from "@/components/admin/FreshnessStamp";
 import { MediaDropzone } from "@/components/admin/MediaDropzone";
+import { MediaSlide } from "@/components/MediaSlide";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { SiteBanner, Testimonial, TeamProfile, Faq } from "@/lib/types";
@@ -59,7 +60,7 @@ function SiteContent() {
 
   // ── Branding & Banners form state ──
   const [homepageHeroImages, setHomepageHeroImages] = useState<string[]>([]);
-  const [diasporaHeroImage, setDiasporaHeroImage] = useState("");
+  const [diasporaHeroImages, setDiasporaHeroImages] = useState<string[]>([]);
   const [brandingLogoUrl, setBrandingLogoUrl] = useState("");
   const [brandingCompanyName, setBrandingCompanyName] = useState("");
   const [brandingSaveLoading, setBrandingSaveLoading] = useState(false);
@@ -93,7 +94,7 @@ function SiteContent() {
   const [creatingTeam, setCreatingTeam] = useState(false);
   const [teamFullName, setTeamFullName] = useState("");
   const [teamRoleTitle, setTeamRoleTitle] = useState("");
-  const [teamPhotoUrl, setTeamPhotoUrl] = useState("");
+  const [teamPhotoUrls, setTeamPhotoUrls] = useState<string[]>([]);
   const [teamBio, setTeamBio] = useState("");
   const [teamIsPublished, setTeamIsPublished] = useState(true);
   const [teamDisplayOrder, setTeamDisplayOrder] = useState(0);
@@ -129,7 +130,13 @@ function SiteContent() {
       const heroData = findBanner(bannerRows, "homepage_hero");
       setHomepageHeroImages(Array.isArray(heroData.images) ? heroData.images : []);
       const diasporaData = findBanner(bannerRows, "diaspora_hero");
-      setDiasporaHeroImage(diasporaData.image_url ?? "");
+      setDiasporaHeroImages(
+        Array.isArray(diasporaData.images)
+          ? diasporaData.images
+          : diasporaData.image_url
+            ? [diasporaData.image_url]
+            : [],
+      );
       const brandingData = findBanner(bannerRows, "custom_branding");
       setBrandingLogoUrl(brandingData.logo_url ?? "");
       setBrandingCompanyName(brandingData.company_name ?? "");
@@ -165,9 +172,10 @@ function SiteContent() {
     setBrandingSaveMsg(null);
     const now = new Date().toISOString();
     const heroImages = homepageHeroImages.map((s) => s.trim()).filter(Boolean);
+    const diasporaImages = diasporaHeroImages.map((s) => s.trim()).filter(Boolean);
     const { error } = await (supabase as any).from("site_banners").upsert([
       { id: "homepage_hero", data: { images: heroImages }, updated_at: now },
-      { id: "diaspora_hero", data: { image_url: diasporaHeroImage.trim() }, updated_at: now },
+      { id: "diaspora_hero", data: { images: diasporaImages }, updated_at: now },
       {
         id: "custom_branding",
         data: { logo_url: brandingLogoUrl.trim(), company_name: brandingCompanyName.trim() },
@@ -302,7 +310,7 @@ function SiteContent() {
     setEditingTeam(null);
     setTeamFullName("");
     setTeamRoleTitle("");
-    setTeamPhotoUrl("");
+    setTeamPhotoUrls([]);
     setTeamBio("");
     setTeamIsPublished(true);
     setTeamDisplayOrder(teamProfiles.length);
@@ -312,7 +320,7 @@ function SiteContent() {
     setEditingTeam(m);
     setTeamFullName(m.full_name);
     setTeamRoleTitle(m.role_title);
-    setTeamPhotoUrl(m.photo_url ?? "");
+    setTeamPhotoUrls(m.photo_urls?.length ? m.photo_urls : m.photo_url ? [m.photo_url] : []);
     setTeamBio(m.bio ?? "");
     setTeamIsPublished(m.is_published);
     setTeamDisplayOrder(m.display_order);
@@ -327,7 +335,7 @@ function SiteContent() {
     const payload = {
       full_name: teamFullName.trim(),
       role_title: teamRoleTitle.trim(),
-      photo_url: teamPhotoUrl.trim() || null,
+      photo_urls: teamPhotoUrls.length ? teamPhotoUrls : null,
       bio: teamBio.trim() || null,
       is_published: teamIsPublished,
       display_order: teamDisplayOrder,
@@ -460,22 +468,25 @@ function SiteContent() {
               <form onSubmit={handleSaveBranding} className="flex flex-col gap-5">
                 <div>
                   <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
-                    Homepage Hero Images (rotates as a carousel, drag to reorder)
+                    Homepage Hero Photos &amp; Videos (rotates as a carousel, drag to reorder)
                   </label>
                   <MediaDropzone
                     value={homepageHeroImages}
                     onChange={(v) => setHomepageHeroImages(v as string[])}
                     multi
+                    accept="image/*,video/*"
                     category="hero"
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
-                    Diaspora Hub Hero Image
+                    Diaspora Hub Hero Photos &amp; Videos (rotates as a carousel, drag to reorder)
                   </label>
                   <MediaDropzone
-                    value={diasporaHeroImage}
-                    onChange={(v) => setDiasporaHeroImage(v as string)}
+                    value={diasporaHeroImages}
+                    onChange={(v) => setDiasporaHeroImages(v as string[])}
+                    multi
+                    accept="image/*,video/*"
                     category="diaspora-hero"
                   />
                 </div>
@@ -816,8 +827,12 @@ function SiteContent() {
                   <div key={m.id} className="flex items-center justify-between gap-4 px-6 py-4">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-11 h-11 rounded-full overflow-hidden bg-surface-container-low border border-outline-variant/30 shrink-0">
-                        {m.photo_url && (
-                          <img src={m.photo_url} alt="" className="w-full h-full object-cover" />
+                        {(m.photo_urls?.[0] ?? m.photo_url) && (
+                          <MediaSlide
+                            src={(m.photo_urls?.[0] ?? m.photo_url) as string}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
                         )}
                       </div>
                       <div className="min-w-0">
@@ -1051,11 +1066,13 @@ function SiteContent() {
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
-                  Photo
+                  Photos &amp; Videos
                 </label>
                 <MediaDropzone
-                  value={teamPhotoUrl}
-                  onChange={(v) => setTeamPhotoUrl(v as string)}
+                  value={teamPhotoUrls}
+                  onChange={(v) => setTeamPhotoUrls(v as string[])}
+                  multi
+                  accept="image/*,video/*"
                   category="team"
                 />
               </div>

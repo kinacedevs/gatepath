@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { locationToSlug } from "@/lib/locations";
 import { MediaDropzone } from "@/components/admin/MediaDropzone";
+import { MediaSlide } from "@/components/MediaSlide";
 import type { Phase, Affiliate, BlogPost, NewsletterSubscriber } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/campaigns")({
@@ -53,8 +54,7 @@ function CampaignsAndContent() {
   // Media Manager states
   const [mediaEditingPhaseId, setMediaEditingPhaseId] = useState("");
   const [mediaHeroImages, setMediaHeroImages] = useState<string[]>([]);
-  const [mediaDiasporaImage, setMediaDiasporaImage] = useState("");
-  const [mediaThumbnail, setMediaThumbnail] = useState("");
+  const [mediaThumbnails, setMediaThumbnails] = useState<string[]>([]);
   const [mediaBrochure, setMediaBrochure] = useState("");
   const [mediaPlotMap, setMediaPlotMap] = useState("");
   const [mediaSaveLoading, setMediaSaveLoading] = useState(false);
@@ -71,7 +71,7 @@ function CampaignsAndContent() {
   const [blogSummary, setBlogSummary] = useState("");
   const [blogContent, setBlogContent] = useState("");
   const [blogTags, setBlogTags] = useState("");
-  const [blogImage, setBlogImage] = useState("");
+  const [blogFeaturedImages, setBlogFeaturedImages] = useState<string[]>([]);
   const [blogStatus, setBlogStatus] = useState<"draft" | "published">("published");
   const [blogMetaTitle, setBlogMetaTitle] = useState("");
   const [blogMetaDescription, setBlogMetaDescription] = useState("");
@@ -100,7 +100,12 @@ function CampaignsAndContent() {
 
       const banners = (bannersRes.data as { id: string; data: any }[]) ?? [];
       const locBanner = banners.find((b) => b.id === "location_images");
-      setLocationImages(locBanner?.data ?? {});
+      const rawLocationImages = (locBanner?.data ?? {}) as Record<string, string | string[]>;
+      const normalizedLocationImages: Record<string, string[]> = {};
+      for (const [name, val] of Object.entries(rawLocationImages)) {
+        normalizedLocationImages[name] = Array.isArray(val) ? val : val ? [val] : [];
+      }
+      setLocationImages(normalizedLocationImages);
       const trustBanner = banners.find((b) => b.id === "trust_bar_stats");
       setTrustSinceYear(
         trustBanner?.data?.trusted_since_year ? String(trustBanner.data.trusted_since_year) : "",
@@ -132,8 +137,7 @@ function CampaignsAndContent() {
       .from("phases")
       .update({
         hero_image_urls: mediaHeroImages.length ? mediaHeroImages : null,
-        diaspora_image_url: mediaDiasporaImage.trim() || null,
-        image_url: mediaThumbnail.trim() || null,
+        image_urls: mediaThumbnails.length ? mediaThumbnails : null,
         brochure_url: mediaBrochure.trim() || null,
         plot_map_url: mediaPlotMap.trim() || null,
       })
@@ -171,7 +175,7 @@ function CampaignsAndContent() {
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
-      featured_image: blogImage.trim() || null,
+      featured_images: blogFeaturedImages.length ? blogFeaturedImages : null,
       status: blogStatus,
       author_name: adminName || "Joe Muchiri",
       meta_title: blogMetaTitle.trim() || null,
@@ -228,7 +232,7 @@ function CampaignsAndContent() {
     setBlogSummary("");
     setBlogContent("");
     setBlogTags("");
-    setBlogImage("");
+    setBlogFeaturedImages([]);
     setBlogStatus("published");
     setBlogMetaTitle("");
     setBlogMetaDescription("");
@@ -243,7 +247,13 @@ function CampaignsAndContent() {
     setBlogSummary(post.summary);
     setBlogContent(post.content);
     setBlogTags(post.tags.join(", "));
-    setBlogImage(post.featured_image || "");
+    setBlogFeaturedImages(
+      post.featured_images?.length
+        ? post.featured_images
+        : post.featured_image
+          ? [post.featured_image]
+          : [],
+    );
     setBlogStatus(post.status);
     setBlogMetaTitle(post.meta_title || "");
     setBlogMetaDescription(post.meta_description || "");
@@ -300,7 +310,7 @@ function CampaignsAndContent() {
   };
 
   // ── Homepage Content: Location Images + Trust Bar Stats (Part 3, Slice C) ──
-  const [locationImages, setLocationImages] = useState<Record<string, string>>({});
+  const [locationImages, setLocationImages] = useState<Record<string, string[]>>({});
   const [trustSinceYear, setTrustSinceYear] = useState("");
   const [trustSatisfactionLabel, setTrustSatisfactionLabel] = useState("");
   const [homeContentSaving, setHomeContentSaving] = useState(false);
@@ -479,9 +489,10 @@ function CampaignsAndContent() {
                   const p = phases.find((ph) => ph.id === id);
                   if (p) {
                     setMediaHeroImages(Array.isArray(p.hero_image_urls) ? p.hero_image_urls : []);
-                    setMediaDiasporaImage(p.diaspora_image_url || "");
                     setMediaBrochure(p.brochure_url || "");
-                    setMediaThumbnail(p.image_url || "");
+                    setMediaThumbnails(
+                      p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [],
+                    );
                     setMediaPlotMap(p.plot_map_url || "");
                   }
                 }}
@@ -504,32 +515,25 @@ function CampaignsAndContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
-                      Hero Section Images (rotates as a carousel, drag to reorder)
+                      Hero Section Photos &amp; Videos (rotates as a carousel, drag to reorder)
                     </label>
                     <MediaDropzone
                       value={mediaHeroImages}
                       onChange={(v) => setMediaHeroImages(v as string[])}
                       multi
+                      accept="image/*,video/*"
                       category="phase-hero"
                     />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
-                      Diaspora Hub Banner
+                      Project Photos &amp; Videos (Card Image + Gallery)
                     </label>
                     <MediaDropzone
-                      value={mediaDiasporaImage}
-                      onChange={(v) => setMediaDiasporaImage(v as string)}
-                      category="phase-diaspora"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
-                      Project Thumbnail (Card Image)
-                    </label>
-                    <MediaDropzone
-                      value={mediaThumbnail}
-                      onChange={(v) => setMediaThumbnail(v as string)}
+                      value={mediaThumbnails}
+                      onChange={(v) => setMediaThumbnails(v as string[])}
+                      multi
+                      accept="image/*,video/*"
                       category="phase-thumbnail"
                     />
                   </div>
@@ -749,10 +753,12 @@ function CampaignsAndContent() {
                       {name}
                     </label>
                     <MediaDropzone
-                      value={locationImages[name] || ""}
+                      value={locationImages[name] || []}
                       onChange={(v) =>
-                        setLocationImages((prev) => ({ ...prev, [name]: v as string }))
+                        setLocationImages((prev) => ({ ...prev, [name]: v as string[] }))
                       }
+                      multi
+                      accept="image/*,video/*"
                       category="location"
                     />
                   </div>
@@ -853,11 +859,13 @@ function CampaignsAndContent() {
                       >
                         <td className="px-5 py-3.5">
                           <div className="w-14 h-9.5 rounded-md overflow-hidden bg-surface-container-low border border-outline-variant/30">
-                            <img
-                              src={post.featured_image || ""}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
+                            {(post.featured_images?.[0] ?? post.featured_image) && (
+                              <MediaSlide
+                                src={(post.featured_images?.[0] ?? post.featured_image) as string}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            )}
                           </div>
                         </td>
                         <td className="px-5 py-3.5 max-w-70">
@@ -1097,11 +1105,13 @@ function CampaignsAndContent() {
 
               <div>
                 <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
-                  Featured Image
+                  Featured Photos &amp; Videos
                 </label>
                 <MediaDropzone
-                  value={blogImage}
-                  onChange={(v) => setBlogImage(v as string)}
+                  value={blogFeaturedImages}
+                  onChange={(v) => setBlogFeaturedImages(v as string[])}
+                  multi
+                  accept="image/*,video/*"
                   category="blog"
                 />
               </div>

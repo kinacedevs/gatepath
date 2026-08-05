@@ -44,6 +44,7 @@ import { updatePlotDetailsFn, setPlotArchivedFn } from "@/lib/inventoryActions";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { QuickCallLogger } from "@/components/admin/QuickCallLogger";
 import { MediaDropzone } from "@/components/admin/MediaDropzone";
+import { MediaSlide } from "@/components/MediaSlide";
 import {
   Dialog,
   DialogContent,
@@ -429,7 +430,7 @@ function PlotDetail() {
           {plot.photo_urls && plot.photo_urls.length > 0 && (
             <div className="luxury-card p-6 rounded-2xl bg-white space-y-3">
               <h3 className="font-headline-md text-sm text-primary font-bold flex items-center gap-2">
-                <Images size={16} /> Plot Photos
+                <Images size={16} /> Plot Photos &amp; Videos
               </h3>
               <div className="grid grid-cols-3 gap-3">
                 {plot.photo_urls.map((url) => (
@@ -440,7 +441,7 @@ function PlotDetail() {
                     rel="noopener noreferrer"
                     className="block aspect-square rounded-lg overflow-hidden border border-outline-variant/20"
                   >
-                    <img src={url} alt="Plot" className="w-full h-full object-cover" />
+                    <MediaSlide src={url} alt="Plot" className="w-full h-full object-cover" />
                   </a>
                 ))}
               </div>
@@ -703,12 +704,13 @@ function PlotDetail() {
             </div>
             <div>
               <label className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide block mb-1.5">
-                Photos
+                Photos &amp; Videos
               </label>
               <MediaDropzone
                 value={editPhotoUrls}
                 onChange={(v) => setEditPhotoUrls(v as string[])}
                 multi
+                accept="image/*,video/*"
                 category="plot"
               />
             </div>

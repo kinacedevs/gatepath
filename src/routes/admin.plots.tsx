@@ -1507,11 +1507,12 @@ function LandInventory() {
               />
             </div>
             <div>
-              <label className={LABEL_CLS}>Photos</label>
+              <label className={LABEL_CLS}>Photos &amp; Videos</label>
               <MediaDropzone
                 value={newPlotPhotoUrls}
                 onChange={(v) => setNewPlotPhotoUrls(v as string[])}
                 multi
+                accept="image/*,video/*"
                 category="plot"
               />
             </div>
