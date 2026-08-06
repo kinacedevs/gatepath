@@ -13,12 +13,14 @@ import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { MediaSlide } from "@/components/MediaSlide";
+import { SafeRichText } from "@/components/SafeRichText";
 import { PlotMap } from "@/components/properties/PlotMap";
 import { PlotPanel } from "@/components/properties/PlotPanel";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhase, type Plot, type Phase } from "@/lib/phases";
 import { supabase } from "@/lib/supabase";
 import { formatFromKes, CURRENCIES, setLiveFxRates, type Currency } from "@/lib/currency";
+import { getAmenityIcon } from "@/lib/amenityIcons";
 
 type DetailSearch = {
   from?: string;
@@ -155,6 +157,10 @@ export const Route = createFileRoute("/properties/$slug")({
         "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
       description: dbPhase.description ?? "",
       features: dbPhase.features ?? [],
+      location_narrative: dbPhase.location_narrative ?? null,
+      legal_narrative: dbPhase.legal_narrative ?? null,
+      infrastructure_items: dbPhase.infrastructure_items ?? null,
+      neighborhood_items: dbPhase.neighborhood_items ?? null,
       startingPrice,
       size: defaultSize ? defaultSize.label : "50x100 ft",
       plots: mappedPlots,
@@ -353,6 +359,18 @@ function PhaseDetailPage() {
                 {phase.location}, {phase.region}, Kenya
               </span>
             </div>
+            {phase.features && phase.features.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {phase.features.map((f, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center bg-white/10 border border-white/20 backdrop-blur-sm text-white text-[12px] font-semibold px-3 py-1.5 rounded-full"
+                  >
+                    {f}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right Column: Dynamic Slider Carousel */}
@@ -569,12 +587,43 @@ function PhaseDetailPage() {
             {tab === "location" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <p className="text-[15px] text-foreground leading-[1.75]">
-                    {phase.name} is situated in {phase.location}, {phase.region}. The phase is
-                    accessible via tarmac road with proximity to local amenities, water sources, and
-                    major transport corridors. The terrain is gentle and well-drained, ideal for
-                    residential and mixed-use development.
-                  </p>
+                  {phase.location_narrative ? (
+                    <SafeRichText
+                      html={phase.location_narrative}
+                      className="text-[15px] text-foreground"
+                    />
+                  ) : (
+                    <p className="text-[15px] text-foreground leading-[1.75]">
+                      {phase.name} is situated in {phase.location}, {phase.region}. The phase is
+                      accessible via tarmac road with proximity to local amenities, water sources,
+                      and major transport corridors. The terrain is gentle and well-drained, ideal
+                      for residential and mixed-use development.
+                    </p>
+                  )}
+
+                  {phase.neighborhood_items && phase.neighborhood_items.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-[#F0EBE3]">
+                      <h4 className="text-[13px] font-bold uppercase tracking-wide text-muted-foreground mb-3">
+                        Neighborhood
+                      </h4>
+                      <div className="flex flex-col gap-2.5">
+                        {phase.neighborhood_items.map((item, i) => {
+                          const Icon = getAmenityIcon(item.icon);
+                          return (
+                            <div
+                              key={i}
+                              className="flex items-center gap-3 text-[14px] text-foreground"
+                            >
+                              <Icon size={16} className="text-accent shrink-0" />
+                              <span>
+                                <strong>{item.value}</strong> to {item.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="rounded-xl overflow-hidden h-[280px] shadow-md border border-[#E5E0D8] bg-slate-100 relative">
                   <iframe
@@ -592,37 +641,49 @@ function PhaseDetailPage() {
 
             {tab === "infra" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                {[
-                  ["Tarmac road access", true],
-                  ["Electricity on-site", true],
-                  ["Borehole water available", true],
-                  ["Ready title deeds", true],
-                  ["Surveyed plots", true],
-                  ["Security fence (perimeter)", true],
-                  ["Sewerage (planned)", false],
-                  ["Plot beacons installed", true],
-                ].map(([label, done]) => (
-                  <div
-                    key={label as string}
-                    className="flex items-center gap-3 text-[14px] text-foreground"
-                  >
-                    {done ? (
-                      <CheckCircle2 size={20} className="text-available shrink-0" />
-                    ) : (
-                      <Clock size={20} className="text-[#F59E0B] shrink-0" />
-                    )}
-                    <span>{label}</span>
-                  </div>
-                ))}
+                {(phase.infrastructure_items && phase.infrastructure_items.length > 0
+                  ? phase.infrastructure_items.map((it) => [it.label, it.done, it.icon] as const)
+                  : ([
+                      ["Tarmac road access", true, null],
+                      ["Electricity on-site", true, null],
+                      ["Borehole water available", true, null],
+                      ["Ready title deeds", true, null],
+                      ["Surveyed plots", true, null],
+                      ["Security fence (perimeter)", true, null],
+                      ["Sewerage (planned)", false, null],
+                      ["Plot beacons installed", true, null],
+                    ] as const)
+                ).map(([label, done, icon]) => {
+                  const Icon = icon ? getAmenityIcon(icon) : done ? CheckCircle2 : Clock;
+                  return (
+                    <div
+                      key={label as string}
+                      className="flex items-center gap-3 text-[14px] text-foreground"
+                    >
+                      <Icon
+                        size={20}
+                        className={`shrink-0 ${done ? "text-available" : "text-[#F59E0B]"}`}
+                      />
+                      <span>{label}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
             {tab === "legal" && (
               <div>
-                <p className="text-[15px] text-foreground leading-[1.75]">
-                  All plots carry individual freehold title deeds. The land is surveyed, registered,
-                  and free of any encumbrances.
-                </p>
+                {phase.legal_narrative ? (
+                  <SafeRichText
+                    html={phase.legal_narrative}
+                    className="text-[15px] text-foreground"
+                  />
+                ) : (
+                  <p className="text-[15px] text-foreground leading-[1.75]">
+                    All plots carry individual freehold title deeds. The land is surveyed,
+                    registered, and free of any encumbrances.
+                  </p>
+                )}
                 <div className="mt-6 flex flex-wrap gap-3">
                   <a
                     href={`/inquire?phase=${phase.slug}&phaseName=${encodeURIComponent(phase.name)}&phaseNumber=${phase.phaseNumber || ""}&location=${encodeURIComponent(phase.location + ", " + phase.region)}&intent=free_visit`}

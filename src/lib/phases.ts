@@ -5,7 +5,13 @@
  */
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
-import type { Phase as DbPhase, Plot as DbPlot, PlotSize as DbPlotSize } from "./types";
+import type {
+  Phase as DbPhase,
+  Plot as DbPlot,
+  PlotSize as DbPlotSize,
+  InfrastructureItem,
+  NeighborhoodItem,
+} from "./types";
 
 // ─── UI Types (Expected by frontend components) ──────────────────────────────
 
@@ -38,6 +44,12 @@ export interface Phase {
   image: string;
   description: string;
   features: string[];
+  /** Staff-authored rich-text HTML (Phase 40D) — null means "use the
+   * page's default generic sentence," not "show nothing." */
+  location_narrative?: string | null;
+  legal_narrative?: string | null;
+  infrastructure_items?: InfrastructureItem[] | null;
+  neighborhood_items?: NeighborhoodItem[] | null;
   startingPrice: number;
   size: string;
   plots: Plot[];
@@ -140,6 +152,10 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
       "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
     description: dbPhase.description ?? "",
     features: dbPhase.features ?? [],
+    location_narrative: dbPhase.location_narrative ?? null,
+    legal_narrative: dbPhase.legal_narrative ?? null,
+    infrastructure_items: dbPhase.infrastructure_items ?? null,
+    neighborhood_items: dbPhase.neighborhood_items ?? null,
     startingPrice,
     size: defaultSize ? defaultSize.label : "50x100 ft",
     plots: mappedPlots,

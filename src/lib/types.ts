@@ -5,6 +5,9 @@
 
 // ─── Row types (what comes back from SELECT) ─────────────────────────────────
 
+export type InfrastructureItem = { icon: string; label: string; done: boolean };
+export type NeighborhoodItem = { icon: string; label: string; value: string };
+
 export type Phase = {
   id: string;
   slug: string;
@@ -16,6 +19,16 @@ export type Phase = {
   status: "active" | "coming_soon" | "sold_out";
   description: string | null;
   features: string[];
+  /** Staff-authored rich-text HTML (Phase 40D) — falls back to a generic
+   * sentence in the UI when null. */
+  location_narrative: string | null;
+  /** Staff-authored rich-text HTML (Phase 40D) — falls back to a generic
+   * sentence in the UI when null. */
+  legal_narrative: string | null;
+  /** Replaces the old hardcoded 8-item checklist when set (Phase 40D). */
+  infrastructure_items: InfrastructureItem[] | null;
+  /** No fallback — the Neighborhood panel hides when empty (Phase 40D). */
+  neighborhood_items: NeighborhoodItem[] | null;
   image_url: string | null;
   /** Multi-file thumbnail/cover gallery (photos or videos, Phase 38) —
    * image_urls[0] is the effective cover wherever a single image was used

@@ -122,6 +122,10 @@ export const updatePhaseDetailsFn = createServerFn({ method: "POST" })
       status?: "active" | "coming_soon" | "sold_out";
       description?: string | null;
       features?: string[];
+      locationNarrative?: string | null;
+      legalNarrative?: string | null;
+      infrastructureItems?: { icon: string; label: string; done: boolean }[];
+      neighborhoodItems?: { icon: string; label: string; value: string }[];
     }) => d,
   )
   .handler(async ({ data }) => {
@@ -138,6 +142,13 @@ export const updatePhaseDetailsFn = createServerFn({ method: "POST" })
     if (rest.status !== undefined) payload.status = rest.status;
     if (rest.description !== undefined) payload.description = rest.description?.trim() || null;
     if (rest.features !== undefined) payload.features = rest.features;
+    if (rest.locationNarrative !== undefined)
+      payload.location_narrative = rest.locationNarrative?.trim() || null;
+    if (rest.legalNarrative !== undefined)
+      payload.legal_narrative = rest.legalNarrative?.trim() || null;
+    if (rest.infrastructureItems !== undefined)
+      payload.infrastructure_items = rest.infrastructureItems;
+    if (rest.neighborhoodItems !== undefined) payload.neighborhood_items = rest.neighborhoodItems;
 
     const { error } = await (caller.serviceClient as any)
       .from("phases")

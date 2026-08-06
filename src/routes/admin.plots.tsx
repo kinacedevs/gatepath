@@ -63,7 +63,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { Phase, Plot, PlotSize } from "@/lib/types";
+import type { Phase, Plot, PlotSize, InfrastructureItem, NeighborhoodItem } from "@/lib/types";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { AMENITY_ICON_KEYS, getAmenityIcon } from "@/lib/amenityIcons";
+import { Trash2, ArrowUp, ArrowDown } from "lucide-react";
 
 function slugify(value: string): string {
   return value
@@ -146,6 +149,10 @@ function LandInventory() {
   const [editPhaseStatus, setEditPhaseStatus] = useState<Phase["status"]>("active");
   const [editPhaseDescription, setEditPhaseDescription] = useState("");
   const [editPhaseFeatures, setEditPhaseFeatures] = useState("");
+  const [editLocationNarrative, setEditLocationNarrative] = useState("");
+  const [editLegalNarrative, setEditLegalNarrative] = useState("");
+  const [editInfraItems, setEditInfraItems] = useState<InfrastructureItem[]>([]);
+  const [editNeighborhoodItems, setEditNeighborhoodItems] = useState<NeighborhoodItem[]>([]);
   const [editPhaseSaving, setEditPhaseSaving] = useState(false);
   const [editPhaseError, setEditPhaseError] = useState<string | null>(null);
 
@@ -420,9 +427,42 @@ function LandInventory() {
     setEditPhaseStatus(activePhase.status);
     setEditPhaseDescription(activePhase.description ?? "");
     setEditPhaseFeatures((activePhase.features ?? []).join(", "));
+    setEditLocationNarrative(activePhase.location_narrative ?? "");
+    setEditLegalNarrative(activePhase.legal_narrative ?? "");
+    setEditInfraItems(activePhase.infrastructure_items ?? []);
+    setEditNeighborhoodItems(activePhase.neighborhood_items ?? []);
     setEditPhaseError(null);
     setEditPhaseDialogOpen(true);
   };
+
+  const addInfraItem = () =>
+    setEditInfraItems((items) => [...items, { icon: AMENITY_ICON_KEYS[0], label: "", done: true }]);
+  const removeInfraItem = (i: number) =>
+    setEditInfraItems((items) => items.filter((_, idx) => idx !== i));
+  const moveInfraItem = (i: number, dir: -1 | 1) =>
+    setEditInfraItems((items) => {
+      const next = [...items];
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return items;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+
+  const addNeighborhoodItem = () =>
+    setEditNeighborhoodItems((items) => [
+      ...items,
+      { icon: AMENITY_ICON_KEYS[0], label: "", value: "" },
+    ]);
+  const removeNeighborhoodItem = (i: number) =>
+    setEditNeighborhoodItems((items) => items.filter((_, idx) => idx !== i));
+  const moveNeighborhoodItem = (i: number, dir: -1 | 1) =>
+    setEditNeighborhoodItems((items) => {
+      const next = [...items];
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return items;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
 
   const handleUpdatePhaseDetails = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -452,6 +492,12 @@ function LandInventory() {
             .split(",")
             .map((f) => f.trim())
             .filter(Boolean),
+          locationNarrative: editLocationNarrative || null,
+          legalNarrative: editLegalNarrative || null,
+          infrastructureItems: editInfraItems.filter((it) => it.label.trim()),
+          neighborhoodItems: editNeighborhoodItems.filter(
+            (it) => it.label.trim() && it.value.trim(),
+          ),
         },
       });
 
@@ -1347,7 +1393,7 @@ function LandInventory() {
 
       {/* ── Edit Phase Details ── */}
       <Dialog open={editPhaseDialogOpen} onOpenChange={setEditPhaseDialogOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[680px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Phase Details — {activePhase?.name}</DialogTitle>
           </DialogHeader>
@@ -1424,13 +1470,207 @@ function LandInventory() {
                 />
               </div>
               <div className="col-span-2">
-                <label className={LABEL_CLS}>Features (comma-separated)</label>
+                <label className={LABEL_CLS}>Features (comma-separated, short tags)</label>
                 <input
                   value={editPhaseFeatures}
                   onChange={(e) => setEditPhaseFeatures(e.target.value)}
                   className={INPUT_CLS}
                 />
               </div>
+            </div>
+
+            <div className="pt-3 border-t border-outline-variant/20">
+              <label className={LABEL_CLS}>
+                Location Details — the property page's "Location Details" tab
+              </label>
+              <RichTextEditor value={editLocationNarrative} onChange={setEditLocationNarrative} />
+            </div>
+
+            <div className="pt-3 border-t border-outline-variant/20">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={LABEL_CLS + " mb-0"}>Infrastructure &amp; Amenities</label>
+                <button
+                  type="button"
+                  onClick={addInfraItem}
+                  className="text-[11px] font-semibold text-primary hover:underline"
+                >
+                  + Add item
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {editInfraItems.length === 0 && (
+                  <p className="text-[12px] text-on-surface-variant italic">
+                    No items yet — the tab falls back to the default checklist until you add some.
+                  </p>
+                )}
+                {editInfraItems.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 bg-surface-container-low rounded-lg p-2"
+                  >
+                    <select
+                      value={item.icon}
+                      onChange={(e) =>
+                        setEditInfraItems((items) =>
+                          items.map((it, idx) =>
+                            idx === i ? { ...it, icon: e.target.value } : it,
+                          ),
+                        )
+                      }
+                      className="p-1.5 border border-outline-variant/40 rounded text-xs bg-white outline-none"
+                    >
+                      {AMENITY_ICON_KEYS.map((k) => (
+                        <option key={k} value={k}>
+                          {k}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      placeholder="e.g. Tarmac road access"
+                      value={item.label}
+                      onChange={(e) =>
+                        setEditInfraItems((items) =>
+                          items.map((it, idx) =>
+                            idx === i ? { ...it, label: e.target.value } : it,
+                          ),
+                        )
+                      }
+                      className="flex-1 p-1.5 border border-outline-variant/40 rounded text-xs bg-white outline-none"
+                    />
+                    <label className="flex items-center gap-1 text-[11px] font-medium text-on-surface-variant shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={item.done}
+                        onChange={(e) =>
+                          setEditInfraItems((items) =>
+                            items.map((it, idx) =>
+                              idx === i ? { ...it, done: e.target.checked } : it,
+                            ),
+                          )
+                        }
+                      />
+                      Done
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => moveInfraItem(i, -1)}
+                      className="p-1 text-on-surface-variant hover:text-primary"
+                    >
+                      <ArrowUp size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveInfraItem(i, 1)}
+                      className="p-1 text-on-surface-variant hover:text-primary"
+                    >
+                      <ArrowDown size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeInfraItem(i)}
+                      className="p-1 text-error hover:text-error"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-outline-variant/20">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={LABEL_CLS + " mb-0"}>Neighborhood &amp; Distances</label>
+                <button
+                  type="button"
+                  onClick={addNeighborhoodItem}
+                  className="text-[11px] font-semibold text-primary hover:underline"
+                >
+                  + Add item
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {editNeighborhoodItems.length === 0 && (
+                  <p className="text-[12px] text-on-surface-variant italic">
+                    No items yet — this section stays hidden on the public page until you add some.
+                  </p>
+                )}
+                {editNeighborhoodItems.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 bg-surface-container-low rounded-lg p-2"
+                  >
+                    <select
+                      value={item.icon}
+                      onChange={(e) =>
+                        setEditNeighborhoodItems((items) =>
+                          items.map((it, idx) =>
+                            idx === i ? { ...it, icon: e.target.value } : it,
+                          ),
+                        )
+                      }
+                      className="p-1.5 border border-outline-variant/40 rounded text-xs bg-white outline-none"
+                    >
+                      {AMENITY_ICON_KEYS.map((k) => (
+                        <option key={k} value={k}>
+                          {k}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      placeholder="e.g. Nearest Hospital"
+                      value={item.label}
+                      onChange={(e) =>
+                        setEditNeighborhoodItems((items) =>
+                          items.map((it, idx) =>
+                            idx === i ? { ...it, label: e.target.value } : it,
+                          ),
+                        )
+                      }
+                      className="w-[150px] p-1.5 border border-outline-variant/40 rounded text-xs bg-white outline-none"
+                    />
+                    <input
+                      placeholder="e.g. 4 minutes — Mama Rehema Clinic"
+                      value={item.value}
+                      onChange={(e) =>
+                        setEditNeighborhoodItems((items) =>
+                          items.map((it, idx) =>
+                            idx === i ? { ...it, value: e.target.value } : it,
+                          ),
+                        )
+                      }
+                      className="flex-1 p-1.5 border border-outline-variant/40 rounded text-xs bg-white outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => moveNeighborhoodItem(i, -1)}
+                      className="p-1 text-on-surface-variant hover:text-primary"
+                    >
+                      <ArrowUp size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveNeighborhoodItem(i, 1)}
+                      className="p-1 text-on-surface-variant hover:text-primary"
+                    >
+                      <ArrowDown size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeNeighborhoodItem(i)}
+                      className="p-1 text-error hover:text-error"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-outline-variant/20">
+              <label className={LABEL_CLS}>
+                Legal &amp; Title — the property page's "Legal &amp; Title" tab
+              </label>
+              <RichTextEditor value={editLegalNarrative} onChange={setEditLegalNarrative} />
             </div>
 
             <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between">
