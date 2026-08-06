@@ -1,49 +1,24 @@
 import { useEffect, useState } from "react";
-import { MapPin, ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/Reveal";
-import { MediaSlide } from "@/components/MediaSlide";
+import { PhaseCard } from "@/components/properties/PhaseCard";
 import { supabase } from "@/lib/supabase";
 import { usePhases } from "@/lib/phases";
-import { formatFromKes } from "@/lib/currency";
 import { locationToSlug } from "@/lib/locations";
 
-// Only the name (for matching a real phase via locationToSlug) and a
-// fallback stock image survive here — price/plots/region used to be
-// fabricated constants; now sourced live from usePhases() below.
+// Only the name survives here, to match a real phase via locationToSlug —
+// price/plots/region/image were previously fabricated or dead-weight
+// fallbacks; the phase's own real thumbnail (or a staff-curated override
+// via customLocImages below) is the only image source now.
 const defaultLocations = [
-  {
-    name: "Malindi",
-    img: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Sagana",
-    img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Diani",
-    img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Nanyuki",
-    img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Thika",
-    img: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Matuu",
-    img: "https://images.unsplash.com/photo-1501862700950-18382cd41497?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Kithimani",
-    img: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Kiambu",
-    img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
-  },
+  { name: "Malindi" },
+  { name: "Sagana" },
+  { name: "Diani" },
+  { name: "Nanyuki" },
+  { name: "Thika" },
+  { name: "Matuu" },
+  { name: "Kithimani" },
+  { name: "Kiambu" },
 ];
 
 export function FeaturedLocations() {
@@ -103,70 +78,11 @@ export function FeaturedLocations() {
           </div>
         ) : (
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {visibleLocations.map(({ name, img, phase }) => {
-              const hasCustomImg = !!customLocImages[name]?.[0];
-              const displayImg = customLocImages[name]?.[0] || img;
-              return (
-                <Reveal key={name}>
-                  <Link
-                    to="/properties/$slug"
-                    params={{ slug: phase.slug }}
-                    className="group relative block h-[420px] rounded-[16px] overflow-hidden shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] transition-all duration-400 hover:scale-[1.02] cursor-pointer bg-primary-deep border border-[#E5E0D8]"
-                  >
-                    <MediaSlide
-                      src={displayImg}
-                      alt={`${name}, Kenya land`}
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                    />
-
-                    {/* Gradient Overlay — subtle edge-only for custom posters, standard for stock images */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background: hasCustomImg
-                          ? "linear-gradient(to top, rgba(7,75,125,0.7) 0%, rgba(0,0,0,0) 40%, rgba(7,75,125,0.5) 100%)"
-                          : "linear-gradient(to top, rgba(11,127,199,0.92) 0%, rgba(11,127,199,0.35) 55%, transparent 100%)",
-                      }}
-                    />
-
-                    {/* Top Floating Glassmorphism Badge Bar — keeps poster visual completely clear */}
-                    <div className="absolute top-4 inset-x-4 flex items-center justify-between z-10">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-primary-deep/80 backdrop-blur-md border border-white/20 text-accent">
-                        <MapPin size={12} strokeWidth={2} />
-                        {name}
-                      </span>
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-available/90 text-white backdrop-blur-md shadow-sm">
-                        {phase.available} plots available
-                      </span>
-                    </div>
-
-                    {/* Bottom Info Bar — compact translucent bar */}
-                    <div
-                      className="absolute inset-x-0 bottom-0 p-5 text-white z-10"
-                      style={{
-                        background:
-                          "linear-gradient(to top, rgba(7,75,125,0.92) 0%, rgba(7,75,125,0.4) 80%, transparent 100%)",
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-[11px] text-white/70 font-medium">
-                            {phase.region}
-                          </div>
-                          <div className="font-numbers font-bold text-[14px] text-accent mt-0.5">
-                            From {formatFromKes(phase.startingPrice, "KES")}
-                          </div>
-                        </div>
-                        <div className="inline-flex items-center gap-1 bg-accent text-primary-deep text-[11px] font-extrabold px-3 py-1.5 rounded-lg group-hover:bg-accent-dark transition-all shadow-md">
-                          Explore <ArrowRight size={12} />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </Reveal>
-              );
-            })}
+            {visibleLocations.map(({ name, phase }) => (
+              <Reveal key={name}>
+                <PhaseCard phase={phase} imageOverride={customLocImages[name]?.[0] || undefined} />
+              </Reveal>
+            ))}
           </div>
         )}
 

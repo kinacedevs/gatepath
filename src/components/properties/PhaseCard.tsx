@@ -9,7 +9,19 @@ const statusStyles: Record<Phase["status"], string> = {
   "SOLD OUT": "bg-[#FEE2E2] text-[#991B1B]",
 };
 
-export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?: Currency }) {
+export function PhaseCard({
+  phase,
+  currency = "KES",
+  imageOverride,
+}: {
+  phase: Phase;
+  currency?: Currency;
+  /** Staff-set alternate image (e.g. a curated location poster) — falls
+   * back to the phase's own thumbnail when unset. Kept as a clean, top,
+   * unobtrusive image only — never overlaid with text — since the card's
+   * real info always lives in the solid panel below. */
+  imageOverride?: string;
+}) {
   // Build a mini availability strip of 8 squares
   const ratio = (n: number) => (phase.totalPlots > 0 ? Math.round((n / phase.totalPlots) * 8) : 0);
   const a = Math.max(0, Math.min(8, ratio(phase.available)));
@@ -30,7 +42,7 @@ export function PhaseCard({ phase, currency = "KES" }: { phase: Phase; currency?
     >
       <div className="relative h-[220px] overflow-hidden">
         <img
-          src={phase.image}
+          src={imageOverride || phase.image}
           alt={phase.name}
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
