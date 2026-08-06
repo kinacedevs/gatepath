@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { MessageCircle, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRotatingCarousel } from "@/hooks/useRotatingCarousel";
 import { MediaSlide } from "@/components/MediaSlide";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { useContactInfo } from "@/hooks/useContactInfo";
 
 export function Hero() {
   // No stock fallback here by design — the CEO uploads real photos via
@@ -12,6 +14,7 @@ export function Hero() {
   // are uploaded, rather than showing an unapproved placeholder photo.
   const [images, setImages] = useState<string[]>([]);
   const current = useRotatingCarousel(images.length);
+  const { whatsappNumber } = useContactInfo();
 
   useEffect(() => {
     const fetchBanners = async () => {
@@ -33,9 +36,13 @@ export function Hero() {
 
   return (
     <section className="relative min-h-screen w-full flex items-center pt-28 pb-24 bg-primary-deep overflow-hidden text-white">
-      {/* Background Image Carousel with Non-Distorting Cover Fit & Deep Gradient Overlay.
-          Overlay lightened from /95-/80-/60 (and a full-opacity vertical mask on top of
-          that) so the photo is actually visible — it was reading as near-black before. */}
+      {/* Background Image Carousel with a real text-legibility scrim.
+          Uploaded hero images are often full marketing posters with their
+          own baked-in headline/contact text (not plain photography) — a
+          light wash let that text ghost through and collide with our own
+          heading. Two layers with no fully-transparent stop anywhere
+          guarantee a real minimum darkness everywhere, strongest over the
+          left text column. */}
       {images.length > 0 && (
         <div className="absolute inset-0 w-full h-full z-0">
           <MediaSlide
@@ -46,8 +53,8 @@ export function Hero() {
             fetchPriority="high"
             autoPlay
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-deep/90 via-primary-deep/55 to-primary-deep/20" />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary-deep/70 via-transparent to-primary-deep/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-deep/95 via-primary-deep/70 to-primary-deep/45" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-deep/50 to-primary-deep/25" />
         </div>
       )}
 
@@ -87,12 +94,12 @@ export function Hero() {
             </Link>
 
             <a
-              href="https://wa.me/254799488488?text=Hello%20Gatepath%20Realtors%2C%20I%20would%20like%20to%20inquire%20about%20your%20available%20plots."
+              href={`https://wa.me/${whatsappNumber}?text=Hello%20Gatepath%20Realtors%2C%20I%20would%20like%20to%20inquire%20about%20your%20available%20plots.`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2.5 px-6 py-4 border-2 border-white/40 hover:border-white bg-white/10 backdrop-blur-md text-white font-semibold text-sm rounded-xl transition-all duration-300 hover:bg-white/20"
             >
-              <MessageCircle size={18} className="text-[#25D366]" /> Chat on WhatsApp
+              <WhatsAppIcon size={18} className="text-[#25D366]" /> Chat on WhatsApp
             </a>
           </div>
         </div>

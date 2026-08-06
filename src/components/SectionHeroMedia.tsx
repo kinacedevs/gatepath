@@ -9,6 +9,13 @@
  * Content. Renders nothing when no media is set, so the section's own
  * existing background colour shows through unchanged — zero regression
  * until an admin uploads media for that section.
+ *
+ * Overlay keeps a real minimum darkness across the whole banner (never
+ * dropping to a near-transparent stop) — uploaded images are often full
+ * marketing posters with their own baked-in headline text, and these
+ * heroes' title+subtitle content spans most of the section's height, so
+ * a weak spot anywhere risks the same text-collision problem the
+ * homepage hero had.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -61,7 +68,7 @@ export function SectionHeroMedia({ sectionKey, alt }: { sectionKey: string; alt:
           />
         </div>
       ))}
-      <div className="absolute inset-0 bg-gradient-to-t from-primary-deep/90 via-primary-deep/60 to-primary-deep/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-primary-deep/85 via-primary-deep/70 to-primary-deep/60" />
     </div>
   );
 }
