@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Hero } from "@/components/sections/Hero";
-import { DEFAULT_HERO_IMAGES } from "@/lib/heroImages";
 import { TrustBar } from "@/components/sections/TrustBar";
 import { TrustAndVerification } from "@/components/sections/TrustAndVerification";
 import { LocationsMarquee } from "@/components/sections/LocationsMarquee";
@@ -33,14 +32,7 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:url", content: "/" },
     ],
-    links: [
-      { rel: "canonical", href: "/" },
-      // Hero background is the page's LCP element — preload it so the
-      // browser starts fetching before it even parses the body. Points at
-      // the same default Hero.tsx renders on first paint; if a CEO-uploaded
-      // override exists it swaps in after data loads, same as before.
-      { rel: "preload", as: "image", href: DEFAULT_HERO_IMAGES[0], fetchPriority: "high" },
-    ],
+    links: [{ rel: "canonical", href: "/" }],
   }),
 });
 

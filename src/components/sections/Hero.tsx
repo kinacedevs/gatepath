@@ -2,12 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_HERO_IMAGES } from "@/lib/heroImages";
 import { useRotatingCarousel } from "@/hooks/useRotatingCarousel";
 import { MediaSlide } from "@/components/MediaSlide";
 
 export function Hero() {
-  const [images, setImages] = useState<string[]>(DEFAULT_HERO_IMAGES);
+  // No stock fallback here by design — the CEO uploads real photos via
+  // Site Content, and only those should ever appear on the homepage hero.
+  // The section renders on its own gradient background until real images
+  // are uploaded, rather than showing an unapproved placeholder photo.
+  const [images, setImages] = useState<string[]>([]);
   const current = useRotatingCarousel(images.length);
 
   useEffect(() => {
@@ -18,13 +21,11 @@ export function Hero() {
           .select("*")
           .eq("id", "homepage_hero")
           .single();
-        // Only override if a real CEO-uploaded set exists — otherwise keep
-        // the default that's already rendering, no flash-to-nothing.
         if (data?.data?.images && data.data.images.length > 0) {
           setImages(data.data.images);
         }
       } catch {
-        // Default images are already showing — nothing to do.
+        // No real images uploaded yet — nothing to do.
       }
     };
     fetchBanners();

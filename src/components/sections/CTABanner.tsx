@@ -30,13 +30,7 @@ export function CTABanner() {
   }, []);
 
   return (
-    <section
-      className="relative bg-cover bg-center"
-      style={{
-        backgroundImage:
-          "linear-gradient(135deg, rgba(11,127,199,0.93) 0%, rgba(232,160,32,0.7) 100%), url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2000&q=80')",
-      }}
-    >
+    <section className="relative bg-gradient-to-br from-primary to-accent">
       <div className="mx-auto max-w-4xl px-6 lg:px-10 py-28 md:py-32 text-center">
         <Reveal>
           <h2 className="font-serif font-bold text-[38px] md:text-[56px] text-white leading-[1.1]">
