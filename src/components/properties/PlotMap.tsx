@@ -30,14 +30,93 @@ export function PlotMap({
   selectedId,
   onSelect,
   showAvailableOnly,
+  siteImageUrl,
 }: {
   plots: Plot[];
   selectedId: number | null;
   onSelect: (p: Plot) => void;
   showAvailableOnly: boolean;
+  /** Real uploaded site-plan image (Phase 42) — used instead of the
+   * computed SVG grid once every plot in this phase has a real percentage
+   * position on it. Falls back to the SVG grid otherwise, so a phase never
+   * shows a partially-empty image map on the live public site. */
+  siteImageUrl?: string | null;
 }) {
   const [hovered, setHovered] = useState<{ plot: Plot; x: number; y: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  const allPositioned = plots.length > 0 && plots.every((p) => p.mapX != null && p.mapY != null);
+
+  if (siteImageUrl && allPositioned) {
+    return (
+      <div ref={wrapRef} className="relative w-full rounded-lg overflow-hidden">
+        <img src={siteImageUrl} alt="Phase site plan" className="w-full h-auto block" />
+        {plots.map((p) => {
+          const c = COLORS[p.status];
+          const isSelected = selectedId === p.id;
+          const isHovered = hovered?.plot.id === p.id;
+          const dimmed = showAvailableOnly && p.status !== "available";
+          const pinSize = isSelected || isHovered ? 30 : 26;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full border-2 shadow-md transition-transform"
+              style={{
+                left: `${p.mapX}%`,
+                top: `${p.mapY}%`,
+                width: pinSize,
+                height: pinSize,
+                background: c.fill,
+                borderColor: isSelected ? "var(--primary)" : "white",
+                opacity: dimmed ? 0.3 : 1,
+                cursor: p.status === "available" ? "pointer" : "not-allowed",
+                boxShadow: isSelected ? "0 0 0 3px rgba(11,127,199,0.4)" : undefined,
+              }}
+              onMouseEnter={(e) => {
+                const rect = wrapRef.current?.getBoundingClientRect();
+                if (!rect) return;
+                setHovered({ plot: p, x: e.clientX - rect.left, y: e.clientY - rect.top });
+              }}
+              onMouseMove={(e) => {
+                const rect = wrapRef.current?.getBoundingClientRect();
+                if (!rect) return;
+                setHovered({ plot: p, x: e.clientX - rect.left, y: e.clientY - rect.top });
+              }}
+              onMouseLeave={() => setHovered(null)}
+              onClick={() => onSelect(p)}
+              aria-label={`Plot ${p.id}, ${p.status}, Ksh ${p.price.toLocaleString()}`}
+            >
+              <span className="text-white text-[10px] font-bold pointer-events-none">#{p.id}</span>
+              {p.status === "sold" && (
+                <span className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full pointer-events-none">
+                  <span className="w-[140%] h-[2px] bg-white rotate-45" />
+                </span>
+              )}
+              {p.status === "booked" && (
+                <Lock
+                  size={11}
+                  color="white"
+                  strokeWidth={2.5}
+                  className="absolute -top-1 -right-1 bg-amber-600 rounded-full p-0.5 pointer-events-none"
+                />
+              )}
+            </button>
+          );
+        })}
+        {hovered && (
+          <div
+            className="pointer-events-none absolute z-10 bg-primary text-white text-[12px] font-medium px-3 py-1.5 rounded-md shadow-lg whitespace-nowrap"
+            style={{ left: hovered.x + 14, top: hovered.y + 14, fontFamily: "Inter" }}
+          >
+            {hovered.plot.status === "available"
+              ? `Plot #${hovered.plot.id} — Ksh ${hovered.plot.price.toLocaleString()}`
+              : `Plot #${hovered.plot.id} — ${hovered.plot.status}`}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const cols = Math.max(...plots.map((p) => p.col));
   const rows = Math.max(...plots.map((p) => p.row));

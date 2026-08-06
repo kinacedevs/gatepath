@@ -57,6 +57,7 @@ function CampaignsAndContent() {
   const [mediaThumbnails, setMediaThumbnails] = useState<string[]>([]);
   const [mediaBrochure, setMediaBrochure] = useState("");
   const [mediaPlotMap, setMediaPlotMap] = useState("");
+  const [mediaSitePlanImage, setMediaSitePlanImage] = useState("");
   const [mediaSaveLoading, setMediaSaveLoading] = useState(false);
   const [mediaSaveMsg, setMediaSaveMsg] = useState<string | null>(null);
 
@@ -141,6 +142,7 @@ function CampaignsAndContent() {
           image_urls: mediaThumbnails.length ? mediaThumbnails : null,
           brochure_url: mediaBrochure.trim() || null,
           plot_map_url: mediaPlotMap.trim() || null,
+          site_plan_image_url: mediaSitePlanImage.trim() || null,
         })
         .eq("id", mediaEditingPhaseId);
 
@@ -520,6 +522,7 @@ function CampaignsAndContent() {
                       p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [],
                     );
                     setMediaPlotMap(p.plot_map_url || "");
+                    setMediaSitePlanImage(p.site_plan_image_url || "");
                   }
                 }}
                 className="w-full px-4 py-3 rounded-lg border border-outline-variant/40 text-[14px] outline-none"
@@ -583,6 +586,22 @@ function CampaignsAndContent() {
                       onChange={(v) => setMediaPlotMap(v as string)}
                       category="phase-plot-map"
                       accept=".pdf,application/pdf"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
+                      Site Plan Image (for interactive map)
+                    </label>
+                    <p className="text-[11px] text-on-surface-variant/70 mb-1.5">
+                      A plain photo/scan of the real site plan (not a PDF) — used as the background
+                      for the interactive plot map once every plot is positioned on it in Land
+                      Inventory's "Position Plots" mode.
+                    </p>
+                    <MediaDropzone
+                      value={mediaSitePlanImage}
+                      onChange={(v) => setMediaSitePlanImage(v as string)}
+                      category="phase-site-plan"
+                      accept="image/*"
                     />
                   </div>
                 </div>

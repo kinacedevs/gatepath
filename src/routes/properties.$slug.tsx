@@ -531,6 +531,7 @@ function PhaseDetailPage() {
               selectedId={selected?.id ?? null}
               onSelect={onSelect}
               showAvailableOnly={availOnly}
+              siteImageUrl={phase.site_plan_image_url}
             />
 
             <div className="mt-5 flex flex-wrap items-center gap-3">

@@ -285,6 +285,11 @@ export const updatePlotDetailsFn = createServerFn({ method: "POST" })
       sizeId?: string | null;
       notes?: string | null;
       photoUrls?: string[] | null;
+      /** Percentage (0-100) position on the phase's site_plan_image_url
+       * (Phase 42) — set together from admin.plots.tsx's Position Plots
+       * click handler. */
+      mapX?: number | null;
+      mapY?: number | null;
     }) => d,
   )
   .handler(async ({ data }) => {
@@ -297,6 +302,8 @@ export const updatePlotDetailsFn = createServerFn({ method: "POST" })
     if (data.photoUrls !== undefined) {
       payload.photo_urls = data.photoUrls && data.photoUrls.length > 0 ? data.photoUrls : null;
     }
+    if (data.mapX !== undefined) payload.map_x = data.mapX;
+    if (data.mapY !== undefined) payload.map_y = data.mapY;
 
     const { error } = await (caller.serviceClient as any)
       .from("plots")

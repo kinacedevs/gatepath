@@ -12,7 +12,7 @@
  * on plot status changes — instead of a flat grid of colored boxes.
  */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -45,6 +45,7 @@ import {
   setPlotArchivedFn,
   savePlotSizeFn,
   setPlotSizeActiveFn,
+  updatePlotDetailsFn,
 } from "@/lib/inventoryActions";
 import { usePhase, type Plot as MapPlot } from "@/lib/phases";
 import { PlotMap } from "@/components/properties/PlotMap";
@@ -113,9 +114,18 @@ function LandInventory() {
   const [inventoryStatusFilter, setInventoryStatusFilter] = useState<
     "all" | "available" | "booked" | "sold"
   >("all");
-  const [inventoryViewMode, setInventoryViewMode] = useState<"grid" | "table">("table");
+  const [inventoryViewMode, setInventoryViewMode] = useState<"grid" | "table" | "position">(
+    "table",
+  );
   const [sorting, setSorting] = useState<SortingState>([]);
   const [showArchived, setShowArchived] = useState(false);
+
+  // Position Plots mode (Phase 42) — click-to-arm, click-to-place pin
+  // positioning against the phase's real uploaded site-plan image.
+  const positionImgRef = useRef<HTMLImageElement>(null);
+  const [armedPlotId, setArmedPlotId] = useState<string | null>(null);
+  const [positionSaving, setPositionSaving] = useState(false);
+  const [positionMsg, setPositionMsg] = useState<string | null>(null);
 
   const [editingPlot, setEditingPlot] = useState<PlotWithSize | null>(null);
   const [newPlotStatus, setNewPlotStatus] = useState<"available" | "booked" | "sold">("available");
@@ -738,6 +748,38 @@ function LandInventory() {
     }
   };
 
+  // Position Plots: clicking the site-plan image places (or repositions)
+  // the currently-armed plot at that click's percentage position.
+  const handlePositionImageClick = async (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!armedPlotId || !positionImgRef.current) return;
+    const rect = positionImgRef.current.getBoundingClientRect();
+    const xPct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const yPct = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+
+    setPositionSaving(true);
+    setPositionMsg(null);
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setPositionMsg("Session expired — please refresh and sign in again.");
+        return;
+      }
+      const result = await updatePlotDetailsFn({
+        data: { callerAccessToken: accessToken, plotId: armedPlotId, mapX: xPct, mapY: yPct },
+      });
+      if (!result.success) {
+        setPositionMsg("Error: " + result.error);
+      } else {
+        setArmedPlotId(null);
+        loadData();
+      }
+    } catch (err: any) {
+      setPositionMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setPositionSaving(false);
+    }
+  };
+
   const columnHelper = createColumnHelper<PlotWithSize>();
   const columns = useMemo(
     () => [
@@ -987,6 +1029,16 @@ function LandInventory() {
             >
               Grid Map
             </button>
+            <button
+              onClick={() => setInventoryViewMode("position")}
+              className={`py-2.5 px-4 rounded-lg font-label-md text-xs transition-colors ${
+                inventoryViewMode === "position"
+                  ? "bg-primary text-white"
+                  : "bg-surface-container-high text-on-surface"
+              }`}
+            >
+              Position Plots
+            </button>
           </div>
 
           <label className="flex items-end gap-2 pt-5 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
@@ -1062,7 +1114,7 @@ function LandInventory() {
             </table>
           </div>
         </div>
-      ) : (
+      ) : inventoryViewMode === "grid" ? (
         <div className="luxury-card rounded-xl p-6 bg-white space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-headline-md text-headline-md text-primary font-bold">
@@ -1091,6 +1143,112 @@ function LandInventory() {
               onSelect={handleMapPlotSelect}
               showAvailableOnly={false}
             />
+          )}
+        </div>
+      ) : (
+        <div className="luxury-card rounded-xl p-6 bg-white space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h3 className="font-headline-md text-headline-md text-primary font-bold">
+              Position Plots — {activePhase?.name ?? "Select a phase"}
+            </h3>
+            {activePhase?.site_plan_image_url && (
+              <span className="text-xs font-semibold text-on-surface-variant">
+                {activePhasePlots.filter((p) => p.map_x != null && p.map_y != null).length} of{" "}
+                {activePhasePlots.length} plots positioned
+              </span>
+            )}
+          </div>
+
+          {!activePhase ? (
+            <EmptyState title="Select a phase" />
+          ) : !activePhase.site_plan_image_url ? (
+            <EmptyState
+              title="No site plan image uploaded yet"
+              description="Upload a real site-plan photo for this phase from Campaigns & Content → Media Manager before positioning plots here."
+            />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">
+              <div className="relative rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container-low">
+                <img
+                  ref={positionImgRef}
+                  src={activePhase.site_plan_image_url}
+                  alt={`${activePhase.name} site plan`}
+                  className={`w-full h-auto block select-none ${
+                    armedPlotId ? "cursor-crosshair" : "cursor-default"
+                  } ${positionSaving ? "opacity-60 pointer-events-none" : ""}`}
+                  onClick={handlePositionImageClick}
+                />
+                {activePhasePlots
+                  .filter((p) => p.map_x != null && p.map_y != null)
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setArmedPlotId(p.id);
+                      }}
+                      title={`Plot #${p.plot_number} — click to reposition`}
+                      className={`absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow ${
+                        armedPlotId === p.id ? "ring-2 ring-accent" : ""
+                      } ${
+                        p.status === "available"
+                          ? "bg-green-500"
+                          : p.status === "booked"
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                      }`}
+                      style={{ left: `${p.map_x}%`, top: `${p.map_y}%` }}
+                    />
+                  ))}
+              </div>
+              <div className="space-y-3">
+                {armedPlotId && (
+                  <div className="text-xs bg-primary-container/20 text-primary rounded-lg p-3">
+                    Click anywhere on the image to place Plot #
+                    {activePhasePlots.find((p) => p.id === armedPlotId)?.plot_number}.{" "}
+                    <button
+                      type="button"
+                      onClick={() => setArmedPlotId(null)}
+                      className="underline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                {positionMsg && <div className="text-xs text-error">{positionMsg}</div>}
+                <div>
+                  <p className="text-[11px] font-semibold text-on-surface-variant uppercase mb-1.5">
+                    Unpositioned Plots
+                  </p>
+                  <div className="max-h-64 overflow-y-auto space-y-1">
+                    {activePhasePlots
+                      .filter((p) => p.map_x == null || p.map_y == null)
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setArmedPlotId(p.id)}
+                          disabled={positionSaving}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                            armedPlotId === p.id
+                              ? "bg-primary text-white"
+                              : "bg-surface-container-low hover:bg-surface-container-high"
+                          }`}
+                        >
+                          Plot #{p.plot_number}
+                        </button>
+                      ))}
+                    {activePhasePlots.length > 0 &&
+                      activePhasePlots.every((p) => p.map_x != null && p.map_y != null) && (
+                        <p className="text-xs text-on-surface-variant">
+                          Every plot in this phase is positioned.
+                        </p>
+                      )}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}

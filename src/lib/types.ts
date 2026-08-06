@@ -39,6 +39,11 @@ export type Phase = {
   brochure_url: string | null;
   /** Plot map PDF URL for client download */
   plot_map_url: string | null;
+  /** Real uploaded site-plan image (PNG/JPG, not the PDF above) used as the
+   * background for the interactive plot map once every plot is positioned
+   * on it (Phase 42). Distinct from plot_map_url — this one is laid out
+   * with pins in the browser, not downloaded. */
+  site_plan_image_url: string | null;
   /** JSON-encoded array of hero carousel image URLs */
   hero_image_urls: string[] | null;
   /** Diaspora section banner override image URL */
@@ -96,6 +101,11 @@ export type Plot = {
   photo_urls: string[] | null;
   /** Soft-delete — see Phase.is_archived. Never a hard delete. */
   is_archived: boolean;
+  /** Percentage (0-100) position on the phase's site_plan_image_url,
+   * staff-placed via admin.plots.tsx's Position Plots mode (Phase 42).
+   * Null means not positioned yet. */
+  map_x: number | null;
+  map_y: number | null;
   created_at: string;
   updated_at: string;
   // Joined

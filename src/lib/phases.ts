@@ -27,6 +27,10 @@ export interface Plot {
   promoActive?: boolean;
   promoLabel?: string | null;
   promoPrice?: number | null;
+  /** Percentage (0-100) position on the phase's siteImageUrl (Phase 42).
+   * Null means not positioned yet on the real site-plan image. */
+  mapX?: number | null;
+  mapY?: number | null;
 }
 
 export interface Phase {
@@ -59,6 +63,9 @@ export interface Phase {
   brochure_url?: string | null;
   /** Plot map PDF URL for client download. */
   plot_map_url?: string | null;
+  /** Real uploaded site-plan image used as the interactive map background
+   * once every plot is positioned on it (Phase 42). */
+  site_plan_image_url?: string | null;
   /** True if any active pricing tier in this phase has a promo on (Part 3, Phase A). */
   hasPromo?: boolean;
   /** Manual homepage "Hot Picks" override (Part 3, Slice B). */
@@ -125,6 +132,8 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
       promoActive: (sizeObj as any)?.promo_active ?? false,
       promoLabel: (sizeObj as any)?.promo_label ?? null,
       promoPrice: (sizeObj as any)?.promo_price ?? null,
+      mapX: (p as any).map_x ?? null,
+      mapY: (p as any).map_y ?? null,
     };
   });
 
@@ -163,6 +172,7 @@ export function adaptPhase(dbPhase: DbPhase, dbSizes: DbPlotSize[], dbPlots: DbP
     hero_image_urls: dbPhase.hero_image_urls,
     brochure_url: dbPhase.brochure_url,
     plot_map_url: dbPhase.plot_map_url,
+    site_plan_image_url: (dbPhase as any).site_plan_image_url ?? null,
     hasPromo: sizesForPhase.some((s) => (s as any).promo_active),
     isHotPick: (dbPhase as any).is_hot_pick ?? false,
     hotPickOrder: (dbPhase as any).hot_pick_order ?? 0,
@@ -340,6 +350,8 @@ export function usePhase(slug: string) {
                 promoActive: existing?.promoActive ?? false,
                 promoLabel: existing?.promoLabel ?? null,
                 promoPrice: existing?.promoPrice ?? null,
+                mapX: (p as any).map_x ?? null,
+                mapY: (p as any).map_y ?? null,
               };
             });
 
