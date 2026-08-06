@@ -499,17 +499,30 @@ function PhaseDetailPage() {
                   Click any green plot to begin your inquiry
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-[12px] text-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-available" /> Available (
-                  {phase.available})
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" /> Booked ({phase.booked})
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-destructive" /> Sold ({phase.sold})
-                </span>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4 text-[12px] text-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-available" /> Available (
+                    {phase.available})
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" /> Booked (
+                    {phase.booked})
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-destructive" /> Sold ({phase.sold})
+                  </span>
+                </div>
+                {phase.plot_map_url && (
+                  <a
+                    href={phase.plot_map_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-primary text-white text-[12px] font-semibold px-3.5 py-2 rounded-md hover:bg-primary-deep transition-colors"
+                  >
+                    <Download size={13} /> Download Phase Map
+                  </a>
+                )}
               </div>
             </div>
 

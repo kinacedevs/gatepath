@@ -51,9 +51,15 @@ export function FeaturedLocations() {
 
   // Real data only — a location whose mapped phase is archived/removed is
   // skipped entirely rather than shown with stale/zero data (Part 3, Slice C).
+  // Capped at 3 (not the full matching set) so the grid always fills cleanly
+  // in a fixed 3-column row, matching the Hot Picks section's own layout,
+  // instead of leaving an empty trailing cell whenever the real count isn't
+  // a multiple of the column count — the full list is one click away via
+  // "View All Locations" below.
   const visibleLocations = defaultLocations
     .map((l) => ({ ...l, phase: phases.find((p) => p.slug === locationToSlug[l.name]) }))
-    .filter((l): l is typeof l & { phase: NonNullable<(typeof l)["phase"]> } => !!l.phase);
+    .filter((l): l is typeof l & { phase: NonNullable<(typeof l)["phase"]> } => !!l.phase)
+    .slice(0, 3);
 
   return (
     <section className="bg-background py-24 md:py-32">
@@ -77,7 +83,7 @@ export function FeaturedLocations() {
             <p className="text-sm text-slate-500">Loading live availability...</p>
           </div>
         ) : (
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
             {visibleLocations.map(({ name, phase }) => (
               <Reveal key={name}>
                 <PhaseCard phase={phase} imageOverride={customLocImages[name]?.[0] || undefined} />
