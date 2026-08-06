@@ -1,5 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu, X, ChevronDown, Users, Heart, Briefcase, Phone, MessageCircle } from "lucide-react";
+import {
+  Menu,
+  X,
+  ChevronDown,
+  Users,
+  Heart,
+  Briefcase,
+  Phone,
+  MessageCircle,
+  Facebook,
+  Instagram,
+  Music2,
+  Mail,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useContactInfo } from "@/hooks/useContactInfo";
 import logoIcon from "@/assets/logo-icon.png";
@@ -175,39 +188,75 @@ function MobileLinkAccordion({
   );
 }
 
-// Header Call + WhatsApp Chat pair — an immediate, always-visible way to
-// reach Gatepath, matching the benchmark pattern seen on competitor sites
-// but in Gatepath's own cerulean/gold identity. Complements, doesn't
-// replace, the floating WhatsAppButton widget shown site-wide.
-function HeaderContactActions({
-  solid,
+// Slim contact/social strip above the main nav — an immediate, eye-catching
+// way to reach Gatepath at first glance (matching the benchmark pattern from
+// competitor sites) without permanently occupying space in the main nav row.
+// Collapses away once the page scrolls, so the solid nav underneath stays
+// uncluttered — the floating WhatsAppButton widget and the Contact page
+// remain reachable at any scroll position.
+function TopBar({
   phone,
+  email,
   whatsappNumber,
+  facebookUrl,
+  instagramUrl,
+  tiktokUrl,
 }: {
-  solid: boolean;
   phone: string;
+  email: string;
   whatsappNumber: string;
+  facebookUrl: string;
+  instagramUrl: string;
+  tiktokUrl: string;
 }) {
-  const btnCls = solid
-    ? "border border-white/30 text-white hover:bg-white/10"
-    : "border border-primary/25 text-primary hover:bg-primary/5";
+  const socials = [
+    { Icon: Facebook, href: facebookUrl, label: "Facebook" },
+    { Icon: Instagram, href: instagramUrl, label: "Instagram" },
+    { Icon: Music2, href: tiktokUrl, label: "TikTok" },
+  ].filter((s) => s.href && s.href !== "#");
 
   return (
-    <div className="flex items-center gap-2">
-      <a
-        href={`tel:${phone.replace(/\s/g, "")}`}
-        className={`inline-flex items-center gap-1.5 text-[13px] font-semibold px-3.5 py-2 rounded-full transition-colors ${btnCls}`}
-      >
-        <Phone size={14} /> Call Us
-      </a>
-      <a
-        href={`https://wa.me/${whatsappNumber}?text=Hello%20Gatepath%20Realtors%2C%20I%20am%20interested%20in%20a%20land%20plot.`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 text-[13px] font-bold px-3.5 py-2 rounded-full bg-[#25D366] text-white hover:bg-[#1EBE57] transition-colors shadow-[0_2px_8px_rgba(37,211,102,0.3)]"
-      >
-        <MessageCircle size={14} /> Chat With Us
-      </a>
+    <div className="hidden sm:flex items-center justify-between bg-primary-deep text-white/90 px-6 lg:px-10 h-9 text-[12px]">
+      <div className="flex items-center gap-5">
+        <a
+          href={`tel:${phone.replace(/\s/g, "")}`}
+          className="inline-flex items-center gap-1.5 hover:text-accent transition-colors font-medium"
+        >
+          <Phone size={12} /> {phone}
+        </a>
+        <a
+          href={`mailto:${email}`}
+          className="hidden lg:inline-flex items-center gap-1.5 hover:text-accent transition-colors font-medium"
+        >
+          <Mail size={12} /> {email}
+        </a>
+      </div>
+      <div className="flex items-center gap-4">
+        <a
+          href={`https://wa.me/${whatsappNumber}?text=Hello%20Gatepath%20Realtors%2C%20I%20am%20interested%20in%20a%20land%20plot.`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 hover:text-accent transition-colors font-semibold"
+        >
+          <MessageCircle size={13} /> Chat With Us
+        </a>
+        {socials.length > 0 && (
+          <div className="flex items-center gap-3 pl-4 border-l border-white/20">
+            {socials.map(({ Icon, href, label }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="text-white/80 hover:text-accent transition-colors"
+              >
+                <Icon size={14} />
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -248,181 +297,190 @@ export function Navbar() {
     } ${active ? "text-accent" : ""}`;
 
   return (
-    <header
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-400 ${
-        solid ? "bg-primary shadow-[0_4px_24px_rgba(11,127,199,0.18)]" : "bg-transparent"
-      }`}
-    >
-      <div className="mx-auto max-w-7xl px-6 lg:px-10 h-[100px] flex items-center justify-between">
-        <Link
-          to="/"
-          className="flex items-center gap-3 min-w-0 mr-4"
-          aria-label="Gatepath Realtors — Home"
-        >
-          <img
-            src={logoIcon}
-            alt="Gatepath Realtors"
-            className="shrink-0 h-[64px] w-[64px] sm:h-[72px] sm:w-[72px] lg:h-[80px] lg:w-[80px]"
-            style={{
-              objectFit: "contain",
-              display: "block",
-              filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.28))",
-            }}
-          />
-          <span className="flex flex-col leading-tight min-w-0">
-            <span
-              className={`font-serif font-bold tracking-[0.04em] truncate ${solid ? "text-white" : "text-primary"}`}
-              style={{ fontSize: "clamp(14px, 4.2vw, 23px)" }}
-            >
-              GATEPATH REALTORS
-            </span>
-            <span
-              className="font-serif italic tracking-[0.02em] text-accent mt-0.5 truncate"
-              style={{ fontSize: "clamp(10px, 2.6vw, 13px)" }}
-            >
-              Your Interest is Our Priority
-            </span>
-          </span>
-        </Link>
-
-        {/* DESKTOP NAV */}
-        <nav className="hidden lg:flex items-center gap-5">
-          {mainLinks.map((l) =>
-            l.to ? (
-              <Link
-                key={l.label}
-                to={l.to}
-                className={linkCls(false)}
-                activeProps={{ className: "text-accent" }}
+    <header className="fixed top-0 inset-x-0 z-50">
+      <TopBar
+        phone={contact.phone}
+        email={contact.email}
+        whatsappNumber={contact.whatsappNumber}
+        facebookUrl={contact.facebookUrl}
+        instagramUrl={contact.instagramUrl}
+        tiktokUrl={contact.tiktokUrl}
+      />
+      <div
+        className={`transition-all duration-400 ${
+          solid ? "bg-primary shadow-[0_4px_24px_rgba(11,127,199,0.18)]" : "bg-transparent"
+        }`}
+      >
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 h-[100px] flex items-center justify-between">
+          <Link
+            to="/"
+            className="flex items-center gap-3 min-w-0 mr-4"
+            aria-label="Gatepath Realtors — Home"
+          >
+            <img
+              src={logoIcon}
+              alt="Gatepath Realtors"
+              className="shrink-0 h-[64px] w-[64px] sm:h-[72px] sm:w-[72px] lg:h-[80px] lg:w-[80px]"
+              style={{
+                objectFit: "contain",
+                display: "block",
+                filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.28))",
+              }}
+            />
+            <span className="flex flex-col leading-tight min-w-0">
+              <span
+                className={`font-serif font-bold tracking-[0.04em] truncate ${solid ? "text-white" : "text-primary"}`}
+                style={{ fontSize: "clamp(14px, 4.2vw, 23px)" }}
               >
-                {l.label}
-                <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
-              </Link>
-            ) : (
-              <a key={l.label} href={l.href} className={linkCls(false)}>
-                {l.label}
-                <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
-              </a>
-            ),
-          )}
-
-          <SimpleNavDropdown label="About Us" links={aboutLinks} solid={solid} />
-          <SimpleNavDropdown label="Resources" links={resourceLinks} solid={solid} />
-
-          <Link to="/contact" className={linkCls(false)} activeProps={{ className: "text-accent" }}>
-            Contact
-            <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+                GATEPATH REALTORS
+              </span>
+              <span
+                className="font-serif italic tracking-[0.02em] text-accent mt-0.5 truncate"
+                style={{ fontSize: "clamp(10px, 2.6vw, 13px)" }}
+              >
+                Your Interest is Our Priority
+              </span>
+            </span>
           </Link>
 
-          {/* PORTALS DROPDOWN */}
-          <div ref={portalsRef} className="relative">
-            <button
-              onClick={() => setPortalsOpen((v) => !v)}
-              className={`flex items-center gap-1.5 text-[15px] font-medium tracking-wide transition-colors ${
-                solid ? "text-white hover:text-accent" : "text-foreground hover:text-primary"
-              } ${portalsOpen ? "text-accent" : ""}`}
-              aria-haspopup="true"
-              aria-expanded={portalsOpen}
-            >
-              Portals
-              <ChevronDown
-                size={15}
-                className={`transition-transform duration-200 ${portalsOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {portalsOpen && (
-              <div
-                className="absolute top-[calc(100%+12px)] right-0 w-[280px] bg-white rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.14)] border border-[#E5E0D8] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
-                style={{ minWidth: "260px" }}
-              >
-                <div className="px-4 pt-3 pb-1.5 border-b border-[#F0EBE3]">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#A89E8C]">
-                    Gatepath Portals
-                  </p>
-                </div>
-                {portalLinks.map((pl) => {
-                  const Icon = pl.icon;
-                  const content = (
-                    <div
-                      key={pl.label}
-                      className="flex items-start gap-3 px-4 py-3.5 hover:bg-ivory transition-colors group/item cursor-pointer"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5 group-hover/item:bg-primary/20 transition-colors">
-                        <Icon size={15} className="text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[14px] font-semibold text-foreground group-hover/item:text-primary transition-colors">
-                            {pl.label}
-                          </span>
-                          {pl.soon && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider bg-accent/15 text-accent px-1.5 py-0.5 rounded">
-                              Soon
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[12px] text-[#8A8179] leading-snug mt-0.5">{pl.desc}</p>
-                      </div>
-                    </div>
-                  );
-
-                  return pl.to ? (
-                    <Link
-                      key={pl.label}
-                      to={pl.to}
-                      onClick={() => setPortalsOpen(false)}
-                      className="block no-underline"
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <a
-                      key={pl.label}
-                      href={pl.href}
-                      onClick={() => setPortalsOpen(false)}
-                      className="block no-underline"
-                    >
-                      {content}
-                    </a>
-                  );
-                })}
-
-                <div className="px-4 py-3 bg-ivory border-t border-[#EEEBE4] text-center">
-                  <Link
-                    to="/privacy"
-                    onClick={() => setPortalsOpen(false)}
-                    className="text-[12px] text-primary hover:underline font-medium"
-                  >
-                    Privacy Policy &amp; Data Rights →
-                  </Link>
-                </div>
-              </div>
+          {/* DESKTOP NAV */}
+          <nav className="hidden lg:flex items-center gap-5">
+            {mainLinks.map((l) =>
+              l.to ? (
+                <Link
+                  key={l.label}
+                  to={l.to}
+                  className={linkCls(false)}
+                  activeProps={{ className: "text-accent" }}
+                >
+                  {l.label}
+                  <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+                </Link>
+              ) : (
+                <a key={l.label} href={l.href} className={linkCls(false)}>
+                  {l.label}
+                  <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+                </a>
+              ),
             )}
-          </div>
-        </nav>
 
-        <div className="hidden lg:flex items-center gap-4">
-          <HeaderContactActions
-            solid={solid}
-            phone={contact.phone}
-            whatsappNumber={contact.whatsappNumber}
-          />
+            <SimpleNavDropdown label="About Us" links={aboutLinks} solid={solid} />
+            <SimpleNavDropdown label="Resources" links={resourceLinks} solid={solid} />
+
+            <Link
+              to="/contact"
+              className={linkCls(false)}
+              activeProps={{ className: "text-accent" }}
+            >
+              Contact
+              <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+            </Link>
+
+            {/* PORTALS DROPDOWN */}
+            <div ref={portalsRef} className="relative">
+              <button
+                onClick={() => setPortalsOpen((v) => !v)}
+                className={`flex items-center gap-1.5 text-[15px] font-medium tracking-wide transition-colors ${
+                  solid ? "text-white hover:text-accent" : "text-foreground hover:text-primary"
+                } ${portalsOpen ? "text-accent" : ""}`}
+                aria-haspopup="true"
+                aria-expanded={portalsOpen}
+              >
+                Portals
+                <ChevronDown
+                  size={15}
+                  className={`transition-transform duration-200 ${portalsOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {portalsOpen && (
+                <div
+                  className="absolute top-[calc(100%+12px)] right-0 w-[280px] bg-white rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.14)] border border-[#E5E0D8] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                  style={{ minWidth: "260px" }}
+                >
+                  <div className="px-4 pt-3 pb-1.5 border-b border-[#F0EBE3]">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#A89E8C]">
+                      Gatepath Portals
+                    </p>
+                  </div>
+                  {portalLinks.map((pl) => {
+                    const Icon = pl.icon;
+                    const content = (
+                      <div
+                        key={pl.label}
+                        className="flex items-start gap-3 px-4 py-3.5 hover:bg-ivory transition-colors group/item cursor-pointer"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5 group-hover/item:bg-primary/20 transition-colors">
+                          <Icon size={15} className="text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-semibold text-foreground group-hover/item:text-primary transition-colors">
+                              {pl.label}
+                            </span>
+                            {pl.soon && (
+                              <span className="text-[9px] font-bold uppercase tracking-wider bg-accent/15 text-accent px-1.5 py-0.5 rounded">
+                                Soon
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[12px] text-[#8A8179] leading-snug mt-0.5">
+                            {pl.desc}
+                          </p>
+                        </div>
+                      </div>
+                    );
+
+                    return pl.to ? (
+                      <Link
+                        key={pl.label}
+                        to={pl.to}
+                        onClick={() => setPortalsOpen(false)}
+                        className="block no-underline"
+                      >
+                        {content}
+                      </Link>
+                    ) : (
+                      <a
+                        key={pl.label}
+                        href={pl.href}
+                        onClick={() => setPortalsOpen(false)}
+                        className="block no-underline"
+                      >
+                        {content}
+                      </a>
+                    );
+                  })}
+
+                  <div className="px-4 py-3 bg-ivory border-t border-[#EEEBE4] text-center">
+                    <Link
+                      to="/privacy"
+                      onClick={() => setPortalsOpen(false)}
+                      className="text-[12px] text-primary hover:underline font-medium"
+                    >
+                      Privacy Policy &amp; Data Rights →
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </nav>
+
           <Link
             to="/properties"
-            className="inline-flex items-center justify-center bg-gradient-to-r from-accent to-accent-dark text-white px-6 py-3 text-sm font-bold rounded-lg hover:from-accent-dark hover:to-accent hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-[0_4px_12px_rgba(232,160,32,0.25)]"
+            className="hidden lg:inline-flex items-center justify-center bg-gradient-to-r from-accent to-accent-dark text-white px-6 py-3 text-sm font-bold rounded-lg hover:from-accent-dark hover:to-accent hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-[0_4px_12px_rgba(232,160,32,0.25)]"
           >
             Book Site Visit
           </Link>
-        </div>
 
-        <button
-          className={`lg:hidden p-2 shrink-0 ${solid ? "text-white" : "text-primary"}`}
-          onClick={() => setOpen(true)}
-          aria-label="Open menu"
-        >
-          <Menu size={24} />
-        </button>
+          <button
+            className={`lg:hidden p-2 shrink-0 ${solid ? "text-white" : "text-primary"}`}
+            onClick={() => setOpen(true)}
+            aria-label="Open menu"
+          >
+            <Menu size={24} />
+          </button>
+        </div>
       </div>
 
       {/* MOBILE DRAWER BACKDROP */}
