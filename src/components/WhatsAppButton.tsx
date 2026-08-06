@@ -1,31 +1,7 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-
-const DEFAULT_WHATSAPP_NUMBER = "254799488488";
+import { useContactInfo } from "@/hooks/useContactInfo";
 
 export function WhatsAppButton() {
-  const [whatsappNumber, setWhatsappNumber] = useState(DEFAULT_WHATSAPP_NUMBER);
-
-  useEffect(() => {
-    const fetchContactInfo = async () => {
-      try {
-        const { data } = await (supabase as any)
-          .from("site_banners")
-          .select("data")
-          .eq("id", "contact_info")
-          .maybeSingle();
-        // Only override if a real CEO-set number exists — otherwise keep
-        // the default that's already rendering, no flash-to-nothing.
-        const number = data?.data?.whatsapp_number;
-        if (typeof number === "string" && number.trim()) {
-          setWhatsappNumber(number.trim());
-        }
-      } catch {
-        // Default number is already showing — nothing to do.
-      }
-    };
-    fetchContactInfo();
-  }, []);
+  const { whatsappNumber } = useContactInfo();
 
   return (
     <a

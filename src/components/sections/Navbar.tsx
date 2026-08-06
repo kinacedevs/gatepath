@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu, X, ChevronDown, Users, Heart, Briefcase } from "lucide-react";
+import { Menu, X, ChevronDown, Users, Heart, Briefcase, Phone, MessageCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useContactInfo } from "@/hooks/useContactInfo";
 import logoIcon from "@/assets/logo-icon.png";
 
 type NavLink = { label: string; href?: string; to?: string };
@@ -10,9 +11,23 @@ const mainLinks: NavLink[] = [
   { label: "Properties", to: "/properties" },
   { label: "Diaspora", to: "/diaspora" },
   { label: "Locations", to: "/locations" },
+];
+
+const aboutLinks: NavLink[] = [
+  { label: "Who We Are", href: "/about#who-we-are" },
+  { label: "CEO Message", href: "/about#ceo-message" },
+  { label: "Our Team", href: "/about#our-team" },
+  { label: "Our Journey", href: "/about#our-journey" },
+  { label: "Visit Our Office", href: "/about#visit-us" },
+];
+
+const resourceLinks: NavLink[] = [
   { label: "Blog", to: "/blog" },
-  { label: "About Us", to: "/about" },
-  { label: "Contact", to: "/contact" },
+  { label: "Project Updates", href: "/blog?category=Project+Update" },
+  { label: "FAQs", to: "/faqs" },
+  { label: "Testimonials", href: "/#testimonials" },
+  { label: "Gallery", to: "/gallery" },
+  { label: "Downloads", to: "/downloads" },
 ];
 
 const portalLinks = [
@@ -37,6 +52,166 @@ const portalLinks = [
   },
 ];
 
+// Lightweight link-only dropdown, reused for About Us / Resources so the
+// header nav can group related pages without repeating the richer
+// icon+description Portals dropdown's markup for a simpler case.
+function SimpleNavDropdown({
+  label,
+  links,
+  solid,
+}: {
+  label: string;
+  links: NavLink[];
+  solid: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 text-[15px] font-medium tracking-wide transition-colors ${
+          solid ? "text-white hover:text-accent" : "text-foreground hover:text-primary"
+        } ${open ? "text-accent" : ""}`}
+        aria-haspopup="true"
+        aria-expanded={open}
+      >
+        {label}
+        <ChevronDown
+          size={15}
+          className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute top-[calc(100%+12px)] left-0 min-w-[220px] bg-white rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.14)] border border-[#E5E0D8] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 py-1.5">
+          {links.map((l) =>
+            l.to ? (
+              <Link
+                key={l.label}
+                to={l.to}
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2.5 text-[14px] font-medium text-foreground hover:bg-ivory hover:text-primary transition-colors"
+              >
+                {l.label}
+              </Link>
+            ) : (
+              <a
+                key={l.label}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2.5 text-[14px] font-medium text-foreground hover:bg-ivory hover:text-primary transition-colors"
+              >
+                {l.label}
+              </a>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Mobile-drawer counterpart to SimpleNavDropdown — same link set, an
+// expand/collapse accordion instead of a hover/click popover (matches the
+// drawer's existing Portals accordion interaction).
+function MobileLinkAccordion({
+  label,
+  links,
+  onNavigate,
+}: {
+  label: string;
+  links: NavLink[];
+  onNavigate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-t border-white/10 pt-5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between text-base font-semibold text-white hover:text-accent transition-colors"
+      >
+        <span>{label}</span>
+        <ChevronDown
+          size={16}
+          className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3.5 pl-3 border-l border-accent/40">
+          {links.map((l) =>
+            l.to ? (
+              <Link
+                key={l.label}
+                to={l.to}
+                onClick={onNavigate}
+                className="block text-[14px] font-medium text-white/85 hover:text-accent transition-colors"
+              >
+                {l.label}
+              </Link>
+            ) : (
+              <a
+                key={l.label}
+                href={l.href}
+                onClick={onNavigate}
+                className="block text-[14px] font-medium text-white/85 hover:text-accent transition-colors"
+              >
+                {l.label}
+              </a>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Header Call + WhatsApp Chat pair — an immediate, always-visible way to
+// reach Gatepath, matching the benchmark pattern seen on competitor sites
+// but in Gatepath's own cerulean/gold identity. Complements, doesn't
+// replace, the floating WhatsAppButton widget shown site-wide.
+function HeaderContactActions({
+  solid,
+  phone,
+  whatsappNumber,
+}: {
+  solid: boolean;
+  phone: string;
+  whatsappNumber: string;
+}) {
+  const btnCls = solid
+    ? "border border-white/30 text-white hover:bg-white/10"
+    : "border border-primary/25 text-primary hover:bg-primary/5";
+
+  return (
+    <div className="flex items-center gap-2">
+      <a
+        href={`tel:${phone.replace(/\s/g, "")}`}
+        className={`inline-flex items-center gap-1.5 text-[13px] font-semibold px-3.5 py-2 rounded-full transition-colors ${btnCls}`}
+      >
+        <Phone size={14} /> Call Us
+      </a>
+      <a
+        href={`https://wa.me/${whatsappNumber}?text=Hello%20Gatepath%20Realtors%2C%20I%20am%20interested%20in%20a%20land%20plot.`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-[13px] font-bold px-3.5 py-2 rounded-full bg-[#25D366] text-white hover:bg-[#1EBE57] transition-colors shadow-[0_2px_8px_rgba(37,211,102,0.3)]"
+      >
+        <MessageCircle size={14} /> Chat With Us
+      </a>
+    </div>
+  );
+}
+
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -44,6 +219,7 @@ export function Navbar() {
   const [portalsOpen, setPortalsOpen] = useState(false);
   const [mobilePortalsOpen, setMobilePortalsOpen] = useState(false);
   const portalsRef = useRef<HTMLDivElement>(null);
+  const contact = useContactInfo();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -129,6 +305,14 @@ export function Navbar() {
               </a>
             ),
           )}
+
+          <SimpleNavDropdown label="About Us" links={aboutLinks} solid={solid} />
+          <SimpleNavDropdown label="Resources" links={resourceLinks} solid={solid} />
+
+          <Link to="/contact" className={linkCls(false)} activeProps={{ className: "text-accent" }}>
+            Contact
+            <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+          </Link>
 
           {/* PORTALS DROPDOWN */}
           <div ref={portalsRef} className="relative">
@@ -218,12 +402,19 @@ export function Navbar() {
           </div>
         </nav>
 
-        <Link
-          to="/properties"
-          className="hidden lg:inline-flex items-center justify-center bg-gradient-to-r from-accent to-accent-dark text-white px-6 py-3 text-sm font-bold rounded-lg hover:from-accent-dark hover:to-accent hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-[0_4px_12px_rgba(232,160,32,0.25)]"
-        >
-          Book Site Visit
-        </Link>
+        <div className="hidden lg:flex items-center gap-4">
+          <HeaderContactActions
+            solid={solid}
+            phone={contact.phone}
+            whatsappNumber={contact.whatsappNumber}
+          />
+          <Link
+            to="/properties"
+            className="inline-flex items-center justify-center bg-gradient-to-r from-accent to-accent-dark text-white px-6 py-3 text-sm font-bold rounded-lg hover:from-accent-dark hover:to-accent hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-[0_4px_12px_rgba(232,160,32,0.25)]"
+          >
+            Book Site Visit
+          </Link>
+        </div>
 
         <button
           className={`lg:hidden p-2 shrink-0 ${solid ? "text-white" : "text-primary"}`}
@@ -265,6 +456,24 @@ export function Navbar() {
           </button>
         </div>
 
+        {/* Drawer Contact Actions */}
+        <div className="flex items-center gap-2 px-6 pt-5">
+          <a
+            href={`tel:${contact.phone.replace(/\s/g, "")}`}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold px-3 py-2.5 rounded-full border border-white/25 text-white hover:bg-white/10 transition-colors"
+          >
+            <Phone size={14} /> Call Us
+          </a>
+          <a
+            href={`https://wa.me/${contact.whatsappNumber}?text=Hello%20Gatepath%20Realtors%2C%20I%20am%20interested%20in%20a%20land%20plot.`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-bold px-3 py-2.5 rounded-full bg-[#25D366] text-white hover:bg-[#1EBE57] transition-colors"
+          >
+            <MessageCircle size={14} /> Chat
+          </a>
+        </div>
+
         {/* Drawer Content */}
         <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-6">
           <nav className="flex flex-col gap-4">
@@ -290,7 +499,26 @@ export function Navbar() {
                 </a>
               ),
             )}
+            <Link
+              to="/contact"
+              onClick={() => setOpen(false)}
+              className="text-base font-medium text-white/90 hover:text-accent transition-colors py-1.5"
+              activeProps={{ className: "text-accent font-semibold" }}
+            >
+              Contact
+            </Link>
           </nav>
+
+          <MobileLinkAccordion
+            label="About Us"
+            links={aboutLinks}
+            onNavigate={() => setOpen(false)}
+          />
+          <MobileLinkAccordion
+            label="Resources"
+            links={resourceLinks}
+            onNavigate={() => setOpen(false)}
+          />
 
           {/* MOBILE PORTALS ACCORDION */}
           <div className="border-t border-white/10 pt-5">

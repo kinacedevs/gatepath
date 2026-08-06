@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Facebook, Instagram, Music2, Phone, Mail, Building2, Send } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/lib/supabase";
+import { useContactInfo } from "@/hooks/useContactInfo";
 import logoIcon from "@/assets/logo-icon.png";
 
 const locations = [
@@ -19,19 +20,8 @@ const locations = [
   "Nanyuki",
 ];
 
-const DEFAULT_CONTACT = {
-  phone: "+254 799 488 488",
-  email: "info@gatepathrealtors.com",
-  addressLine1: "1st Floor, CNM Centre,",
-  addressLine2: "Ruiru Eastern Bypass, Nairobi",
-  hours: "Mon–Fri: 8am–6pm | Sat: 9am–4pm",
-  facebookUrl: "#",
-  instagramUrl: "#",
-  tiktokUrl: "#",
-};
-
 export function Footer() {
-  const [contact, setContact] = useState(DEFAULT_CONTACT);
+  const contact = useContactInfo();
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
   const [newsletterMsg, setNewsletterMsg] = useState<string | null>(null);
@@ -62,36 +52,6 @@ export function Footer() {
       setNewsletterSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    const fetchContactInfo = async () => {
-      try {
-        const { data } = await (supabase as any)
-          .from("site_banners")
-          .select("data")
-          .eq("id", "contact_info")
-          .maybeSingle();
-        // Only override a field if the CEO has actually set it — otherwise
-        // keep the matching default, no flash-to-empty.
-        const d = data?.data;
-        if (d) {
-          setContact({
-            phone: d.phone || DEFAULT_CONTACT.phone,
-            email: d.email || DEFAULT_CONTACT.email,
-            addressLine1: d.address_line1 || DEFAULT_CONTACT.addressLine1,
-            addressLine2: d.address_line2 || DEFAULT_CONTACT.addressLine2,
-            hours: d.hours || DEFAULT_CONTACT.hours,
-            facebookUrl: d.facebook_url || DEFAULT_CONTACT.facebookUrl,
-            instagramUrl: d.instagram_url || DEFAULT_CONTACT.instagramUrl,
-            tiktokUrl: d.tiktok_url || DEFAULT_CONTACT.tiktokUrl,
-          });
-        }
-      } catch {
-        // Defaults are already showing — nothing to do.
-      }
-    };
-    fetchContactInfo();
-  }, []);
 
   return (
     <footer id="contact" className="bg-footer-deep text-white">

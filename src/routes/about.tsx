@@ -16,7 +16,9 @@ import {
   Calendar,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useContactInfo } from "@/hooks/useContactInfo";
 import type { TeamProfile } from "@/lib/types";
+import ceoJoe from "@/assets/ceo-joe-muchiri.jpg";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -32,14 +34,17 @@ export const Route = createFileRoute("/about")({
   }),
 });
 
-const DEFAULT_OFFICE_CONTACT = {
-  addressLine: "1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi",
-  phone: "+254 799 488 488",
-};
-
 function AboutPage() {
   const [staffMembers, setStaffMembers] = useState<TeamProfile[]>([]);
-  const [officeContact, setOfficeContact] = useState(DEFAULT_OFFICE_CONTACT);
+  const [ceoPhotoUrl, setCeoPhotoUrl] = useState<string | null>(null);
+  const contact = useContactInfo();
+  const officeContact = {
+    addressLine:
+      contact.addressLine1 && contact.addressLine2
+        ? `${contact.addressLine1}, ${contact.addressLine2}`
+        : "1st Floor, CNM Centre, Ruiru Eastern Bypass, Nairobi",
+    phone: contact.phone,
+  };
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -52,31 +57,22 @@ function AboutPage() {
     };
     fetchTeam();
 
-    // Same site_banners "contact_info" row Footer.tsx already reads — this
-    // block previously hardcoded the address/phone independently, so an
-    // edit in Site Content never reached this page.
-    const fetchContactInfo = async () => {
+    // Admin-editable CEO photo (Site Content) — falls back to the bundled
+    // real photo below if the CEO hasn't set one via the dashboard yet.
+    const fetchCeoPhoto = async () => {
       try {
         const { data } = await (supabase as any)
           .from("site_banners")
           .select("data")
-          .eq("id", "contact_info")
+          .eq("id", "ceo_section")
           .maybeSingle();
-        const d = data?.data;
-        if (d) {
-          setOfficeContact({
-            addressLine:
-              d.address_line1 && d.address_line2
-                ? `${d.address_line1}, ${d.address_line2}`
-                : DEFAULT_OFFICE_CONTACT.addressLine,
-            phone: d.phone || DEFAULT_OFFICE_CONTACT.phone,
-          });
-        }
+        const url = data?.data?.photo_url;
+        if (typeof url === "string" && url.trim()) setCeoPhotoUrl(url.trim());
       } catch {
-        /* defaults already showing */
+        /* bundled fallback photo already showing */
       }
     };
-    fetchContactInfo();
+    fetchCeoPhoto();
   }, []);
 
   const milestones = [
@@ -107,7 +103,10 @@ function AboutPage() {
       <Navbar />
 
       {/* Hero Header */}
-      <section className="relative pt-32 pb-20 bg-primary-deep text-white overflow-hidden">
+      <section
+        id="who-we-are"
+        className="relative pt-32 pb-20 bg-primary-deep text-white overflow-hidden"
+      >
         <div className="mx-auto max-w-7xl px-6 lg:px-10 relative z-10">
           <div className="max-w-3xl space-y-4">
             <span className="px-3 py-1 bg-accent/20 text-accent border border-accent/30 text-xs font-bold rounded-full uppercase tracking-wider">
@@ -125,12 +124,12 @@ function AboutPage() {
       </section>
 
       {/* CEO Founder Letter Section */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-10 py-16">
+      <section id="ceo-message" className="mx-auto max-w-7xl px-6 lg:px-10 py-16 scroll-mt-28">
         <div className="bg-white rounded-3xl border border-slate-200 p-8 lg:p-12 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-5 relative">
             <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-lg border-4 border-primary-deep/10">
               <img
-                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80"
+                src={ceoPhotoUrl ?? ceoJoe}
                 alt="Joe Muchiri CEO Gatepath Realtors"
                 loading="lazy"
                 className="w-full h-full object-cover"
@@ -172,7 +171,7 @@ function AboutPage() {
       </section>
 
       {/* Growth History & Milestones */}
-      <section className="bg-primary-deep text-white py-16">
+      <section id="our-journey" className="bg-primary-deep text-white py-16 scroll-mt-28">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <span className="text-xs font-bold uppercase tracking-widest text-accent">
@@ -201,7 +200,10 @@ function AboutPage() {
       {/* Staff Roster & Leadership Team — hidden until real profiles exist,
           no fabricated fallback names/stock photos */}
       {staffMembers.length > 0 && (
-        <section className="mx-auto max-w-7xl px-6 lg:px-10 py-16 space-y-12">
+        <section
+          id="our-team"
+          className="mx-auto max-w-7xl px-6 lg:px-10 py-16 space-y-12 scroll-mt-28"
+        >
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <span className="text-xs font-bold uppercase tracking-widest text-accent">
               OUR TEAM
@@ -246,7 +248,7 @@ function AboutPage() {
       )}
 
       {/* Working Office Location & Google Map */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-10 py-12">
+      <section id="visit-us" className="mx-auto max-w-7xl px-6 lg:px-10 py-12 scroll-mt-28">
         <div className="bg-white rounded-3xl border border-slate-200 p-8 lg:p-12 shadow-sm space-y-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <div>
