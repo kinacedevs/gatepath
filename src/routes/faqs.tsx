@@ -12,6 +12,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { SectionHeroMedia } from "@/components/SectionHeroMedia";
 import {
   Accordion,
   AccordionContent,
@@ -59,8 +60,9 @@ function FaqsPage() {
     <div className="min-h-screen bg-ivory text-foreground font-sans">
       <Navbar />
 
-      <section className="relative pt-32 pb-16 bg-primary-deep text-white">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
+      <section className="relative pt-32 pb-16 bg-primary-deep text-white overflow-hidden">
+        <SectionHeroMedia sectionKey="faqs" alt="Gatepath Realtors FAQs" />
+        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-10">
           <span className="px-3 py-1 bg-accent/20 text-accent border border-accent/30 text-xs font-bold rounded-full uppercase tracking-wider">
             Support
           </span>

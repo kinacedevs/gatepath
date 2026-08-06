@@ -4,6 +4,7 @@ import { Search, Loader2 } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { SectionHeroMedia } from "@/components/SectionHeroMedia";
 import { PhaseCard } from "@/components/properties/PhaseCard";
 import { usePhases } from "@/lib/phases";
 
@@ -83,8 +84,9 @@ function PropertiesPage() {
       <Navbar />
 
       {/* HERO */}
-      <section className="bg-primary pt-32 pb-16 lg:pt-36 lg:pb-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-12">
+      <section className="relative bg-primary pt-32 pb-16 lg:pt-36 lg:pb-20 overflow-hidden">
+        <SectionHeroMedia sectionKey="properties" alt="Gatepath Realtors land phases" />
+        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-12">
           <div className="max-w-3xl">
             <div className="text-[13px] text-white/50">
               <a href="/" className="hover:text-accent">

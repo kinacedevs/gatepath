@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { SectionHeroMedia } from "@/components/SectionHeroMedia";
 import { MapPin, TrendingUp, Compass, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/locations")({
@@ -172,6 +173,7 @@ function LocationsPage() {
 
       {/* Hero Header */}
       <section className="relative pt-32 pb-20 bg-primary-deep text-white overflow-hidden">
+        <SectionHeroMedia sectionKey="locations" alt="Gatepath Realtors locations across Kenya" />
         <div className="mx-auto max-w-7xl px-6 lg:px-10 relative z-10">
           <div className="max-w-3xl space-y-4">
             <span className="px-3 py-1 bg-accent/20 text-accent border border-accent/30 text-xs font-bold rounded-full uppercase tracking-wider">

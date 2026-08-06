@@ -16,6 +16,7 @@ import { Footer } from "@/components/sections/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { supabase } from "@/lib/supabase";
 import { MediaSlide } from "@/components/MediaSlide";
+import { SectionHeroMedia } from "@/components/SectionHeroMedia";
 import type { BlogPost } from "@/lib/types";
 
 const STOCK_FALLBACK_IMAGE =
@@ -242,14 +243,8 @@ function BlogIndexPage() {
 
       {/* Header Banner */}
       <section className="bg-primary py-20 text-white relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-15 bg-cover bg-center"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80')",
-          }}
-        />
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 relative text-center">
+        <SectionHeroMedia sectionKey="blog" alt="Gatepath Realtors blog" />
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 relative z-10 text-center">
           <span className="eyebrow text-accent">Gatepath Insights</span>
           <h1 className="mt-4 font-serif text-[40px] md:text-[56px] font-bold leading-tight max-w-3xl mx-auto">
             Knowledge Hub for Kenyan Property Investors

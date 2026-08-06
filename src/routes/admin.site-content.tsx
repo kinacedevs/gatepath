@@ -47,6 +47,15 @@ function findBanner(banners: SiteBanner[], id: string) {
   return banners.find((b) => b.id === id)?.data ?? {};
 }
 
+const SECTION_BANNER_KEYS: { key: string; label: string }[] = [
+  { key: "properties", label: "Properties" },
+  { key: "locations", label: "Locations" },
+  { key: "gallery", label: "Gallery" },
+  { key: "downloads", label: "Downloads" },
+  { key: "faqs", label: "FAQs" },
+  { key: "blog", label: "Blog" },
+];
+
 function SiteContent() {
   const { adminRole } = useAdminSession();
   const canWrite = adminRole !== "agent";
@@ -66,6 +75,13 @@ function SiteContent() {
   const [ceoPhotoUrl, setCeoPhotoUrl] = useState("");
   const [brandingSaveLoading, setBrandingSaveLoading] = useState(false);
   const [brandingSaveMsg, setBrandingSaveMsg] = useState<string | null>(null);
+
+  // ── Section Banners form state (Phase 41) — one rotating photo/video
+  // carousel per module landing page, replacing what used to be a flat
+  // brand colour (or, on Blog, a hardcoded stock photo). ──
+  const [sectionHeroImages, setSectionHeroImages] = useState<Record<string, string[]>>({});
+  const [sectionBannersSaveLoading, setSectionBannersSaveLoading] = useState(false);
+  const [sectionBannersSaveMsg, setSectionBannersSaveMsg] = useState<string | null>(null);
 
   // ── Contact Info form state ──
   const [contactPhone, setContactPhone] = useState("");
@@ -113,10 +129,12 @@ function SiteContent() {
     setLoading(true);
     try {
       const [bannersRes, testimonialsRes, teamRes, faqsRes] = await Promise.all([
-        supabase
-          .from("site_banners")
-          .select("*")
-          .in("id", ["homepage_hero", "diaspora_hero", "custom_branding", "contact_info"]),
+        // Fetches every config row (small, known-bounded table) rather than
+        // an explicit id list — that list previously omitted "ceo_section"
+        // and would have needed extending again for every new section-hero
+        // row added here, silently leaving the admin form blank on reload
+        // (the underlying save always worked; only this read was stale).
+        supabase.from("site_banners").select("*"),
         supabase.from("testimonials").select("*").order("display_order"),
         supabase.from("team_profiles").select("*").order("display_order"),
         supabase.from("faqs").select("*").order("display_order"),
@@ -153,6 +171,12 @@ function SiteContent() {
       setContactFacebook(contactData.facebook_url ?? "");
       setContactInstagram(contactData.instagram_url ?? "");
       setContactTiktok(contactData.tiktok_url ?? "");
+      const nextSectionHeroes: Record<string, string[]> = {};
+      for (const { key } of SECTION_BANNER_KEYS) {
+        const data = findBanner(bannerRows, `${key}_hero`);
+        nextSectionHeroes[key] = Array.isArray(data.images) ? data.images : [];
+      }
+      setSectionHeroImages(nextSectionHeroes);
     } catch (err) {
       console.error("Error loading site content:", err);
     } finally {
@@ -236,6 +260,35 @@ function SiteContent() {
       setContactSaveMsg("Something went wrong: " + (err?.message || "Unknown error."));
     } finally {
       setContactSaveLoading(false);
+    }
+  };
+
+  const handleSaveSectionBanners = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canWrite) {
+      setSectionBannersSaveMsg("Access Denied: Agents cannot manage site content.");
+      return;
+    }
+    setSectionBannersSaveLoading(true);
+    setSectionBannersSaveMsg(null);
+    try {
+      const now = new Date().toISOString();
+      const rows = SECTION_BANNER_KEYS.map(({ key }) => ({
+        id: `${key}_hero`,
+        data: { images: (sectionHeroImages[key] ?? []).map((s) => s.trim()).filter(Boolean) },
+        updated_at: now,
+      }));
+      const { error } = await (supabase as any).from("site_banners").upsert(rows);
+      if (error) {
+        setSectionBannersSaveMsg("Error saving: " + error.message);
+      } else {
+        setSectionBannersSaveMsg("Section banners saved successfully!");
+        loadData();
+      }
+    } catch (err: any) {
+      setSectionBannersSaveMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setSectionBannersSaveLoading(false);
     }
   };
 
@@ -502,6 +555,7 @@ function SiteContent() {
       <Tabs defaultValue="branding" className="flex flex-col gap-4">
         <TabsList className="w-fit flex-wrap h-auto">
           <TabsTrigger value="branding">Branding & Banners</TabsTrigger>
+          <TabsTrigger value="section-banners">Section Banners</TabsTrigger>
           <TabsTrigger value="contact">Contact Info</TabsTrigger>
           <TabsTrigger value="testimonials">Testimonials</TabsTrigger>
           <TabsTrigger value="team">Team Profiles</TabsTrigger>
@@ -595,6 +649,63 @@ function SiteContent() {
                     <Check size={16} />
                   )}{" "}
                   Save Branding & Banners
+                </button>
+              </form>
+            )}
+          </SectionCard>
+        </TabsContent>
+
+        {/* ── SECTION BANNERS ── */}
+        <TabsContent value="section-banners">
+          <SectionCard title="Module Landing Page Banners">
+            <p className="text-[13px] text-on-surface-variant -mt-2 mb-4">
+              Add photos or a short video clip to any module's landing-page banner — it rotates as a
+              carousel automatically. Leave a section empty to keep its plain brand-colour
+              background.
+            </p>
+            {loading ? (
+              <Skeleton className="h-70 rounded-xl" />
+            ) : (
+              <form onSubmit={handleSaveSectionBanners} className="flex flex-col gap-5">
+                {SECTION_BANNER_KEYS.map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                      {label} Banner
+                    </label>
+                    <MediaDropzone
+                      value={sectionHeroImages[key] ?? []}
+                      onChange={(v) =>
+                        setSectionHeroImages((prev) => ({ ...prev, [key]: v as string[] }))
+                      }
+                      multi
+                      accept="image/*,video/*"
+                      category={`${key}-hero`}
+                    />
+                  </div>
+                ))}
+                {sectionBannersSaveMsg && (
+                  <div
+                    className={`px-3.5 py-2.5 rounded-lg text-[13px] ${
+                      sectionBannersSaveMsg.includes("Error") ||
+                      sectionBannersSaveMsg.includes("Denied")
+                        ? "bg-error/10 text-error"
+                        : "bg-success-container/15 text-on-success-container"
+                    }`}
+                  >
+                    {sectionBannersSaveMsg}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={sectionBannersSaveLoading}
+                  className="self-start px-6 py-3 bg-primary-container text-white rounded-lg font-semibold text-sm inline-flex items-center gap-2"
+                >
+                  {sectionBannersSaveLoading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Check size={16} />
+                  )}{" "}
+                  Save Section Banners
                 </button>
               </form>
             )}
