@@ -63,6 +63,7 @@ function SiteContent() {
   const [diasporaHeroImages, setDiasporaHeroImages] = useState<string[]>([]);
   const [brandingLogoUrl, setBrandingLogoUrl] = useState("");
   const [brandingCompanyName, setBrandingCompanyName] = useState("");
+  const [ceoPhotoUrl, setCeoPhotoUrl] = useState("");
   const [brandingSaveLoading, setBrandingSaveLoading] = useState(false);
   const [brandingSaveMsg, setBrandingSaveMsg] = useState<string | null>(null);
 
@@ -140,6 +141,8 @@ function SiteContent() {
       const brandingData = findBanner(bannerRows, "custom_branding");
       setBrandingLogoUrl(brandingData.logo_url ?? "");
       setBrandingCompanyName(brandingData.company_name ?? "");
+      const ceoData = findBanner(bannerRows, "ceo_section");
+      setCeoPhotoUrl(ceoData.photo_url ?? "");
       const contactData = findBanner(bannerRows, "contact_info");
       setContactPhone(contactData.phone ?? "");
       setContactWhatsapp(contactData.whatsapp_number ?? "");
@@ -182,6 +185,7 @@ function SiteContent() {
           data: { logo_url: brandingLogoUrl.trim(), company_name: brandingCompanyName.trim() },
           updated_at: now,
         },
+        { id: "ceo_section", data: { photo_url: ceoPhotoUrl.trim() }, updated_at: now },
       ]);
       if (error) {
         setBrandingSaveMsg("Error saving: " + error.message);
@@ -558,6 +562,16 @@ function SiteContent() {
                       className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                    CEO Photo (shown on the homepage Leadership section and About Us)
+                  </label>
+                  <MediaDropzone
+                    value={ceoPhotoUrl}
+                    onChange={(v) => setCeoPhotoUrl(v as string)}
+                    category="ceo"
+                  />
                 </div>
                 {brandingSaveMsg && (
                   <div

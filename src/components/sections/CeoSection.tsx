@@ -1,15 +1,36 @@
+import { useEffect, useState } from "react";
 import { Linkedin, Facebook, Instagram } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
+import { supabase } from "@/lib/supabase";
 import ceoJoe from "@/assets/ceo-joe-muchiri.jpg";
 
 export function CeoSection() {
+  const [ceoPhotoUrl, setCeoPhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCeoPhoto = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("site_banners")
+          .select("data")
+          .eq("id", "ceo_section")
+          .maybeSingle();
+        const url = data?.data?.photo_url;
+        if (typeof url === "string" && url.trim()) setCeoPhotoUrl(url.trim());
+      } catch {
+        /* bundled fallback photo already showing */
+      }
+    };
+    fetchCeoPhoto();
+  }, []);
+
   return (
     <section className="bg-primary py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <Reveal className="relative mx-auto lg:mx-0">
           <div style={{ position: "relative", width: "100%", maxWidth: 460 }}>
             <img
-              src={ceoJoe}
+              src={ceoPhotoUrl ?? ceoJoe}
               alt="Joe Muchiri — CEO & Managing Director, Gatepath Realtors"
               loading="lazy"
               style={{
