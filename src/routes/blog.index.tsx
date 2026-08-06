@@ -25,8 +25,13 @@ function featuredImage(post: BlogPost) {
   return post.featured_images?.[0] ?? post.featured_image ?? STOCK_FALLBACK_IMAGE;
 }
 
+type BlogSearch = { category?: string };
+
 export const Route = createFileRoute("/blog/")({
   component: BlogIndexPage,
+  validateSearch: (search: Record<string, unknown>): BlogSearch => {
+    return typeof search.category === "string" ? { category: search.category } : {};
+  },
   head: () => ({
     meta: [
       { title: "Real Estate Investment & Guides — Gatepath Realtors Blog" },
@@ -44,7 +49,14 @@ export const Route = createFileRoute("/blog/")({
   }),
 });
 
-const CATEGORIES = ["All Articles", "Investment", "Legal", "Buying Guide", "Company News"] as const;
+const CATEGORIES = [
+  "All Articles",
+  "Investment",
+  "Legal",
+  "Buying Guide",
+  "Company News",
+  "Project Update",
+] as const;
 
 // Default high-quality fallback seed posts for initial render & empty DB fallback
 const DEFAULT_POSTS: BlogPost[] = [
@@ -158,10 +170,15 @@ Investing in projects like **Baraka Plains Phase 6** or **Amani Gardens Phase 3*
 ];
 
 function BlogIndexPage() {
+  const { category } = Route.useSearch();
+  const initialCat = CATEGORIES.includes(category as (typeof CATEGORIES)[number])
+    ? (category as (typeof CATEGORIES)[number])
+    : "All Articles";
+
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [selectedCat, setSelectedCat] = useState<(typeof CATEGORIES)[number]>("All Articles");
+  const [selectedCat, setSelectedCat] = useState<(typeof CATEGORIES)[number]>(initialCat);
 
   useEffect(() => {
     const fetchPosts = async () => {

@@ -17,6 +17,9 @@ import { Route as PaymentRouteImport } from './routes/payment'
 import { Route as PartnerRouteImport } from './routes/partner'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as InquireRouteImport } from './routes/inquire'
+import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as FaqsRouteImport } from './routes/faqs'
+import { Route as DownloadsRouteImport } from './routes/downloads'
 import { Route as DiasporaRouteImport } from './routes/diaspora'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookVisitRouteImport } from './routes/book-visit'
@@ -97,6 +100,21 @@ const LocationsRoute = LocationsRouteImport.update({
 const InquireRoute = InquireRouteImport.update({
   id: '/inquire',
   path: '/inquire',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqsRoute = FaqsRouteImport.update({
+  id: '/faqs',
+  path: '/faqs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadsRoute = DownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiasporaRoute = DiasporaRouteImport.update({
@@ -313,6 +331,9 @@ export interface FileRoutesByFullPath {
   '/book-visit': typeof BookVisitRoute
   '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
+  '/downloads': typeof DownloadsRoute
+  '/faqs': typeof FaqsRoute
+  '/gallery': typeof GalleryRoute
   '/inquire': typeof InquireRoute
   '/locations': typeof LocationsRoute
   '/partner': typeof PartnerRoute
@@ -363,6 +384,9 @@ export interface FileRoutesByTo {
   '/book-visit': typeof BookVisitRoute
   '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
+  '/downloads': typeof DownloadsRoute
+  '/faqs': typeof FaqsRoute
+  '/gallery': typeof GalleryRoute
   '/inquire': typeof InquireRoute
   '/locations': typeof LocationsRoute
   '/partner': typeof PartnerRoute
@@ -415,6 +439,9 @@ export interface FileRoutesById {
   '/book-visit': typeof BookVisitRoute
   '/contact': typeof ContactRoute
   '/diaspora': typeof DiasporaRoute
+  '/downloads': typeof DownloadsRoute
+  '/faqs': typeof FaqsRoute
+  '/gallery': typeof GalleryRoute
   '/inquire': typeof InquireRoute
   '/locations': typeof LocationsRoute
   '/partner': typeof PartnerRoute
@@ -468,6 +495,9 @@ export interface FileRouteTypes {
     | '/book-visit'
     | '/contact'
     | '/diaspora'
+    | '/downloads'
+    | '/faqs'
+    | '/gallery'
     | '/inquire'
     | '/locations'
     | '/partner'
@@ -518,6 +548,9 @@ export interface FileRouteTypes {
     | '/book-visit'
     | '/contact'
     | '/diaspora'
+    | '/downloads'
+    | '/faqs'
+    | '/gallery'
     | '/inquire'
     | '/locations'
     | '/partner'
@@ -569,6 +602,9 @@ export interface FileRouteTypes {
     | '/book-visit'
     | '/contact'
     | '/diaspora'
+    | '/downloads'
+    | '/faqs'
+    | '/gallery'
     | '/inquire'
     | '/locations'
     | '/partner'
@@ -621,6 +657,9 @@ export interface RootRouteChildren {
   BookVisitRoute: typeof BookVisitRoute
   ContactRoute: typeof ContactRoute
   DiasporaRoute: typeof DiasporaRoute
+  DownloadsRoute: typeof DownloadsRoute
+  FaqsRoute: typeof FaqsRoute
+  GalleryRoute: typeof GalleryRoute
   InquireRoute: typeof InquireRoute
   LocationsRoute: typeof LocationsRoute
   PartnerRoute: typeof PartnerRoute
@@ -694,6 +733,27 @@ declare module '@tanstack/react-router' {
       path: '/inquire'
       fullPath: '/inquire'
       preLoaderRoute: typeof InquireRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faqs': {
+      id: '/faqs'
+      path: '/faqs'
+      fullPath: '/faqs'
+      preLoaderRoute: typeof FaqsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/downloads': {
+      id: '/downloads'
+      path: '/downloads'
+      fullPath: '/downloads'
+      preLoaderRoute: typeof DownloadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/diaspora': {
@@ -1067,6 +1127,9 @@ const rootRouteChildren: RootRouteChildren = {
   BookVisitRoute: BookVisitRoute,
   ContactRoute: ContactRoute,
   DiasporaRoute: DiasporaRoute,
+  DownloadsRoute: DownloadsRoute,
+  FaqsRoute: FaqsRoute,
+  GalleryRoute: GalleryRoute,
   InquireRoute: InquireRoute,
   LocationsRoute: LocationsRoute,
   PartnerRoute: PartnerRoute,

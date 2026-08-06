@@ -66,7 +66,7 @@ function CampaignsAndContent() {
   const [blogTitle, setBlogTitle] = useState("");
   const [blogSlug, setBlogSlug] = useState("");
   const [blogCategory, setBlogCategory] = useState<
-    "Investment" | "Legal" | "Buying Guide" | "Company News"
+    "Investment" | "Legal" | "Buying Guide" | "Company News" | "Project Update"
   >("Investment");
   const [blogSummary, setBlogSummary] = useState("");
   const [blogContent, setBlogContent] = useState("");
@@ -1112,6 +1112,7 @@ function CampaignsAndContent() {
                     <option value="Legal">Legal</option>
                     <option value="Buying Guide">Buying Guide</option>
                     <option value="Company News">Company News</option>
+                    <option value="Project Update">Project Update</option>
                   </select>
                 </div>
                 <div>
