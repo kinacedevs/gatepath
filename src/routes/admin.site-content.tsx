@@ -93,6 +93,7 @@ function SiteContent() {
   const [contactFacebook, setContactFacebook] = useState("");
   const [contactInstagram, setContactInstagram] = useState("");
   const [contactTiktok, setContactTiktok] = useState("");
+  const [contactYoutube, setContactYoutube] = useState("");
   const [contactSaveLoading, setContactSaveLoading] = useState(false);
   const [contactSaveMsg, setContactSaveMsg] = useState<string | null>(null);
 
@@ -171,6 +172,7 @@ function SiteContent() {
       setContactFacebook(contactData.facebook_url ?? "");
       setContactInstagram(contactData.instagram_url ?? "");
       setContactTiktok(contactData.tiktok_url ?? "");
+      setContactYoutube(contactData.youtube_url ?? "");
       const nextSectionHeroes: Record<string, string[]> = {};
       for (const { key } of SECTION_BANNER_KEYS) {
         const data = findBanner(bannerRows, `${key}_hero`);
@@ -246,6 +248,7 @@ function SiteContent() {
             facebook_url: contactFacebook.trim(),
             instagram_url: contactInstagram.trim(),
             tiktok_url: contactTiktok.trim(),
+            youtube_url: contactYoutube.trim(),
           },
           updated_at: new Date().toISOString(),
         },
@@ -829,6 +832,18 @@ function SiteContent() {
                       value={contactTiktok}
                       onChange={(e) => setContactTiktok(e.target.value)}
                       placeholder="https://tiktok.com/@..."
+                      className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                      YouTube URL
+                    </label>
+                    <input
+                      type="url"
+                      value={contactYoutube}
+                      onChange={(e) => setContactYoutube(e.target.value)}
+                      placeholder="https://youtube.com/@..."
                       className="w-full p-2.5 border border-outline-variant/40 rounded-lg text-[13px] outline-none"
                     />
                   </div>

@@ -11,6 +11,7 @@ export interface ContactInfo {
   facebookUrl: string;
   instagramUrl: string;
   tiktokUrl: string;
+  youtubeUrl: string;
 }
 
 const DEFAULT_CONTACT: ContactInfo = {
@@ -23,6 +24,7 @@ const DEFAULT_CONTACT: ContactInfo = {
   facebookUrl: "#",
   instagramUrl: "#",
   tiktokUrl: "#",
+  youtubeUrl: "#",
 };
 
 // Shared by Navbar, Footer, and WhatsAppButton so the `site_banners` row
@@ -53,6 +55,7 @@ export function useContactInfo(): ContactInfo {
             facebookUrl: d.facebook_url || DEFAULT_CONTACT.facebookUrl,
             instagramUrl: d.instagram_url || DEFAULT_CONTACT.instagramUrl,
             tiktokUrl: d.tiktok_url || DEFAULT_CONTACT.tiktokUrl,
+            youtubeUrl: d.youtube_url || DEFAULT_CONTACT.youtubeUrl,
           });
         }
       } catch {

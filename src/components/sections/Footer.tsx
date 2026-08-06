@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Facebook, Instagram, Music2, Phone, Mail, Building2, Send } from "lucide-react";
+import { Facebook, Instagram, Music2, Youtube, Phone, Mail, Building2, Send } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/lib/supabase";
 import { useContactInfo } from "@/hooks/useContactInfo";
@@ -93,6 +93,7 @@ export function Footer() {
               { Icon: Facebook, href: contact.facebookUrl },
               { Icon: Instagram, href: contact.instagramUrl },
               { Icon: Music2, href: contact.tiktokUrl },
+              { Icon: Youtube, href: contact.youtubeUrl },
             ].map(({ Icon, href }, i) => (
               <a
                 key={i}

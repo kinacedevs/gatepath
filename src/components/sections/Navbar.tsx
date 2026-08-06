@@ -7,14 +7,15 @@ import {
   Heart,
   Briefcase,
   Phone,
-  MessageCircle,
   Facebook,
   Instagram,
   Music2,
+  Youtube,
   Mail,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useContactInfo } from "@/hooks/useContactInfo";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import logoIcon from "@/assets/logo-icon.png";
 
 type NavLink = { label: string; href?: string; to?: string };
@@ -92,7 +93,7 @@ function SimpleNavDropdown({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 text-[15px] font-medium tracking-wide transition-colors ${
+        className={`flex items-center gap-1.5 whitespace-nowrap text-[15px] font-medium tracking-wide transition-colors ${
           solid ? "text-white hover:text-accent" : "text-foreground hover:text-primary"
         } ${open ? "text-accent" : ""}`}
         aria-haspopup="true"
@@ -201,6 +202,7 @@ function TopBar({
   facebookUrl,
   instagramUrl,
   tiktokUrl,
+  youtubeUrl,
 }: {
   phone: string;
   email: string;
@@ -208,11 +210,13 @@ function TopBar({
   facebookUrl: string;
   instagramUrl: string;
   tiktokUrl: string;
+  youtubeUrl: string;
 }) {
   const socials = [
     { Icon: Facebook, href: facebookUrl, label: "Facebook" },
     { Icon: Instagram, href: instagramUrl, label: "Instagram" },
     { Icon: Music2, href: tiktokUrl, label: "TikTok" },
+    { Icon: Youtube, href: youtubeUrl, label: "YouTube" },
   ].filter((s) => s.href && s.href !== "#");
 
   return (
@@ -238,7 +242,7 @@ function TopBar({
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 hover:text-accent transition-colors font-semibold"
         >
-          <MessageCircle size={13} /> Chat With Us
+          <WhatsAppIcon size={13} /> Chat With Us
         </a>
         {socials.length > 0 && (
           <div className="flex items-center gap-3 pl-4 border-l border-white/20">
@@ -292,7 +296,7 @@ export function Navbar() {
   const solid = scrolled || !isHome;
 
   const linkCls = (active: boolean) =>
-    `relative text-[15px] font-medium tracking-wide transition-colors group ${
+    `relative whitespace-nowrap text-[15px] font-medium tracking-wide transition-colors group ${
       solid ? "text-white hover:text-accent" : "text-foreground hover:text-primary"
     } ${active ? "text-accent" : ""}`;
 
@@ -305,6 +309,7 @@ export function Navbar() {
         facebookUrl={contact.facebookUrl}
         instagramUrl={contact.instagramUrl}
         tiktokUrl={contact.tiktokUrl}
+        youtubeUrl={contact.youtubeUrl}
       />
       <div
         className={`transition-all duration-400 ${
@@ -314,37 +319,33 @@ export function Navbar() {
         <div className="mx-auto max-w-7xl px-6 lg:px-10 h-[100px] flex items-center justify-between">
           <Link
             to="/"
-            className="flex items-center gap-3 min-w-0 mr-4"
+            className="flex items-center gap-3 shrink-0 mr-4"
             aria-label="Gatepath Realtors — Home"
           >
             <img
               src={logoIcon}
               alt="Gatepath Realtors"
-              className="shrink-0 h-[64px] w-[64px] sm:h-[72px] sm:w-[72px] lg:h-[80px] lg:w-[80px]"
+              className="shrink-0 h-[56px] w-[56px] sm:h-[64px] sm:w-[64px] lg:h-[72px] lg:w-[72px]"
               style={{
                 objectFit: "contain",
                 display: "block",
                 filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.28))",
               }}
             />
-            <span className="flex flex-col leading-tight min-w-0">
+            <span className="hidden sm:flex flex-col leading-tight whitespace-nowrap">
               <span
-                className={`font-serif font-bold tracking-[0.04em] truncate ${solid ? "text-white" : "text-primary"}`}
-                style={{ fontSize: "clamp(14px, 4.2vw, 23px)" }}
+                className={`font-serif font-bold tracking-[0.03em] text-[17px] lg:text-[20px] ${solid ? "text-white" : "text-primary"}`}
               >
                 GATEPATH REALTORS
               </span>
-              <span
-                className="font-serif italic tracking-[0.02em] text-accent mt-0.5 truncate"
-                style={{ fontSize: "clamp(10px, 2.6vw, 13px)" }}
-              >
+              <span className="font-serif italic tracking-[0.02em] text-accent mt-0.5 text-[11px] lg:text-[12px]">
                 Your Interest is Our Priority
               </span>
             </span>
           </Link>
 
           {/* DESKTOP NAV */}
-          <nav className="hidden lg:flex items-center gap-5">
+          <nav className="hidden xl:flex items-center gap-4">
             {mainLinks.map((l) =>
               l.to ? (
                 <Link
@@ -380,7 +381,7 @@ export function Navbar() {
             <div ref={portalsRef} className="relative">
               <button
                 onClick={() => setPortalsOpen((v) => !v)}
-                className={`flex items-center gap-1.5 text-[15px] font-medium tracking-wide transition-colors ${
+                className={`flex items-center gap-1.5 whitespace-nowrap text-[15px] font-medium tracking-wide transition-colors ${
                   solid ? "text-white hover:text-accent" : "text-foreground hover:text-primary"
                 } ${portalsOpen ? "text-accent" : ""}`}
                 aria-haspopup="true"
@@ -468,13 +469,13 @@ export function Navbar() {
 
           <Link
             to="/properties"
-            className="hidden lg:inline-flex items-center justify-center bg-gradient-to-r from-accent to-accent-dark text-white px-6 py-3 text-sm font-bold rounded-lg hover:from-accent-dark hover:to-accent hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-[0_4px_12px_rgba(232,160,32,0.25)]"
+            className="hidden xl:inline-flex items-center justify-center bg-gradient-to-r from-accent to-accent-dark text-white px-6 py-3 text-sm font-bold rounded-lg hover:from-accent-dark hover:to-accent hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 shadow-[0_4px_12px_rgba(232,160,32,0.25)]"
           >
             Book Site Visit
           </Link>
 
           <button
-            className={`lg:hidden p-2 shrink-0 ${solid ? "text-white" : "text-primary"}`}
+            className={`xl:hidden p-2 shrink-0 ${solid ? "text-white" : "text-primary"}`}
             onClick={() => setOpen(true)}
             aria-label="Open menu"
           >
@@ -485,7 +486,7 @@ export function Navbar() {
 
       {/* MOBILE DRAWER BACKDROP */}
       <div
-        className={`lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ${
+        className={`xl:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setOpen(false)}
@@ -493,7 +494,7 @@ export function Navbar() {
 
       {/* MOBILE DRAWER CONTAINER */}
       <div
-        className={`lg:hidden fixed top-0 right-0 bottom-0 w-[300px] z-50 bg-primary shadow-2xl flex flex-col transition-transform duration-300 ${
+        className={`xl:hidden fixed top-0 right-0 bottom-0 w-[300px] z-50 bg-primary shadow-2xl flex flex-col transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -528,7 +529,7 @@ export function Navbar() {
             rel="noopener noreferrer"
             className="flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-bold px-3 py-2.5 rounded-full bg-[#25D366] text-white hover:bg-[#1EBE57] transition-colors"
           >
-            <MessageCircle size={14} /> Chat
+            <WhatsAppIcon size={14} /> Chat
           </a>
         </div>
 
