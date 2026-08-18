@@ -218,8 +218,6 @@ export type Agreement = {
   inquiry_id: string | null;
   ceo_signed: boolean;
   ceo_signed_at: string | null;
-  pdf_receipt_url: string | null;
-  pdf_agreement_url: string | null;
   email_sent: boolean;
   sms_sent: boolean;
   created_at: string;
