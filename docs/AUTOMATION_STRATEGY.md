@@ -379,6 +379,24 @@ The highest-risk item (2a, the real webhook) is placed early rather than last **
 
 ---
 
+## 4.7 Architectural Decisions Resolved
+
+The 4 items carried forward from the prior planning pass (`AUTOMATION_PLAN.md` §6) are decided below, plus the 14-file verify-caller consolidation this document's own Finding #8 flagged. Reasoning given for each — never a real trade-off decided silently.
+
+**Decision 1 — Agent scoring: kept live, not stored.** Phase 12's own reasoning ("nothing existed to keep a stored score fresh") is no longer the constraint it was — Module 3 supplies a real scheduler now. But none of the 12 backlog workflows (§5.2) actually need a *stored* score: the live `useMemo` computation in `admin.leads.tsx` is already fast (over data the screen already fetched, not a separate query), and every workflow that touches leads reads live signals via `/api/v1/leads`, not a cached score. Storing a nightly snapshot would only pay off for a not-yet-requested feature (historical trend charts) — building that speculatively contradicts this document's own evidence-first discipline. Revisit if a specific future workflow genuinely needs point-in-time history.
+
+**Decision 2 — n8n's provider credentials: routed through Gatepath, implemented not just decided.** New `POST /api/v1/notify` (`src/lib/apiRoutes.ts`), scope `notify:send`, wraps `sendResendEmail`/`sendAfricaTalkingSms` and the existing `message_templates` fallback system. n8n never holds a Resend or Africa's Talking key of its own — every automation-triggered send is one HTTP call here, keeping template rendering and provider credentials in the one place already responsible for them. `admin.integrations.tsx`'s scope list and API reference block both updated to match.
+
+**Decision 3 — Conveyancing-stage transition timestamps: stays deferred.** Checked against the actual backlog: none of the 12 workflows key off a *specific stage transition* — they key off the real underlying table events that already have their own timestamps (`inquiries.created_at`, `bookings.visit_date`, `offers.created_at`, `agreements.ceo_signed_at`, `interaction_log.occurred_at`). `resolveDealStage()`'s 13-stage view is a derived read for humans, not something any planned automation triggers on directly. If a future workflow genuinely needs "notify when a deal enters stage N," it decomposes into the real-table event that already defines that boundary — no new table required.
+
+**Decision 4 — Database Webhook secret: static shared header stays, not upgraded.** The one money-touching webhook (Phase 2a below) already gets real HMAC-SHA512 verification per Paystack's own spec — non-negotiable, already shipped. Every Database Webhook this plan actually needs (WF-01/04/05/06/07) fires on lower-stakes events where the payload is never trusted to perform a write directly — every real state change still goes through the reviewed `/api/v1/*` layer with its own auth. A stronger HMAC wrapper between Postgres and n8n is real, buildable work for a threat model already mitigated elsewhere — not worth building ahead of an actual workflow that needs it.
+
+**Decision 5 (new, closes Finding #8) — the 14 duplicated verify-caller functions: consolidated now.** New `src/lib/serverAuth.ts` replaces 14 independent copies (confirmed, by reading every one before touching any of them, to reduce to exactly 3 real authorization levels — staff / manager-or-CEO / CEO-only) with one shared implementation, behavior-preserving by construction — every file's own original rejection message kept via a thin 2-3 line wrapper, zero call-site changes needed. Doing this now, before Module 3 adds more server functions that would otherwise become a 15th+ duplicate, is the right timing. Also closes Finding #4's server-side half: `admin_users.last_active_at` (migration `0034`) now backs real, server-enforced idle-session timeout in the one shared place every server function's caller-check runs through — not just the client-side timer in `admin.tsx`, which stays as a UX-layer nicety.
+
+**What's now actually shipped toward WF-01 (speed-to-lead)**: yes, Phase 1 is a go — and the Gatepath-side prerequisites are real, not just planned. `automation_log` (migration `0035`), the real Paystack webhook (Phase 2a, closing the single highest-priority open security gap this whole engagement found), the 14-file auth consolidation with real idle-timeout enforcement, and `POST /api/v1/notify` are all shipped this pass. What remains is building the actual n8n workflow, which needs a running n8n instance — infrastructure outside anything this codebase or these tools can provision. Once that exists, WF-01 as specified in §5.2 is buildable against what's shipped here with no further Gatepath-side prerequisite.
+
+---
+
 # PHASE 5 — Executive Summary & Backlog
 
 ## 5.1 Executive Summary
@@ -413,21 +431,21 @@ Each ticket is precise enough to build unambiguously later — none are built no
 - Dependencies: `automation_log` table exists; one scoped `api_keys` row.
 - Phase: 1.
 
-**WF-02 — Real Paystack Webhook** *(security fix, ships as Gatepath code, not an n8n workflow — listed for roadmap completeness)*
-- Trigger: Paystack `charge.success` event.
-- Outcome: verified payment recorded via the existing `recordVerifiedPayment`, closing the abandoned-tab gap.
-- Systems touched: new `server.ts` route, `paymentActions.ts` (reused, not modified).
-- Value/Risk/Effort: High / High / Medium.
-- Dependencies: none — this is the dependency for WF-03.
-- Phase: 2a. **NOT to be built until reviewed and shipped as its own, separately-committed security change.**
+**WF-02 — Real Paystack Webhook — SHIPPED** *(security fix, Gatepath code, not an n8n workflow)*
+- Trigger: Paystack `charge.success` event, `POST /webhooks/paystack` (`src/server.ts`, dispatched to `src/lib/paystackWebhook.ts`).
+- Outcome: verified payment recorded via the exact existing `recordVerifiedPayment` (now exported, reused not duplicated), closing the abandoned-tab gap. Real `x-paystack-signature` HMAC-SHA512 verification over the raw request body, constant-time compared. `payment.tsx`/`portal.tsx`'s Paystack charge metadata now carries `inquiry_id`/`period_months` so the webhook can resolve which inquiry a bare `reference` belongs to without any client involvement — the one piece that would have silently made the webhook unable to help the abandoned-tab case it exists for.
+- Systems touched: `src/server.ts` (new route), `src/lib/paystackWebhook.ts` (new), `src/lib/paymentActions.ts` (one export added, logic unchanged), `payment.tsx`/`portal.tsx` (metadata only).
+- Migration: `0035_automation_log.sql` (every delivery logged, success/failed/skipped_duplicate).
+- Value/Risk/Effort: High / High / Medium — **done**.
+- Phase: 2a.
 
-**WF-03 — Payment Reconciliation Orchestration**
-- Trigger: Database Webhook on `payments` INSERT (fires only after WF-02 or the existing client-verify path writes a row).
+**WF-03 — Payment Reconciliation Orchestration — Gatepath side unblocked, n8n workflow not built**
+- Trigger: Database Webhook on `payments` INSERT (fires only after WF-02 or the existing client-verify path writes a row — both now real).
 - Outcome: receipt send; CEO alert if amount exceeds a configurable threshold or payment lands outside business hours.
-- Systems touched: `payments`, notification functions, `automation_log`.
+- Systems touched: `payments`, `POST /api/v1/notify` (now real — see Decision 2, §4.7), `automation_log`.
 - Value/Risk/Effort: High / Medium / Low.
-- Dependencies: WF-02 shipped and verified live.
-- Phase: 2b. **NOT to be built until WF-02 is live and confirmed correct.**
+- Dependencies: WF-02 — **shipped**. The n8n workflow itself still needs an actual n8n instance to build against.
+- Phase: 2b.
 
 **WF-04 — Overdue Installment Auto-Reminder**
 - Trigger: scheduled scan (n8n cron — this system's first scheduler).
@@ -505,13 +523,13 @@ Each ticket is precise enough to build unambiguously later — none are built no
 
 ## Findings While Auditing — status
 
-All 7 original findings addressed this pass, plus one new one (#8) surfaced while fixing #4. Each fix shipped as its own reviewable commit on `feature/automation-n8n`, per `CLAUDE.md`'s "commit security changes separately" rule.
+All 7 original findings addressed, plus finding #8 (surfaced while first fixing #4) now also resolved in a follow-up pass, along with the architectural decisions in §4.7 and the real Paystack webhook (WF-02). Each fix shipped as its own reviewable commit on `feature/automation-n8n`, per `CLAUDE.md`'s "commit security changes separately" rule.
 
 1. **`src/routes/privacy.tsx:443`** publicly claimed *"Admin access requires multi-factor authentication (MFA)."* Confirmed false — no MFA/TOTP implementation exists anywhere in this codebase. **FIXED**: reworded to state what's actually true (role-gated staff access + internal audit logging), not what's aspirational. Real MFA enrollment (Supabase Auth supports native TOTP via `supabase.auth.mfa.*`) remains a separate, larger, explicitly-not-bundled follow-up — building a full enrollment/challenge/recovery-code flow wasn't smuggled into a copy fix.
 2. **`zod` was a declared dependency, imported in zero files.** **PARTIALLY FIXED, scoped deliberately**: wired into `src/lib/apiRoutes.ts`'s `POST /api/v1/leads` (the one write endpoint reachable by a third party with just an API key — the most exposed surface, and directly relevant since n8n becomes a new caller here) and `src/lib/rateLimiter.ts`'s login pre-check. **Not** retrofitted across all ~48 server functions in this pass — a blanket rewrite of that much already-reviewed code in one sweep is disproportionate risk for this pass's scope, consistent with this document's own §6 recommendation. Flagged as a real, larger follow-up, not silently left half-done without saying so.
 3. **No rate limiting existed anywhere** (admin login, portal OTP request, `/api/v1/*`). **FIXED**: new `rate_limit_attempts` table (migration `0033`) + a shared fixed-window limiter (`src/lib/rateLimiter.ts`), backed by Supabase (this codebase's own established server-persistence mechanism) rather than a Cloudflare Workers binding, since server functions here have a verified path to Supabase but not to raw Workers bindings. Wired into: portal OTP request (3/15min, keyed by email), admin login (5/15min pre-flight gate, keyed by email+IP — **disclosed limitation**: login talks directly from the browser to Supabase's own Auth API, so this gates the login *form*, not the underlying Supabase call itself; a caller that skips the UI bypasses it, same as any client-side gate), `/api/v1/*` (60/min, keyed by API key).
-4. **No app-level idle or absolute session timeout on admin sessions.** **PARTIALLY FIXED**: a 30-minute client-side idle timer now signs an inactive admin out (`admin.tsx`). **Disclosed limitation, not overstated**: OWASP's own guidance is explicit that idle timeouts must be server-enforced, not client-trusted — this is real, but it's a UX-layer safety net, not a hard server-side cutoff of an otherwise-valid session. True server enforcement is blocked on finding #8 below. Absolute timeout remains a Supabase Dashboard-level JWT-expiry setting, unverifiable/unsettable from this codebase.
+4. **No app-level idle or absolute session timeout on admin sessions.** **FIXED (idle half; absolute stays a Dashboard setting)**: the 30-minute client-side idle timer (`admin.tsx`) stays as a UX-layer nicety, but real, server-enforced idle-session timeout now exists too — `admin_users.last_active_at` (migration `0034`), checked and refreshed inside `src/lib/serverAuth.ts`'s shared `resolveCaller()`, which every one of the 14 consolidated verify-caller functions now runs through (see #8). A caller idle past 30 minutes is rejected server-side on their very next authenticated call, not just by a client-side timer that could be disabled. Absolute timeout remains a Supabase Dashboard-level JWT-expiry setting, unverifiable/unsettable from this codebase.
 5. **Money storage discrepancy** (`CLAUDE.md` claimed integer minor units; the real implementation is major-unit decimal KES everywhere). **FIXED**: `CLAUDE.md` and `docs/DATABASE_SCHEMA.md` both corrected to state reality. Converting live financial columns to match the old rule would have been high-risk churn on working, correct payment logic for zero functional gain — the documentation was wrong, not the schema.
 6. **`agreements.pdf_agreement_url`/`pdf_receipt_url` dead columns.** **FIXED**: migration `0032` drops both (confirmed zero remaining code references beyond the TS type declarations, which are also removed). Documents remain live-rendered HTML, print-to-PDF only — no stored artifact was ever generated, so nothing is lost.
-7. **No scheduled job / cron / trigger mechanism exists anywhere in this stack.** **Architectural decision made, not built speculatively** — see the new §4.5.1 below.
-8. **NEW, surfaced while fixing #4**: the "verify the caller" pattern (`verifyManagerCaller`/`verifyStaffCaller`/`verifyCeoCaller`/etc.) is independently duplicated in **at least 14 separate files** (`apiKeyActions.ts`, `buyerPreferenceActions.ts`, `commissionActions.ts`, `customFieldActions.ts`, `documentVaultActions.ts`, `goalActions.ts`, `inquiryActions.ts`, `interactionLogActions.ts`, `inventoryActions.ts`, `mediaUploadActions.ts`, `messageTemplateActions.ts`, `pipelineLabelsActions.ts`, `taskActions.ts`, `testimonialActions.ts` — confirmed via grep, not a shared/exported helper anywhere). This is why finding #4's server-side idle-timeout enforcement can't be added in one place — it would need touching 14 independent implementations of the same security-critical check, or consolidating them into one shared helper first (itself a real, separately-reviewable refactor of already-shipped, working code, not something to fold into this pass). **Not fixed this pass** — flagged as real technical debt with a concrete blast radius (14 files), not a vague "could be cleaner" note.
+7. **No scheduled job / cron / trigger mechanism exists anywhere in this stack.** **Architectural decision made** — §4.5.1: n8n's own Schedule Trigger is the sole mechanism going forward, Cloudflare Cron Triggers stay reserved-unused, `pg_cron` explicitly rejected. Nothing to build in Gatepath's own code for this decision itself — it governs how future workflows (WF-04/05/09) get triggered once built in n8n.
+8. **The "verify the caller" pattern was independently duplicated in 14 separate files.** **FIXED**: new `src/lib/serverAuth.ts` (§4.7 Decision 5) consolidates all 14 into 3 shared functions (`verifyStaffCaller`/`verifyManagerCaller`/`verifyCeoCaller`), each original file's exact rejection message preserved via a thin wrapper, zero call-site changes. Confirmed via grep that no local `verify*Caller` definitions remain outside these 14 intentional 2-3 line wrappers plus the 3 shared implementations. This also enabled #4's real server-side idle-timeout fix, done in the same change.
