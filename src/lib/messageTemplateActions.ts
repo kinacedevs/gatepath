@@ -15,7 +15,7 @@
  * gate used for Commission/Goals/API keys.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { getServiceClient, getAnonClient } from "./supabaseAdmin";
+import { verifyManagerCaller as verifyNotAgentCallerShared } from "./serverAuth";
 import { logAuditEvent } from "./auditLog";
 
 /** Replaces {{key}} placeholders with the given values; leaves unknown ones as-is. */
@@ -45,28 +45,13 @@ export async function getTemplateOrDefault(
   return defaults;
 }
 
-async function verifyWriteCaller(callerAccessToken: string) {
-  const anonClient = getAnonClient();
-  const { data: callerData, error: callerErr } = await anonClient.auth.getUser(callerAccessToken);
-  if (callerErr || !callerData.user?.email) {
-    return { ok: false as const, error: "Not authenticated." };
-  }
-
-  const serviceClient = getServiceClient();
-  const { data: callerRow } = await serviceClient
-    .from("admin_users")
-    .select("id, full_name, email, role")
-    .eq("email", callerData.user.email.toLowerCase())
-    .maybeSingle();
-
-  if (!callerRow) {
-    return { ok: false as const, error: "Not recognised as Gatepath staff." };
-  }
-  if (callerRow.role === "agent") {
-    return { ok: false as const, error: "Agents cannot manage message templates." };
-  }
-
-  return { ok: true as const, serviceClient, caller: callerRow };
+// Module 3 audit finding #8: this file's own verify-caller implementation
+// ("not agent" — reject role === 'agent') is consolidated into
+// src/lib/serverAuth.ts's verifyManagerCaller, which is the exact same
+// check the other way around (with only 3 roles, "role !== 'ceo' &&
+// role !== 'manager'" and "role === 'agent'" are the identical boundary).
+function verifyWriteCaller(callerAccessToken: string) {
+  return verifyNotAgentCallerShared(callerAccessToken, "Agents cannot manage message templates.");
 }
 
 export const saveMessageTemplateFn = createServerFn({ method: "POST" })

@@ -9,30 +9,17 @@
  * portalActions.ts). src/lib/apiRoutes.ts is the consumer of these keys.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { getServiceClient, getAnonClient } from "./supabaseAdmin";
+import { verifyManagerCaller as verifyManagerCallerShared } from "./serverAuth";
 
-async function verifyManagerCaller(callerAccessToken: string) {
-  const anonClient = getAnonClient();
-  const { data: callerData, error: callerErr } = await anonClient.auth.getUser(callerAccessToken);
-  if (callerErr || !callerData.user?.email) {
-    return { ok: false as const, error: "Not authenticated." };
-  }
-
-  const serviceClient = getServiceClient();
-  const { data: callerRow } = await serviceClient
-    .from("admin_users")
-    .select("id, full_name, email, role")
-    .eq("email", callerData.user.email.toLowerCase())
-    .maybeSingle();
-
-  if (!callerRow) {
-    return { ok: false as const, error: "Not recognised as Gatepath staff." };
-  }
-  if (callerRow.role !== "ceo" && callerRow.role !== "manager") {
-    return { ok: false as const, error: "Only the CEO or a manager can manage API keys." };
-  }
-
-  return { ok: true as const, serviceClient, caller: callerRow };
+// Module 3 audit finding #8: this file's own verify-caller implementation
+// is consolidated into src/lib/serverAuth.ts — kept as a thin local
+// wrapper so every call site below (and this file's own error message)
+// is unchanged.
+function verifyManagerCaller(callerAccessToken: string) {
+  return verifyManagerCallerShared(
+    callerAccessToken,
+    "Only the CEO or a manager can manage API keys.",
+  );
 }
 
 function generateRawKey(): string {

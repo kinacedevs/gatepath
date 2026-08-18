@@ -19,31 +19,14 @@
  * not financial/credential data.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { getServiceClient, getAnonClient } from "./supabaseAdmin";
+import { verifyManagerCaller as verifyNotAgentCallerShared } from "./serverAuth";
 import { logAuditEvent } from "./auditLog";
 
-async function verifyNotAgentCaller(callerAccessToken: string) {
-  const anonClient = getAnonClient();
-  const { data: callerData, error: callerErr } = await anonClient.auth.getUser(callerAccessToken);
-  if (callerErr || !callerData.user?.email) {
-    return { ok: false as const, error: "Not authenticated." };
-  }
-
-  const serviceClient = getServiceClient();
-  const { data: callerRow } = await serviceClient
-    .from("admin_users")
-    .select("id, full_name, email, role")
-    .eq("email", callerData.user.email.toLowerCase())
-    .maybeSingle();
-
-  if (!callerRow) {
-    return { ok: false as const, error: "Not recognised as Gatepath staff." };
-  }
-  if (callerRow.role === "agent") {
-    return { ok: false as const, error: "Agents cannot manage the pipeline." };
-  }
-
-  return { ok: true as const, serviceClient, caller: callerRow };
+// Module 3 audit finding #8: this file's own verify-caller implementation
+// ("not agent") is consolidated into src/lib/serverAuth.ts's
+// verifyManagerCaller — the identical check the other way around.
+function verifyNotAgentCaller(callerAccessToken: string) {
+  return verifyNotAgentCallerShared(callerAccessToken, "Agents cannot manage the pipeline.");
 }
 
 export const DEFAULT_PIPELINE_LABELS: Record<

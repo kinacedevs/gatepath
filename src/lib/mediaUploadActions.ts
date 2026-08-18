@@ -13,30 +13,11 @@
  * touch.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { getServiceClient, getAnonClient } from "./supabaseAdmin";
+// Module 3 audit finding #8: this file's own verify-caller implementation
+// is consolidated into src/lib/serverAuth.ts.
+import { verifyStaffCaller } from "./serverAuth";
 
 const BUCKET = "site-assets";
-
-async function verifyStaffCaller(callerAccessToken: string) {
-  const anonClient = getAnonClient();
-  const { data: callerData, error: callerErr } = await anonClient.auth.getUser(callerAccessToken);
-  if (callerErr || !callerData.user?.email) {
-    return { ok: false as const, error: "Not authenticated." };
-  }
-
-  const serviceClient = getServiceClient();
-  const { data: callerRow } = await serviceClient
-    .from("admin_users")
-    .select("id, full_name, email, role")
-    .eq("email", callerData.user.email.toLowerCase())
-    .maybeSingle();
-
-  if (!callerRow) {
-    return { ok: false as const, error: "Not recognised as Gatepath staff." };
-  }
-
-  return { ok: true as const, serviceClient, caller: callerRow };
-}
 
 export const requestMediaUploadUrlFn = createServerFn({ method: "POST" })
   .validator((d: { callerAccessToken: string; category: string; fileName: string }) => d)

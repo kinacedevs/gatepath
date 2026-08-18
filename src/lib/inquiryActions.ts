@@ -15,30 +15,15 @@
  * `adminRole !== "ceo"` gate in admin.inquiries.tsx.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { getServiceClient, getAnonClient } from "./supabaseAdmin";
+import { verifyCeoCaller as verifyCeoCallerShared } from "./serverAuth";
 
-async function verifyCeoCaller(callerAccessToken: string) {
-  const anonClient = getAnonClient();
-  const { data: callerData, error: callerErr } = await anonClient.auth.getUser(callerAccessToken);
-  if (callerErr || !callerData.user?.email) {
-    return { ok: false as const, error: "Not authenticated." };
-  }
-
-  const serviceClient = getServiceClient();
-  const { data: callerRow } = await serviceClient
-    .from("admin_users")
-    .select("id, role")
-    .eq("email", callerData.user.email.toLowerCase())
-    .maybeSingle();
-
-  if (!callerRow) {
-    return { ok: false as const, error: "Not recognised as Gatepath staff." };
-  }
-  if (callerRow.role !== "ceo") {
-    return { ok: false as const, error: "Only the CEO can sign legal documents." };
-  }
-
-  return { ok: true as const, serviceClient };
+// Module 3 audit finding #8: this file's own verify-caller implementation
+// is consolidated into src/lib/serverAuth.ts — same strict role === 'ceo'
+// check, same rejection message, kept as a thin wrapper so the two
+// handlers below (which only ever read .ok/.error/.serviceClient, never
+// .caller) are unchanged.
+function verifyCeoCaller(callerAccessToken: string) {
+  return verifyCeoCallerShared(callerAccessToken, "Only the CEO can sign legal documents.");
 }
 
 export const signAgreementFn = createServerFn({ method: "POST" })
