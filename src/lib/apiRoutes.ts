@@ -18,7 +18,9 @@
  * real inquiries schema requires — no fabricated placeholder values for
  * what a given external source doesn't collect.
  */
+import { z } from "zod";
 import { getServiceClient } from "./supabaseAdmin";
+import { checkAndRecordRateLimit } from "./rateLimiter";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -117,6 +119,23 @@ async function handleLeadDetail(id: string): Promise<Response> {
   return json({ data });
 }
 
+// Module 3 audit finding: this is the one write endpoint reachable by a
+// third party with just an API key, and it had no real runtime schema
+// validation — the TS-typed .validator() pattern used elsewhere in this
+// codebase is type-only, erased at build time. Real, first zod usage in
+// this codebase (zod has been a declared dependency, imported nowhere,
+// since it was added). Every field kept optional/loose where the DB
+// column itself is nullable, matching the real schema rather than
+// inventing stricter rules than the table enforces.
+const leadCreateSchema = z.object({
+  client_full_name: z.string().trim().min(1).max(200),
+  client_email: z.string().trim().toLowerCase().email().max(320),
+  client_phone: z.string().trim().min(6).max(30),
+  client_id_passport: z.string().trim().min(1).max(50),
+  heard_from: z.string().trim().max(100).optional(),
+  questions: z.string().trim().max(2000).optional(),
+});
+
 /**
  * fieldMapping remaps external-field-name -> our-field-name BEFORE
  * validation, so a source whose webhook payload uses different keys
@@ -142,22 +161,23 @@ async function handleLeadCreate(
     }
   }
 
-  const required = ["client_full_name", "client_email", "client_phone", "client_id_passport"];
-  const missing = required.filter((field) => !body[field] || typeof body[field] !== "string");
-  if (missing.length > 0) {
-    return json({ error: `Missing required field(s): ${missing.join(", ")}` }, 400);
+  const parsed = leadCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+    return json({ error: `Invalid request body: ${issues.join("; ")}` }, 400);
   }
+  const lead = parsed.data;
 
   const service = getServiceClient();
   const { data, error } = await (service as any)
     .from("inquiries")
     .insert({
-      client_full_name: body.client_full_name,
-      client_email: (body.client_email as string).toLowerCase().trim(),
-      client_phone: body.client_phone,
-      client_id_passport: body.client_id_passport,
-      heard_from: typeof body.heard_from === "string" ? body.heard_from : null,
-      questions: typeof body.questions === "string" ? body.questions : null,
+      client_full_name: lead.client_full_name,
+      client_email: lead.client_email,
+      client_phone: lead.client_phone,
+      client_id_passport: lead.client_id_passport,
+      heard_from: lead.heard_from ?? null,
+      questions: lead.questions ?? null,
       status: "pending",
     })
     .select("id")
@@ -215,6 +235,21 @@ export async function handleApiRequest(request: Request): Promise<Response> {
 
     const auth = await authenticate(request);
     if (!auth.ok) return auth.response;
+
+    // Module 3 audit finding: /api/v1/* had no rate limiting at all,
+    // flagged explicitly in this endpoint's own earlier commit history —
+    // now more relevant since n8n becomes a real, recurring caller.
+    // Keyed per API key (not IP) since that's this surface's real
+    // identity boundary. 60 requests/minute is a generous default for a
+    // legitimate integration; a misconfigured or runaway workflow calling
+    // in a tight loop is exactly what this catches.
+    const rateLimit = await checkAndRecordRateLimit(`api-key:${auth.keyId}`, 60, 60);
+    if (!rateLimit.allowed) {
+      return json(
+        { error: `Rate limit exceeded. Try again in ${rateLimit.retryAfterSeconds} second(s).` },
+        429,
+      );
+    }
 
     // /leads
     if (segments[0] === "leads" && segments.length === 1) {

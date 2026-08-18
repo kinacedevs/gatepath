@@ -17,6 +17,7 @@ import { Shield, Lock, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { AdminSessionProvider } from "@/context/AdminSessionContext";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { checkLoginRateLimitFn } from "@/lib/rateLimiter";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -96,12 +97,61 @@ function AdminPage() {
     };
   }, []);
 
+  // Module 3 audit finding: no idle or absolute session timeout existed
+  // beyond Supabase Auth's own defaults, which this app doesn't control
+  // from code (project-level Dashboard setting). This is a real, but
+  // partial, mitigation — a client-side idle timer that signs the user
+  // out after 30 minutes of no interaction. Disclosed limitation: OWASP's
+  // own guidance is explicit that idle timeouts must be server-enforced,
+  // not trusted from the client — a modified/bypassed client-side timer
+  // doesn't shorten a still-valid Supabase session. True server-side
+  // enforcement needs a shared last-activity check across every server
+  // function (today each of the ~14 *Actions.ts files duplicates its own
+  // independent caller-verification helper rather than sharing one — a
+  // separate, real finding, flagged rather than silently worked around
+  // here). This is the safe, honest layer buildable without that refactor.
+  useEffect(() => {
+    if (!sessionUser) return;
+    const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        supabase.auth.signOut();
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+    };
+  }, [sessionUser]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setLoginLoading(true);
 
     try {
+      // Module 3 audit finding: admin login had no rate limiting at all.
+      // This is a pre-flight gate on the login form only — the real
+      // signInWithPassword call below still goes directly from this
+      // browser to Supabase's own Auth API, so this doesn't (and can't,
+      // without a bigger architecture change) block a caller that skips
+      // the UI entirely. Disclosed limitation, not a silent gap.
+      const rateCheck = await checkLoginRateLimitFn({
+        data: { email: emailInput.trim().toLowerCase() },
+      });
+      if (!rateCheck.allowed) {
+        setLoginError(rateCheck.error);
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email: emailInput.trim().toLowerCase(),
         password: passwordInput,

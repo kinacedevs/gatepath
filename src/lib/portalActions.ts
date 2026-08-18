@@ -13,6 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient } from "./supabaseAdmin";
 import { sendResendEmail, sendAfricaTalkingSms } from "./notifications";
+import { checkAndRecordRateLimit } from "./rateLimiter";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
@@ -42,6 +43,19 @@ export const requestPortalOtpFn = createServerFn({ method: "POST" })
 
     if (!email || !phone) {
       return { success: false as const, error: "Email and phone are required." };
+    }
+
+    // Module 3 audit finding: this endpoint had no throttling at all — a
+    // real OTP-spam / SMS+email cost-amplification vector, already flagged
+    // in docs/SECURITY_HARDENING.md. 3 requests / 15 minutes, checked
+    // before the inquiries lookup so a blocked request never even queries
+    // for a matching client.
+    const rateLimit = await checkAndRecordRateLimit(`otp-request:${email}`, 3, 15 * 60);
+    if (!rateLimit.allowed) {
+      return {
+        success: false as const,
+        error: `Too many code requests. Please try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+      };
     }
 
     const service = getServiceClient();
