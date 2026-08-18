@@ -50,10 +50,14 @@ async function verifyPaystackTransaction(reference: string): Promise<PaystackVer
 
 /**
  * The one place that records a payment. Idempotent on paystack_reference —
- * safe to call more than once for the same reference (client retry, or a
- * future webhook landing on top of an already-processed client verify).
+ * safe to call more than once for the same reference (client retry, or the
+ * real Paystack webhook, src/lib/paystackWebhook.ts, landing on top of an
+ * already-processed client verify — or being the only writer at all, for
+ * the abandoned-tab case that path was built to close). Exported so the
+ * webhook can call this exact function directly, never a second,
+ * potentially-drifting copy of the same payment-recording logic.
  */
-async function recordVerifiedPayment(params: {
+export async function recordVerifiedPayment(params: {
   reference: string;
   inquiryId: string;
   periodMonths?: number;

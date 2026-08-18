@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleApiRequest } from "./lib/apiRoutes";
+import { handlePaystackWebhook } from "./lib/paystackWebhook";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -92,6 +93,7 @@ const PRIVATE_ROUTE_PREFIXES = [
   "/admin",
   "/document",
   "/api",
+  "/webhooks",
   "/inquire",
   "/payment",
   "/book-visit",
@@ -136,6 +138,13 @@ export default {
       // further wrapping is needed.
       if (url.pathname.startsWith("/api/v1/")) {
         return await handleApiRequest(request);
+      }
+
+      // Module 3 / Phase 2a — real Paystack webhook, closing the
+      // abandoned-tab gap docs/SECURITY_HARDENING.md flagged as open.
+      // Dispatched the same way /api/v1/* is, before the SSR fallthrough.
+      if (url.pathname === "/webhooks/paystack" && request.method === "POST") {
+        return await handlePaystackWebhook(request);
       }
 
       const isGet = request.method === "GET";

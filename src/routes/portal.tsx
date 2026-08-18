@@ -431,6 +431,12 @@ function ClientPortalPage() {
       amount: payAmount * 100,
       currency: "KES",
       ref: `INST-${payingInquiry.id.slice(0, 8)}-${Date.now()}`,
+      // Module 3 audit finding: without this, an abandoned-tab installment
+      // payment would be unrecoverable even by the new Paystack webhook —
+      // it has no other way to resolve which inquiry a bare reference
+      // belongs to. Matches the same fix in payment.tsx's initial-deposit
+      // charge.
+      metadata: { inquiry_id: payingInquiry.id },
       callback: async (response: any) => {
         try {
           const result = await (verifyPaymentFn as any)({

@@ -108,6 +108,15 @@ function PaymentPage() {
       ref: `GR-${form.plotNumber}-${Date.now()}`,
       channels,
       metadata: {
+        // Module 3 audit finding: the real Paystack webhook (closing the
+        // abandoned-tab gap — money leaves the buyer's account but they
+        // close the tab before the client-verify call completes) can only
+        // ever be as good as what it can resolve from Paystack's own
+        // payload alone. inquiry_id/period_months are read back by
+        // src/lib/paystackWebhook.ts exactly the way this same charge's
+        // own client-verify call already gets them from form state.
+        inquiry_id: form.inquiryId,
+        period_months: isFullPayment ? 0 : period,
         custom_fields: [
           { display_name: "Buyer Name", variable_name: "buyer_name", value: form.fullName },
           { display_name: "Plot Number", variable_name: "plot_number", value: form.plotNumber },
