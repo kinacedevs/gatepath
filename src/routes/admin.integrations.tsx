@@ -49,6 +49,7 @@ const SCOPE_OPTIONS: { value: string; label: string }[] = [
   { value: "leads:read", label: "Leads — Read" },
   { value: "leads:write", label: "Leads — Create" },
   { value: "plots:read", label: "Plots — Read" },
+  { value: "notify:send", label: "Notifications — Send (email/SMS via Gatepath)" },
 ];
 
 function Integrations() {
@@ -360,6 +361,9 @@ function Integrations() {
           {"}"} — scope: leads:write
           <br />
           GET /api/v1/plots?status=available — scope: plots:read
+          <br />
+          POST /api/v1/notify {"{"}channel, to, subject?, message, templateKey?, vars?{"}"} — scope:
+          notify:send
           <br />
           <br />
           curl -H &quot;Authorization: Bearer gpk_...&quot;

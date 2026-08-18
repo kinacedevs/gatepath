@@ -21,6 +21,8 @@
 import { z } from "zod";
 import { getServiceClient } from "./supabaseAdmin";
 import { checkAndRecordRateLimit } from "./rateLimiter";
+import { sendResendEmail, sendAfricaTalkingSms } from "./notifications";
+import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -37,7 +39,7 @@ async function hashKey(rawKey: string): Promise<string> {
     .join("");
 }
 
-type Scope = "leads:read" | "leads:write" | "plots:read";
+type Scope = "leads:read" | "leads:write" | "plots:read" | "notify:send";
 
 async function authenticate(
   request: Request,
@@ -215,6 +217,69 @@ async function handlePlotsList(request: Request): Promise<Response> {
   return json({ data: visible });
 }
 
+// Module 3 audit finding: n8n never gets its own Resend/Africa's Talking
+// credentials (docs/AUTOMATION_STRATEGY.md's decision #2) — every
+// automation-triggered send routes through this endpoint instead, reusing
+// Gatepath's existing provider integration, the message_templates
+// fallback system, and one place responsible for delivery/compliance
+// logic, rather than forking that into a second copy inside n8n.
+const notifySendSchema = z.object({
+  channel: z.enum(["email", "sms"]),
+  to: z.string().trim().min(3).max(320),
+  subject: z.string().trim().max(200).optional(),
+  message: z.string().trim().min(1).max(5000),
+  // Optional: render a saved message_templates row (Settings ->
+  // Message Templates) instead of sending subject/message as-is —
+  // {{var}} placeholders filled from `vars`. Falls back to the raw
+  // subject/message passed above if the key has no saved template yet.
+  templateKey: z.string().trim().max(100).optional(),
+  vars: z.record(z.string(), z.string()).optional(),
+});
+
+async function handleNotifySend(request: Request): Promise<Response> {
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return json({ error: "Request body must be valid JSON." }, 400);
+  }
+
+  const parsed = notifySendSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+    return json({ error: `Invalid request body: ${issues.join("; ")}` }, 400);
+  }
+  const body = parsed.data;
+  const vars = body.vars ?? {};
+
+  let subject = body.subject ?? "";
+  let message = body.message;
+
+  if (body.templateKey) {
+    const service = getServiceClient();
+    const template = await getTemplateOrDefault(service, body.templateKey, {
+      subject,
+      body: message,
+    });
+    subject = renderTemplate(template.subject, vars);
+    message = renderTemplate(template.body, vars);
+  } else {
+    subject = renderTemplate(subject, vars);
+    message = renderTemplate(message, vars);
+  }
+
+  if (body.channel === "email") {
+    if (!subject) return json({ error: "subject is required for channel 'email'." }, 400);
+    const result = await sendResendEmail(body.to, subject, message);
+    if (!result.success) return json({ error: result.error ?? "Email send failed." }, 502);
+    return json({ sent: true });
+  }
+
+  const result = await sendAfricaTalkingSms(body.to, message);
+  if (!result.success) return json({ error: result.error ?? "SMS send failed." }, 502);
+  return json({ sent: true });
+}
+
 /**
  * Wrapped in try/catch deliberately: this endpoint is reachable by plain
  * curl with just an API key, no browser session — unlike every other
@@ -277,6 +342,14 @@ export async function handleApiRequest(request: Request): Promise<Response> {
       const scopeErr = requireScope(auth.scopes, "plots:read");
       if (scopeErr) return scopeErr;
       return await handlePlotsList(request);
+    }
+
+    // /notify — send an email/SMS through Gatepath's own provider
+    // integration (Module 3 decision #2).
+    if (segments[0] === "notify" && segments.length === 1 && request.method === "POST") {
+      const scopeErr = requireScope(auth.scopes, "notify:send");
+      if (scopeErr) return scopeErr;
+      return await handleNotifySend(request);
     }
 
     return json({ error: "Not found." }, 404);
