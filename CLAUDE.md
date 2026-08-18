@@ -67,7 +67,7 @@ Commit security changes separately from design changes so they can be reviewed i
 
 ## Architecture rules
 
-- **Money** is stored and computed in **integer minor units**, never floats.
+- **Money** is stored and computed as **numeric major-unit KES** (e.g. `1500000` means Ksh 1,500,000, not cents) — consistently across `payments.amount`, `inquiries.price/deposit/balance/monthly_payment`, and `plot_sizes.cash_price/installment_price`. This corrects an earlier "integer minor units" rule this codebase never actually followed (flagged as a real discrepancy in `docs/DATABASE_SCHEMA.md`); converting live financial columns to minor units now would be high-risk churn on working, correct payment logic for no functional gain, so the documentation is fixed to match reality instead. Paystack's own API still speaks minor units (kobo/cents) at its boundary — `paymentActions.ts` divides by 100 once, right after verifying a transaction, and every KES value downstream of that point is major-unit.
 - **Prices** are resolved server-side from the database. Never trust an amount sent from the client.
 - **Plot reservation** must be an atomic conditional update (`WHERE status = 'available'`), not a UI check.
 - **FX rates**: one server-fetched, cached, timestamped source. Never hardcode a rate in a component. Displayed foreign-currency prices are indicative; the KES settlement amount must be shown before checkout.

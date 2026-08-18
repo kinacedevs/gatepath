@@ -6,9 +6,9 @@ Legend: **Origin** = `dashboard` (no tracked DDL, exists only because it was cre
 
 ---
 
-## ⚠️ Discrepancy found while writing this doc
+## Resolved: money-storage discrepancy
 
-**`CLAUDE.md` states "Money is stored and computed in integer minor units, never floats"** as an architecture rule. **The actual implementation does not follow this.** `src/lib/paymentActions.ts:86` does `const amountKes = paystackData.amount / 100;` (converting Paystack's minor-unit kobo/cents to whole KES) and then stores that `amountKes` value directly as `payments.amount` — i.e., money is stored in **major units (whole KES, numeric/decimal)**, not integer minor units, everywhere in this codebase (`payments.amount`, `inquiries.price/deposit/balance/monthly_payment`, `plot_sizes.cash_price/installment_price`, all consistently major-unit KES). This document records reality (major-unit `numeric`) rather than the aspirational rule. **This needs a decision, not a silent fix**: either update `CLAUDE.md` to match what's actually built (major-unit numeric has been working fine and avoiding it now would mean touching every payment-adjacent write path), or treat it as real technical debt to schedule. Flagging per this session's "flag risks loudly" convention — not changed here.
+**`CLAUDE.md` used to state "Money is stored and computed in integer minor units, never floats"** — an architecture rule the actual implementation never followed. `src/lib/paymentActions.ts:86` does `const amountKes = paystackData.amount / 100;` (converting Paystack's minor-unit kobo/cents to whole KES) and stores that `amountKes` value directly — money is stored in **major units (whole KES, numeric/decimal)** everywhere in this codebase (`payments.amount`, `inquiries.price/deposit/balance/monthly_payment`, `plot_sizes.cash_price/installment_price`). **Decision (Module 3 audit follow-up): `CLAUDE.md` now states this correctly** — converting live financial columns to integer minor units would be high-risk churn on working, correct payment logic for no functional gain, so the documentation was fixed to match reality rather than the schema being changed to match a rule nothing followed.
 
 ---
 

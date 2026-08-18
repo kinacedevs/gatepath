@@ -440,7 +440,7 @@ function PrivacyPage() {
             {[
               "All data transmitted between your browser and our servers is protected using TLS 1.3 encryption (HTTPS).",
               "Sensitive documents (ID copies, KRA PIN certificates) are stored in role-restricted, AES-256 encrypted Supabase Storage buckets — inaccessible to general staff.",
-              "Admin access requires multi-factor authentication (MFA) and is audited by role (CEO / Manager / Agent).",
+              "Admin access is restricted to registered staff accounts, gated by role (CEO / Manager / Agent), with account actions recorded in an internal audit log.",
               "Payment processing is handled exclusively via Paystack — a PCI DSS Level 1 certified payment gateway. Card numbers are never stored on Gatepath servers.",
               "We conduct periodic security reviews of our data processing systems and promptly remedy identified vulnerabilities.",
               "In the event of a personal data breach likely to result in risk to your rights, we will notify the ODPC within 72 hours and affected data subjects without undue delay, as required by Section 43 of the Act.",
