@@ -420,7 +420,14 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
       .eq("inquiry_id", data.inquiryId)
       .maybeSingle()) as { data: import("./types").Payment | null; error: any };
 
-    const agreementUrl = `http://localhost:5173/document/agreement/${data.inquiryId}`;
+    // Module 3 audit finding: this was hardcoded to http://localhost:5173,
+    // so this exact email link was broken for every real recipient. SITE_URL
+    // is optional — falls back to the real production domain, never to
+    // localhost — so this works correctly whether or not that env var is
+    // ever set.
+    const siteBaseUrl =
+      (typeof process !== "undefined" && process.env.SITE_URL) || "https://gatepathrealtors.com";
+    const agreementUrl = `${siteBaseUrl}/document/agreement/${data.inquiryId}`;
 
     // Generate HTML
     const emailHtml = getAgreementSignedEmailHtml({

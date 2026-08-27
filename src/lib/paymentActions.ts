@@ -11,10 +11,25 @@
  * warning before touching this one.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { getServiceClient } from "./supabaseAdmin";
 import { sendResendEmail, sendAfricaTalkingSms, getReservationEmailHtml } from "./notifications";
 import { recomputePhaseCounts } from "./plotActions";
 import { computeInstallmentPricing } from "./pricing";
+
+// Module 3 audit finding #5 — real runtime validation on the two functions
+// in this file, the ones directly in the path of every real payment. Bounds
+// periodMonths to the 4 values pricing.ts/the UI actually support (0 = paid
+// in full) rather than letting an arbitrary number reach payment logic.
+const VerifyPaymentInput = z
+  .object({
+    reference: z.string().trim().min(1).max(200),
+    inquiryId: z.string().uuid(),
+    periodMonths: z.union([z.literal(0), z.literal(3), z.literal(6), z.literal(12)]).optional(),
+  })
+  .strict();
+
+const GetReceiptInput = z.object({ inquiryId: z.string().uuid() }).strict();
 
 type PaystackVerifyData = {
   status: "success" | "failed" | "abandoned" | string;
@@ -292,11 +307,8 @@ export async function recordVerifiedPayment(params: {
 }
 
 export const verifyPaymentFn = createServerFn({ method: "POST" })
-  .validator((d: { reference: string; inquiryId: string; periodMonths?: number }) => d)
+  .validator((d: unknown) => VerifyPaymentInput.parse(d))
   .handler(async ({ data }) => {
-    if (!data.reference || !data.inquiryId) {
-      return { success: false as const, error: "Missing payment reference or inquiry id." };
-    }
     try {
       return await recordVerifiedPayment(data);
     } catch (err: any) {
@@ -313,12 +325,8 @@ export const verifyPaymentFn = createServerFn({ method: "POST" })
  * (InquiryContext), not by anything guessable server-side.
  */
 export const getReceiptFn = createServerFn({ method: "POST" })
-  .validator((d: { inquiryId: string }) => d)
+  .validator((d: unknown) => GetReceiptInput.parse(d))
   .handler(async ({ data }) => {
-    if (!data.inquiryId) {
-      return { found: false as const };
-    }
-
     const service = getServiceClient();
 
     const { data: inquiry } = await (service as any)
