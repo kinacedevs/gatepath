@@ -74,6 +74,17 @@ function BookVisitPage() {
 
   const { inquiry_id } = Route.useSearch();
 
+  // Real bug found via live testing: thank-you.tsx links here with
+  // inquiry_id for a buyer who has ALREADY PAID and just wants to schedule
+  // their free visit afterward - the only place inquiry_id is ever passed
+  // in this URL (confirmed: inquire.tsx's normal pre-payment navigation to
+  // this route never includes it). The page still showed the pre-payment
+  // "reserve directly, pay now" choice and a "Continue to Payment" label
+  // in that mode, even though handleSubmit already correctly detects this
+  // case and creates a real booking without ever redirecting to payment -
+  // the bug was cosmetic (checkbox + label), not functional.
+  const hasExistingInquiry = Boolean(inquiry_id || form.inquiryId);
+
   useEffect(() => {
     async function loadInquiry() {
       if (inquiry_id) {
@@ -145,7 +156,6 @@ function BookVisitPage() {
     setBannerError(false);
 
     // If coming from an existing reservation/deposit or inquiryId is already saved, bypass payment redirect and save booking directly!
-    const hasExistingInquiry = Boolean(inquiry_id || form.inquiryId);
     if (form.intent !== "free_visit" && !hasExistingInquiry) {
       navigate({ to: "/payment" });
       return;
@@ -387,11 +397,16 @@ function BookVisitPage() {
                   marginBottom: 16,
                 }}
               >
-                {form.reservePlot ? "RESERVATION & SITE VISIT" : "SCHEDULE YOUR VISIT"}
+                {form.reservePlot && !hasExistingInquiry
+                  ? "RESERVATION & SITE VISIT"
+                  : "SCHEDULE YOUR VISIT"}
               </div>
 
-              {/* Toggle to skip site visit for reserved plots */}
-              {form.reservePlot && (
+              {/* Toggle to skip site visit for reserved plots — never shown
+                  when reached post-payment (hasExistingInquiry): "reserve
+                  directly by paying" makes no sense for someone who already
+                  paid. */}
+              {form.reservePlot && !hasExistingInquiry && (
                 <div className="mb-6 p-4 rounded-xl border border-[#D5D0C8] bg-ivory flex items-center gap-3">
                   <input
                     type="checkbox"
@@ -876,7 +891,7 @@ function BookVisitPage() {
               >
                 {loading
                   ? "Confirming..."
-                  : form.intent === "free_visit"
+                  : form.intent === "free_visit" || hasExistingInquiry
                     ? "Confirm & Schedule Site Visit"
                     : "Continue to Payment →"}
               </button>
