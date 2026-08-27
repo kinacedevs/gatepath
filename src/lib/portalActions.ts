@@ -35,6 +35,20 @@ async function hashOtp(otp: string, email: string): Promise<string> {
     .join("");
 }
 
+/** Constant-time comparison — a plain !== leaks timing information about
+ * how many leading bytes matched. Same helper paystackWebhook.ts already
+ * uses for its own signature check; duplicated rather than imported since
+ * it's a 6-line pure function and importing it from a file about Paystack
+ * webhooks specifically would be a stranger coupling than repeating it. */
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
 export const requestPortalOtpFn = createServerFn({ method: "POST" })
   .validator((d: { email: string; phone: string }) => d)
   .handler(async ({ data }) => {
@@ -174,7 +188,7 @@ export const verifyPortalOtpFn = createServerFn({ method: "POST" })
 
     const submittedHash = await hashOtp(otp, email);
 
-    if (submittedHash !== otpRow.otp_code) {
+    if (!constantTimeEqual(submittedHash, otpRow.otp_code)) {
       // Atomic increment (migration 0037's increment_otp_attempts) — the
       // old version read otpRow.attempts (already stale by the time this
       // runs) and wrote that exact value + 1, so two concurrent wrong

@@ -46,10 +46,25 @@ async function verifyPaystackTransaction(reference: string): Promise<PaystackVer
     throw new Error("PAYSTACK_SECRET_KEY is not configured on the server.");
   }
 
-  const res = await fetch(
-    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${secretKey}` } },
-  );
+  // No timeout previously existed on this call at all — a hung Paystack
+  // response would block verifyPaymentFn/the webhook handler indefinitely,
+  // risking Cloudflare Workers' own execution-time limit.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      { headers: { Authorization: `Bearer ${secretKey}` }, signal: controller.signal },
+    );
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      throw new Error("Paystack verification timed out after 10s.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   const json = (await res.json()) as {
     status: boolean;
     message?: string;

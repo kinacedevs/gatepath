@@ -7,6 +7,25 @@ import { supabase } from "./supabase";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 
+// Neither Resend nor Africa's Talking's calls had any timeout — a hung
+// upstream (a real production audit finding) blocks the whole request
+// indefinitely, which on Cloudflare Workers risks the platform's own
+// execution-time limit, and on requestPortalOtpFn specifically delays the
+// user's own response since both sends are awaited before it replies.
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Sends a regional SMS via Africa's Talking API (pure HTTP implementation)
  */
@@ -56,15 +75,19 @@ export async function sendAfricaTalkingSms(
   }
 
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-        apiKey: apiKey,
+    const response = await fetchWithTimeout(
+      endpoint,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+          apiKey: apiKey,
+        },
+        body: bodyParams.toString(),
       },
-      body: bodyParams.toString(),
-    });
+      8000,
+    );
 
     // Africa's Talking doesn't always return JSON — an auth failure can come
     // back as a plain-text body, which crashed this on .json() with an
@@ -80,8 +103,12 @@ export async function sendAfricaTalkingSms(
     console.log("[Gatepath SMS] AT Response:", response.status, data);
     return { success: response.ok, data };
   } catch (err: any) {
-    console.error("[Gatepath SMS] Send error:", err);
-    return { success: false, error: err.message };
+    const isTimeout = err?.name === "AbortError";
+    console.error("[Gatepath SMS] Send error:", isTimeout ? "Timed out after 8s" : err);
+    return {
+      success: false,
+      error: isTimeout ? "Africa's Talking request timed out." : err.message,
+    };
   }
 }
 
@@ -107,26 +134,31 @@ export async function sendResendEmail(
   }
 
   try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    const response = await fetchWithTimeout(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [to],
+          subject: subject,
+          html: html,
+        }),
       },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [to],
-        subject: subject,
-        html: html,
-      }),
-    });
+      8000,
+    );
 
     const data = await response.json();
     console.log("[Gatepath Email] Resend Response:", data);
     return { success: response.ok, data };
   } catch (err: any) {
-    console.error("[Gatepath Email] Send error:", err);
-    return { success: false, error: err.message };
+    const isTimeout = err?.name === "AbortError";
+    console.error("[Gatepath Email] Send error:", isTimeout ? "Timed out after 8s" : err);
+    return { success: false, error: isTimeout ? "Resend request timed out." : err.message };
   }
 }
 
@@ -354,56 +386,6 @@ export function getAgreementSignedEmailHtml(params: {
 </html>
   `;
 }
-
-/**
- * Server Function: Dispatches reservation emails and SMS
- */
-export const sendReservationNotificationFn = createServerFn({ method: "POST" })
-  .validator(
-    (d: {
-      buyerName: string;
-      buyerEmail: string;
-      buyerPhone: string;
-      plotNumber: string;
-      phaseName: string;
-      amount: number;
-      reference: string;
-      isHold: boolean;
-      visitDate?: string;
-      transportMode?: string;
-    }) => d,
-  )
-  .handler(async ({ data }) => {
-    console.log("[Notification ServerFn] Processing reservation hold notification...");
-
-    // Generate HTML
-    const emailHtml = getReservationEmailHtml({
-      buyerName: data.buyerName,
-      plotNumber: data.plotNumber,
-      phaseName: data.phaseName,
-      amount: data.amount,
-      reference: data.reference,
-      isHold: data.isHold,
-      visitDate: data.visitDate,
-      transportMode: data.transportMode,
-    });
-
-    const subject = data.isHold
-      ? `Plot Reservation Confirmed: Plot #${data.plotNumber} — ${data.phaseName}`
-      : `Payment Confirmed: Plot #${data.plotNumber} secured!`;
-
-    // 1. Dispatch Email via Resend
-    const emailResult = await sendResendEmail(data.buyerEmail, subject, emailHtml);
-
-    // 2. Dispatch SMS via Africa's Talking
-    const smsMessage = data.isHold
-      ? `Thank you ${data.buyerName}! Your hold payment of Ksh ${data.amount.toLocaleString()} for Plot #${data.plotNumber} at ${data.phaseName} has been received. Ref: ${data.reference}. Valid for 14 days.`
-      : `Payment Confirmed: Ksh ${data.amount.toLocaleString()} received for Plot #${data.plotNumber} at ${data.phaseName}. Gatepath Realtors Welcomes you!`;
-
-    const smsResult = await sendAfricaTalkingSms(data.buyerPhone, smsMessage);
-
-    return { emailResult, smsResult };
-  });
 
 /**
  * Server Function: Dispatches agreement signed notifications
