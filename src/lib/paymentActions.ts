@@ -16,6 +16,7 @@ import { getServiceClient } from "./supabaseAdmin";
 import { sendResendEmail, sendAfricaTalkingSms, getReservationEmailHtml } from "./notifications";
 import { recomputePhaseCounts } from "./plotActions";
 import { computeInstallmentPricing } from "./pricing";
+import { fetchWithRetry } from "./httpRetry";
 
 // Module 3 audit finding #5 — real runtime validation on the two functions
 // in this file, the ones directly in the path of every real payment. Bounds
@@ -46,24 +47,22 @@ async function verifyPaystackTransaction(reference: string): Promise<PaystackVer
     throw new Error("PAYSTACK_SECRET_KEY is not configured on the server.");
   }
 
-  // No timeout previously existed on this call at all — a hung Paystack
-  // response would block verifyPaymentFn/the webhook handler indefinitely,
-  // risking Cloudflare Workers' own execution-time limit.
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
+  // Unlike the sends in notifications.ts, this is a plain GET with no
+  // side effects — verifying a reference twice is always safe, so retryOnTimeout
+  // is enabled (safe here specifically because this call can never create
+  // a duplicate anything, unlike an email/SMS send).
   let res: Response;
   try {
-    res = await fetch(
+    res = await fetchWithRetry(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      { headers: { Authorization: `Bearer ${secretKey}` }, signal: controller.signal },
+      { headers: { Authorization: `Bearer ${secretKey}` } },
+      { timeoutMs: 10000, maxAttempts: 3, retryOnTimeout: true },
     );
   } catch (err: any) {
     if (err?.name === "AbortError") {
       throw new Error("Paystack verification timed out after 10s.");
     }
     throw err;
-  } finally {
-    clearTimeout(timer);
   }
   const json = (await res.json()) as {
     status: boolean;

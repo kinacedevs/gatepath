@@ -6,25 +6,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabase } from "./supabase";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
+import { fetchWithRetry } from "./httpRetry";
 
-// Neither Resend nor Africa's Talking's calls had any timeout — a hung
-// upstream (a real production audit finding) blocks the whole request
-// indefinitely, which on Cloudflare Workers risks the platform's own
-// execution-time limit, and on requestPortalOtpFn specifically delays the
-// user's own response since both sends are awaited before it replies.
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeoutMs: number,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
+// Neither Resend nor Africa's Talking's own APIs offer an idempotency key,
+// so a retry can only be trusted when we're CERTAIN the provider never
+// processed the original attempt — a genuine network-level failure or a
+// 5xx from the provider itself. A timeout is deliberately never retried
+// here (retryOnTimeout defaults to false in fetchWithRetry) since the
+// provider may have already sent the message before our own patience ran
+// out; retrying that would risk a real duplicate SMS/email. 2 total
+// attempts (1 retry) — conservative given what's at stake if this
+// reasoning is ever wrong for a specific provider's actual behavior.
+const NOTIFICATION_RETRY_OPTS = { timeoutMs: 8000, maxAttempts: 2 } as const;
 
 /**
  * Sends a regional SMS via Africa's Talking API (pure HTTP implementation)
@@ -75,7 +68,7 @@ export async function sendAfricaTalkingSms(
   }
 
   try {
-    const response = await fetchWithTimeout(
+    const response = await fetchWithRetry(
       endpoint,
       {
         method: "POST",
@@ -86,7 +79,7 @@ export async function sendAfricaTalkingSms(
         },
         body: bodyParams.toString(),
       },
-      8000,
+      NOTIFICATION_RETRY_OPTS,
     );
 
     // Africa's Talking doesn't always return JSON — an auth failure can come
@@ -134,7 +127,7 @@ export async function sendResendEmail(
   }
 
   try {
-    const response = await fetchWithTimeout(
+    const response = await fetchWithRetry(
       "https://api.resend.com/emails",
       {
         method: "POST",
@@ -149,7 +142,7 @@ export async function sendResendEmail(
           html: html,
         }),
       },
-      8000,
+      NOTIFICATION_RETRY_OPTS,
     );
 
     const data = await response.json();
