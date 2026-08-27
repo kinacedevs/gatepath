@@ -127,14 +127,63 @@ function withNoStore(response: Response): Response {
   });
 }
 
+// Content-Security-Policy — built from a real inventory of every external
+// origin this app actually loads (grepped, not guessed), plus two things
+// confirmed by inspecting the live SSR output directly:
+//
+// 1. TanStack Start injects a real inline hydration <script> on every page
+//    (class="$tsr") whose content is NOT static — it embeds a per-route
+//    asset manifest and a per-request timestamp, confirmed by diffing the
+//    homepage against /about (different content, different hash every
+//    time). A hash-based script-src entry is therefore impossible for
+//    this script. The framework's BaseContext type has an unused `nonce?`
+//    field (confirmed: present in request-handler.d.ts, zero references
+//    in any actual .js in this package) — not real, wired nonce support
+//    in this installed version. 'unsafe-inline' on script-src is a
+//    confirmed structural requirement, not a lazy default: without it,
+//    hydration never runs and the entire site becomes non-interactive.
+// 2. The codebase still has widespread React inline style={{}} usage
+//    (most of the admin.*.tsx screens) — style-src needs 'unsafe-inline'
+//    for the same reason, a real characteristic of this codebase today,
+//    not a security oversight to paper over with CSP alone.
+//
+// Ships as Content-Security-Policy-Report-Only first — this header can
+// never block or break anything by construction, it only reports
+// violations (to /csp-report, logged server-side, visible via wrangler
+// tail) — specifically so the "could silently break checkout" risk this
+// was flagged with never becomes real. Switch to the enforcing
+// Content-Security-Policy header only after confirming zero unexpected
+// violations across the real user flows (home, properties, portal login +
+// payment, admin).
+const CSP_DIRECTIVES = [
+  "default-src 'self'",
+  // 'unsafe-inline' required — see note (1) above.
+  "script-src 'self' 'unsafe-inline' https://js.paystack.co",
+  // 'unsafe-inline' required — see note (2) above.
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  // data: for inline SVG/small embedded images already used across the
+  // component library; the real Supabase project host for uploaded media
+  // (logo, phase photos, blog images); images.unsplash.com for the
+  // existing stock photos already in the codebase (CLAUDE.md bars adding
+  // MORE of these, not the ones already shipped).
+  "img-src 'self' data: https://images.unsplash.com https://hcnbgtnghvyyokspotfe.supabase.co",
+  // https: for the Supabase REST API, wss: for its one real Realtime
+  // subscription (phases.ts's usePhase, on the plots table).
+  "connect-src 'self' https://hcnbgtnghvyyokspotfe.supabase.co wss://hcnbgtnghvyyokspotfe.supabase.co",
+  // Paystack's checkout popup (payment.tsx, portal.tsx), YouTube embeds
+  // (properties.$slug.tsx, a real video), Google Maps embeds (about.tsx,
+  // contact.tsx, real iframes, both confirmed by reading the JSX directly).
+  "frame-src https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://www.youtube.com https://www.google.com",
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+  "report-uri /csp-report",
+].join("; ");
+
 // No security headers existed anywhere in this codebase (confirmed via
-// repo-wide grep) despite handling real payments and PII. These four carry
-// essentially zero functional risk — unlike a Content-Security-Policy,
-// which this app cannot safely adopt blind: it loads Paystack's inline.js,
-// Google Fonts, YouTube embeds, and Supabase Realtime websockets from
-// several origins, and a wrong CSP could silently break the checkout flow
-// with no visible error. A real CSP is flagged as a follow-up that needs
-// per-route testing, not shipped here as a guess.
+// repo-wide grep) despite handling real payments and PII.
 function withSecurityHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set("X-Content-Type-Options", "nosniff");
@@ -144,11 +193,28 @@ function withSecurityHeaders(response: Response): Response {
   // Field Mode (admin.field-mode.tsx) uses navigator.geolocation for GPS
   // check-ins — allowed for same-origin only, everything else denied.
   headers.set("Permissions-Policy", "geolocation=(self), camera=(), microphone=()");
+  headers.set("Content-Security-Policy-Report-Only", CSP_DIRECTIVES);
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers,
   });
+}
+
+// Browsers POST CSP violation reports here as
+// { "csp-report": { "document-uri", "violated-directive", "blocked-uri", ... } }.
+// Logged via console.error so every violation shows up in `wrangler tail`
+// live while the policy is in Report-Only mode — this is how the rollout
+// gets verified against real traffic before ever switching to enforcing,
+// without needing to ask anyone to open DevTools.
+async function handleCspReport(request: Request): Promise<Response> {
+  try {
+    const body = await request.json();
+    console.error("[CSP Report]", JSON.stringify(body));
+  } catch (err) {
+    console.error("[CSP Report] Failed to parse report body:", err);
+  }
+  return new Response(null, { status: 204 });
 }
 
 export default {
@@ -169,6 +235,11 @@ export default {
       // Dispatched the same way /api/v1/* is, before the SSR fallthrough.
       if (url.pathname === "/webhooks/paystack" && request.method === "POST") {
         return await handlePaystackWebhook(request);
+      }
+
+      // CSP violation reports — see withSecurityHeaders' report-uri.
+      if (url.pathname === "/csp-report" && request.method === "POST") {
+        return await handleCspReport(request);
       }
 
       const isGet = request.method === "GET";
