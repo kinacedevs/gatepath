@@ -157,10 +157,16 @@ function withNoStore(response: Response): Response {
 // payment, admin).
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  // 'unsafe-inline' required — see note (1) above.
-  "script-src 'self' 'unsafe-inline' https://js.paystack.co",
-  // 'unsafe-inline' required — see note (2) above.
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  // 'unsafe-inline' required — see note (1) above. cloudflareinsights.com
+  // is Cloudflare's own RUM beacon, auto-injected at the edge (not
+  // something this app's own code adds) — caught live via Report-Only,
+  // not something the initial repo-grep-based inventory could have found
+  // since it's not in the source at all.
+  "script-src 'self' 'unsafe-inline' https://js.paystack.co https://static.cloudflareinsights.com",
+  // 'unsafe-inline' required — see note (2) above. paystack.com (not
+  // js.paystack.co) is where Paystack's own inline.js loads its checkout
+  // button's stylesheet from — caught live via Report-Only.
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://paystack.com",
   "font-src 'self' https://fonts.gstatic.com",
   // data: for inline SVG/small embedded images already used across the
   // component library; the real Supabase project host for uploaded media
@@ -172,9 +178,13 @@ const CSP_DIRECTIVES = [
   // subscription (phases.ts's usePhase, on the plots table).
   "connect-src 'self' https://hcnbgtnghvyyokspotfe.supabase.co wss://hcnbgtnghvyyokspotfe.supabase.co",
   // Paystack's checkout popup (payment.tsx, portal.tsx), YouTube embeds
-  // (properties.$slug.tsx, a real video), Google Maps embeds (about.tsx,
-  // contact.tsx, real iframes, both confirmed by reading the JSX directly).
-  "frame-src https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://www.youtube.com https://www.google.com",
+  // (properties.$slug.tsx, a real video), Google Maps embeds — two
+  // different actual embeds exist: about.tsx/contact.tsx's office-location
+  // iframe uses www.google.com/maps/embed, but properties.$slug.tsx's
+  // per-phase location map (missed in the initial repo-grep-based
+  // inventory — a second, differently-formatted Maps embed URL, caught
+  // live via Report-Only) uses maps.google.com (no www) instead.
+  "frame-src https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://www.youtube.com https://www.google.com https://maps.google.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",
