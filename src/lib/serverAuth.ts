@@ -25,10 +25,19 @@
  * New on top of the consolidation: real, server-enforced idle-session
  * timeout (admin_users.last_active_at, migration 0034). Every verified call
  * refreshes it; a caller idle past IDLE_TIMEOUT_MS is rejected here, before
- * any file's own business logic runs. Degrades gracefully (skips the check)
- * before the migration is applied — last_active_at simply reads null until
- * then, same "safe before the migration runs" discipline as every other
- * migration this session.
+ * any file's own business logic runs.
+ *
+ * CORRECTED (live production bug, caught by real testing): the original
+ * version of this file selected last_active_at in the SAME query as the
+ * core id/full_name/email/role lookup, on the assumption that an
+ * unapplied migration would make the column read as null. That assumption
+ * was wrong — selecting a column that does not exist yet fails the WHOLE
+ * query, not just that one field, which meant every single admin write in
+ * the entire CRM returned "Not recognised as Gatepath staff" (a real
+ * staff member, correctly authenticated) until migration 0034 is applied.
+ * Fixed by splitting core recognition (must always work) from idle-timeout
+ * enforcement (optional, additive, wrapped so it can never break the core
+ * check) into two separate queries.
  */
 import { getAnonClient, getServiceClient } from "./supabaseAdmin";
 
@@ -53,9 +62,12 @@ async function resolveCaller(callerAccessToken: string): Promise<VerifyResult> {
   }
 
   const serviceClient = getServiceClient();
+
+  // Core recognition — must always work regardless of whether migration
+  // 0034 has been applied yet. Deliberately does not select last_active_at.
   const { data: callerRow } = await (serviceClient as any)
     .from("admin_users")
-    .select("id, full_name, email, role, last_active_at")
+    .select("id, full_name, email, role")
     .eq("email", callerData.user.email.toLowerCase())
     .maybeSingle();
 
@@ -63,25 +75,32 @@ async function resolveCaller(callerAccessToken: string): Promise<VerifyResult> {
     return { ok: false, error: "Not recognised as Gatepath staff." };
   }
 
-  if (callerRow.last_active_at) {
-    const idleForMs = Date.now() - new Date(callerRow.last_active_at).getTime();
-    if (idleForMs > IDLE_TIMEOUT_MS) {
-      return { ok: false, error: "Session expired due to inactivity. Please sign in again." };
-    }
-  }
-
-  // Awaited deliberately, not fire-and-forget: a Cloudflare Worker can
-  // terminate un-awaited background work once the response is sent, which
-  // would silently break the idle-timeout mechanism this exists for.
-  // Failure here never blocks the actual request — it's a non-critical
-  // side effect of an otherwise-successful verification.
+  // Idle-timeout enforcement is additive and optional — wrapped so that a
+  // missing column (migration not yet applied) or any other transient
+  // failure here can never block a real, recognised staff member. Awaited
+  // deliberately, not fire-and-forget: a Cloudflare Worker can terminate
+  // un-awaited background work once the response is sent.
   try {
+    const { data: activityRow } = await (serviceClient as any)
+      .from("admin_users")
+      .select("last_active_at")
+      .eq("id", callerRow.id)
+      .maybeSingle();
+
+    if (activityRow?.last_active_at) {
+      const idleForMs = Date.now() - new Date(activityRow.last_active_at).getTime();
+      if (idleForMs > IDLE_TIMEOUT_MS) {
+        return { ok: false, error: "Session expired due to inactivity. Please sign in again." };
+      }
+    }
+
     await (serviceClient as any)
       .from("admin_users")
       .update({ last_active_at: new Date().toISOString() })
       .eq("id", callerRow.id);
   } catch {
-    // Best-effort only.
+    // Column may not exist yet, or the update failed transiently — never
+    // allowed to block a real staff member's request.
   }
 
   return { ok: true, serviceClient, caller: callerRow as CallerRow };
