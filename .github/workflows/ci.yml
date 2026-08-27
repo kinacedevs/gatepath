@@ -23,7 +23,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # The first real CI run (Node 20) surfaced EBADENGINE warnings on
+          # several dependencies — @tanstack/react-start and its family
+          # specifically require >=22.12.0. Matching that here, not just
+          # silencing the warning, since a version mismatch between local
+          # dev (whatever's on the developer's machine) and CI is exactly
+          # the kind of drift that makes "it works on my machine" real.
+          node-version: 22
           cache: npm
 
       - run: npm ci
