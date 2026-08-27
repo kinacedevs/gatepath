@@ -166,16 +166,21 @@ export async function recordVerifiedPayment(params: {
   // becomes a valid document once the client has paid the FULL purchase
   // price — everything in between is tracked against the Offer.
   if (isFirstPayment) {
-    const { data: existingOffer } = await (service as any)
+    // Upsert on the unique inquiry_id constraint (migration 0037), not a
+    // check-then-insert — the client-triggered verify and the Paystack
+    // webhook can both reach this line for the same payment, and a plain
+    // "select, then insert if none found" lets both pass the check before
+    // either insert commits, producing two offers rows for one inquiry
+    // (this happened in production; ignoreDuplicates makes the loser of
+    // the race a no-op instead of a duplicate row or a thrown error).
+    const { error: offerErr } = await (service as any)
       .from("offers")
-      .select("id")
-      .eq("inquiry_id", inquiry.id)
-      .maybeSingle();
-
-    if (!existingOffer) {
-      await (service as any)
-        .from("offers")
-        .insert({ inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false });
+      .upsert(
+        { inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false },
+        { onConflict: "inquiry_id", ignoreDuplicates: true },
+      );
+    if (offerErr) {
+      console.error(`[Payment] Failed to create offer for inquiry ${inquiry.id}:`, offerErr);
     }
   }
 
@@ -228,16 +233,21 @@ export async function recordVerifiedPayment(params: {
   );
 
   if (inquiry.price && totalPaid >= Number(inquiry.price)) {
-    const { data: existingAgreement } = await (service as any)
+    // Same upsert-on-unique-constraint fix as the offer above — this exact
+    // check-then-insert race produced real duplicate agreements rows in
+    // production (3 inquiries, cleaned up manually) before migration 0037
+    // added the unique constraint this relies on.
+    const { error: agreementErr } = await (service as any)
       .from("agreements")
-      .select("id")
-      .eq("inquiry_id", inquiry.id)
-      .maybeSingle();
-
-    if (!existingAgreement) {
-      await (service as any)
-        .from("agreements")
-        .insert({ inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false });
+      .upsert(
+        { inquiry_id: inquiry.id, payment_id: payment.id, ceo_signed: false },
+        { onConflict: "inquiry_id", ignoreDuplicates: true },
+      );
+    if (agreementErr) {
+      console.error(
+        `[Payment] Failed to create agreement for inquiry ${inquiry.id}:`,
+        agreementErr,
+      );
     }
   }
 
@@ -289,15 +299,27 @@ export async function recordVerifiedPayment(params: {
       reference: params.reference,
       isHold: inquiry.payment_preference === "reserve",
     });
-    await sendResendEmail(
+    const emailResult = await sendResendEmail(
       inquiry.client_email,
       `Payment Confirmed: Plot #${inquiry.plot_number_ref} secured!`,
       emailHtml,
     );
-    await sendAfricaTalkingSms(
+    const smsResult = await sendAfricaTalkingSms(
       inquiry.client_phone,
       `Payment Confirmed: Ksh ${amountKes.toLocaleString()} received for Plot #${inquiry.plot_number_ref} at ${inquiry.phase_name}. Gatepath Realtors Welcomes you!`,
     );
+    // sendResendEmail/sendAfricaTalkingSms already swallow their own
+    // errors into a returned { success, error } shape rather than
+    // throwing, so the catch below never sees a real delivery failure —
+    // this was previously the only place either result was checked at
+    // all. A real client just paid real money; a silently-failed
+    // confirmation is worth knowing about even with no retry built yet.
+    if (!emailResult.success || !smsResult.success) {
+      console.error(
+        `[Payment] Confirmation notification partially/fully failed for inquiry ${inquiry.id}:`,
+        { emailResult, smsResult },
+      );
+    }
   } catch (err) {
     // Notification failure must never undo an already-verified payment.
     console.error("[Payment] Notification dispatch failed:", err);
@@ -316,6 +338,18 @@ export const verifyPaymentFn = createServerFn({ method: "POST" })
       return { success: false as const, error: err?.message ?? "Payment verification failed." };
     }
   });
+
+// Security audit finding: getReceiptFn had zero ownership check, and
+// inquiryId reaches it as a plain ?inquiryId= query param on the public
+// /thank-you URL — a bearer credential with no expiry sitting in browser
+// history, a shared screenshot, or an outbound referrer header, granting
+// permanent access to client_id_passport/client_kra_pin/kin_kra_pin. The
+// portal (getPortalDataFn) requires a real OTP-verified session for the
+// same data; this path required nothing. Time-bounding it to a window that
+// comfortably covers "just paid, checking my receipt" while forcing a
+// long-lived or leaked link to fall back to the properly-authenticated
+// portal for anything older.
+const RECEIPT_LINK_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Read-only receipt lookup for thank-you.tsx. payments/inquiries/agreements/
@@ -337,6 +371,10 @@ export const getReceiptFn = createServerFn({ method: "POST" })
 
     if (!inquiry) {
       return { found: false as const };
+    }
+
+    if (Date.now() - new Date(inquiry.created_at).getTime() > RECEIPT_LINK_MAX_AGE_MS) {
+      return { found: false as const, expired: true as const };
     }
 
     const { data: payment } = await (service as any)

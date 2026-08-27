@@ -135,6 +135,18 @@ export const verifyPortalOtpFn = createServerFn({ method: "POST" })
       return { success: false as const, error: "Enter the code you received." };
     }
 
+    // Previously unthrottled entirely (only the per-row attempts counter
+    // below gated guesses) — an independent bound per email means a burst
+    // of concurrent guesses against one still-valid code can't outrun the
+    // atomic per-row increment below by more than this window allows.
+    const rateLimit = await checkAndRecordRateLimit(`otp-verify:${email}`, 10, 15 * 60);
+    if (!rateLimit.allowed) {
+      return {
+        success: false as const,
+        error: `Too many attempts. Please try again in ${Math.ceil(rateLimit.retryAfterSeconds / 60)} minute(s).`,
+      };
+    }
+
     const service = getServiceClient();
 
     const { data: otpRow } = await (service as any)
@@ -163,10 +175,17 @@ export const verifyPortalOtpFn = createServerFn({ method: "POST" })
     const submittedHash = await hashOtp(otp, email);
 
     if (submittedHash !== otpRow.otp_code) {
-      await (service as any)
-        .from("client_otps")
-        .update({ attempts: otpRow.attempts + 1 })
-        .eq("id", otpRow.id);
+      // Atomic increment (migration 0037's increment_otp_attempts) — the
+      // old version read otpRow.attempts (already stale by the time this
+      // runs) and wrote that exact value + 1, so two concurrent wrong
+      // guesses could both compute and write the same result, silently
+      // losing an increment.
+      const { error: incErr } = await (service as any).rpc("increment_otp_attempts", {
+        p_otp_id: otpRow.id,
+      });
+      if (incErr) {
+        console.error("[Portal] Failed to record OTP attempt:", incErr);
+      }
       return { success: false as const, error: "Incorrect code. Please try again." };
     }
 

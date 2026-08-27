@@ -40,6 +40,17 @@ export type RateLimitResult = { allowed: true } | { allowed: false; retryAfterSe
  * Not exported as a server function itself — called from inside the
  * handlers below and from requestPortalOtpFn/apiRoutes.ts, all of which
  * already run with service-role access.
+ *
+ * Delegates the actual check-and-increment to the rate_limit_check()
+ * Postgres function (migration 0037) instead of doing it as three separate
+ * JS round trips (select, then upsert-or-update). The old version was a
+ * real check-then-write race: concurrent requests could all read the same
+ * pre-increment count and all pass the limit check, defeating every
+ * throttle in this codebase (login, OTP request, OTP attempts, /api/v1/*)
+ * under plain concurrency. A single INSERT ... ON CONFLICT ... DO UPDATE
+ * statement is what Postgres actually serializes via row-level locking —
+ * moving the whole read-check-write into one statement is what makes it
+ * atomic, not just faster.
  */
 export async function checkAndRecordRateLimit(
   key: string,
@@ -47,40 +58,29 @@ export async function checkAndRecordRateLimit(
   windowSeconds: number,
 ): Promise<RateLimitResult> {
   const service = getServiceClient();
-  const now = Date.now();
 
-  const { data: existing } = await (service as any)
-    .from("rate_limit_attempts")
-    .select("attempt_count, window_started_at")
-    .eq("rate_key", key)
-    .maybeSingle();
+  const { data, error } = await (service as any).rpc("rate_limit_check", {
+    p_key: key,
+    p_max_attempts: maxAttempts,
+    p_window_seconds: windowSeconds,
+  });
 
-  const windowStart = existing ? new Date(existing.window_started_at).getTime() : 0;
-  const windowExpired = !existing || now - windowStart > windowSeconds * 1000;
-
-  if (windowExpired) {
-    await (service as any)
-      .from("rate_limit_attempts")
-      .upsert(
-        { rate_key: key, attempt_count: 1, window_started_at: new Date(now).toISOString() },
-        { onConflict: "rate_key" },
-      );
+  // Fails open deliberately (a transient DB hiccup, or this migration not
+  // yet applied, should never lock everyone out of login), but never
+  // silently — this exact "the backing table/function isn't applied yet"
+  // case has already made two other checks in this codebase silently inert
+  // this week (client_otps.otp_code, admin_users.last_active_at), both
+  // discovered only via production symptoms. Logging here means the next
+  // one shows up in wrangler tail instead of as an unexplained incident.
+  if (error) {
+    console.error(`[RateLimiter] rate_limit_check failed for key "${key}" — failing open:`, error);
     return { allowed: true };
   }
 
-  if (existing.attempt_count >= maxAttempts) {
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((windowStart + windowSeconds * 1000 - now) / 1000),
-    );
-    return { allowed: false, retryAfterSeconds };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.allowed) {
+    return { allowed: false, retryAfterSeconds: row?.retry_after_seconds ?? 60 };
   }
-
-  await (service as any)
-    .from("rate_limit_attempts")
-    .update({ attempt_count: existing.attempt_count + 1 })
-    .eq("rate_key", key);
-
   return { allowed: true };
 }
 
