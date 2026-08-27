@@ -54,6 +54,11 @@ export const Route = createFileRoute("/portal")({
           "Access your Gatepath purchase agreements, title deed conveyancing status, receipts, and track remaining installments.",
       },
     ],
+    // The in-portal installment payment modal calls window.PaystackPop —
+    // without this, that global never exists on this route (only
+    // payment.tsx loaded it), so every in-portal payment attempt failed
+    // with "Payment system is still loading." forever, not just briefly.
+    scripts: [{ src: "https://js.paystack.co/v1/inline.js", defer: true }],
   }),
 });
 
@@ -74,6 +79,7 @@ interface InquiryData {
   client_phone: string;
   cro_name: string | null;
   terms_of_payment: string | null;
+  monthly_payment: number | null;
 }
 
 interface PaymentData {
@@ -138,6 +144,18 @@ const DOCUMENT_TYPE_LABEL: Record<string, string> = {
   poa: "Power of Attorney",
   other: "Document",
 };
+
+// The buyer's real agreed monthly installment (set server-side at payment
+// time — see paymentActions.ts) is the only honest basis for a "suggested"
+// amount. A cash buyer, or one with no agreed figure on file, has no real
+// installment to suggest — paying off the remaining balance in full is the
+// only non-fabricated default in that case.
+function suggestedInstallmentFor(inq: InquiryData, remainingBalance: number): number {
+  if (inq.terms_of_payment === "installment" && inq.monthly_payment && inq.monthly_payment > 0) {
+    return Math.min(inq.monthly_payment, remainingBalance);
+  }
+  return remainingBalance;
+}
 
 const PORTAL_SESSION_KEY = "gatepath_portal_session";
 
@@ -382,8 +400,7 @@ function ClientPortalPage() {
   // Open In-Portal Paystack Installment Modal
   const openInstallmentModal = (inq: InquiryData, remainingBalance: number) => {
     setPayingInquiry(inq);
-    const suggestedInstallment = Math.min(26667, remainingBalance);
-    const amount = suggestedInstallment > 0 ? suggestedInstallment : remainingBalance;
+    const amount = suggestedInstallmentFor(inq, remainingBalance);
     setPayAmount(amount);
     setSuggestedPayAmount(amount);
     setPaySuccessMsg(null);
@@ -889,7 +906,7 @@ function ClientPortalPage() {
                               className="px-6 py-3 bg-primary hover:bg-primary-deep text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-md"
                             >
                               <CreditCard size={16} /> Pay Next Installment (Ksh{" "}
-                              {Math.min(26667, remainingBalance).toLocaleString()})
+                              {suggestedInstallmentFor(inq, remainingBalance).toLocaleString()})
                             </button>
                           </div>
                         )}
@@ -909,6 +926,28 @@ function ClientPortalPage() {
                     <div className="space-y-3">
                       {inquiries.map((inq) => {
                         const inqDocuments = documents.filter((d) => d.inquiry_id === inq.id);
+                        // /document/receipt/$id resolves $id against the
+                        // payments table (see document.receipt.$id.tsx),
+                        // never an inquiry — every other caller
+                        // (thank-you.tsx, admin.inquiries.tsx) already links
+                        // with a real payment id. This previously passed
+                        // inq.id, so every client's receipt link 404'd with
+                        // "Payment record not found." One inquiry can also
+                        // have several real receipts (installments), so each
+                        // successful payment gets its own link instead of one
+                        // link with the wrong id.
+                        const inqSuccessfulPayments = payments
+                          .filter((p) => p.inquiry_id === inq.id && p.status === "success")
+                          .sort(
+                            (a, b) =>
+                              new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+                          );
+                        // A deposit-only buyer has an Offer Letter but no
+                        // Agreement yet (that only exists once fully paid —
+                        // see paymentActions.ts) — the portal never linked
+                        // to it at all before this, the one document such a
+                        // buyer actually has to view.
+                        const hasOffer = offers.some((o) => o.inquiry_id === inq.id);
                         return (
                           <div
                             key={inq.id}
@@ -917,6 +956,18 @@ function ClientPortalPage() {
                             <span className="text-[11px] font-bold text-slate-700 block">
                               Plot #{inq.plot_number_ref} Documents
                             </span>
+                            {hasOffer && (
+                              <Link
+                                to="/document/offer/$id"
+                                params={{ id: inq.id }}
+                                className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <FileText size={16} className="text-primary" /> Offer Letter PDF
+                                </span>
+                                <ArrowRight size={14} />
+                              </Link>
+                            )}
                             <Link
                               to="/document/agreement/$id"
                               params={{ id: inq.id }}
@@ -928,17 +979,22 @@ function ClientPortalPage() {
                               </span>
                               <ArrowRight size={14} />
                             </Link>
-                            <Link
-                              to="/document/receipt/$id"
-                              params={{ id: inq.id }}
-                              className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                            >
-                              <span className="flex items-center gap-2">
-                                <FileText size={16} className="text-available" /> Official Payment
-                                Receipt
-                              </span>
-                              <ArrowRight size={14} />
-                            </Link>
+                            {inqSuccessfulPayments.map((pmt, idx) => (
+                              <Link
+                                key={pmt.id}
+                                to="/document/receipt/$id"
+                                params={{ id: pmt.id }}
+                                className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <FileText size={16} className="text-available" /> Receipt —{" "}
+                                  {inqSuccessfulPayments.length > 1
+                                    ? `Payment ${idx + 1} (Ksh ${pmt.amount.toLocaleString()})`
+                                    : `Ksh ${pmt.amount.toLocaleString()}`}
+                                </span>
+                                <ArrowRight size={14} />
+                              </Link>
+                            ))}
                             {inqDocuments.map((doc) => (
                               <button
                                 key={doc.id}
