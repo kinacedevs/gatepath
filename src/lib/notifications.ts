@@ -66,8 +66,18 @@ export async function sendAfricaTalkingSms(
       body: bodyParams.toString(),
     });
 
-    const data = await response.json();
-    console.log("[Gatepath SMS] AT Response:", data);
+    // Africa's Talking doesn't always return JSON — an auth failure can come
+    // back as a plain-text body, which crashed this on .json() with an
+    // opaque SyntaxError instead of surfacing the real reason. Read as text
+    // first, parse if possible, and always log the real body either way.
+    const rawBody = await response.text();
+    let data: unknown;
+    try {
+      data = JSON.parse(rawBody);
+    } catch {
+      data = { raw: rawBody };
+    }
+    console.log("[Gatepath SMS] AT Response:", response.status, data);
     return { success: response.ok, data };
   } catch (err: any) {
     console.error("[Gatepath SMS] Send error:", err);
