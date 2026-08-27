@@ -1,0 +1,49 @@
+name: CI
+
+# Checks only — this workflow never deploys. Every deploy stays a
+# deliberate, manual `npm run deploy` from a developer machine, per an
+# explicit decision made during the Phase 45 production audit: this is a
+# solo-founder site handling real payments with no staging environment or
+# rehearsed rollback yet, so a human stays in the loop at deploy time even
+# once this pipeline is trusted.
+on:
+  push:
+    # feature/automation-n8n (this session's active branch) has no remote
+    # tracking branch yet — confirmed via `git branch -a` — so it won't
+    # trigger CI until it's actually pushed. feature/** covers it and any
+    # future feature branch without needing this list updated each time.
+    branches: [main, redesign/ecosystem-v2, "feature/**"]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      # No secrets configured on purpose: src/lib/supabase.ts and
+      # payment.tsx both fall back to real, safe-to-expose public values
+      # (the Supabase anon key and Paystack test public key) when the
+      # corresponding VITE_* env vars are unset, and every server-only
+      # secret (SUPABASE_SERVICE_ROLE_KEY, PAYSTACK_SECRET_KEY, etc.) is
+      # only ever read inside a request handler at runtime, never at
+      # build/bundle time — so this build step needs nothing from
+      # GitHub's secret store to succeed.
+      - name: Build
+        run: npm run build
