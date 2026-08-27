@@ -371,49 +371,57 @@ const RECEIPT_LINK_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
  * one legitimate path for a buyer to see their own just-completed receipt,
  * keyed by the inquiry id already sitting in their own browser session
  * (InquiryContext), not by anything guessable server-side.
+ *
+ * Plain exported function (same split as recordVerifiedPayment/
+ * verifyPaymentFn above) so the time-bound PII-expiry logic can be
+ * exercised directly in a test without needing a real TanStack Start
+ * request context — getReceiptFn itself is just a thin createServerFn
+ * wrapper around this.
  */
+export async function getReceiptData(inquiryId: string) {
+  const service = getServiceClient();
+
+  const { data: inquiry } = await (service as any)
+    .from("inquiries")
+    .select("*")
+    .eq("id", inquiryId)
+    .maybeSingle();
+
+  if (!inquiry) {
+    return { found: false as const };
+  }
+
+  if (Date.now() - new Date(inquiry.created_at).getTime() > RECEIPT_LINK_MAX_AGE_MS) {
+    return { found: false as const, expired: true as const };
+  }
+
+  const { data: payment } = await (service as any)
+    .from("payments")
+    .select("*")
+    .eq("inquiry_id", inquiryId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: booking } = await (service as any)
+    .from("bookings")
+    .select("*")
+    .eq("inquiry_id", inquiryId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: agreement } = payment
+    ? await (service as any)
+        .from("agreements")
+        .select("*")
+        .eq("payment_id", payment.id)
+        .maybeSingle()
+    : { data: null };
+
+  return { found: true as const, inquiry, payment, booking, agreement };
+}
+
 export const getReceiptFn = createServerFn({ method: "POST" })
   .validator((d: unknown) => GetReceiptInput.parse(d))
-  .handler(async ({ data }) => {
-    const service = getServiceClient();
-
-    const { data: inquiry } = await (service as any)
-      .from("inquiries")
-      .select("*")
-      .eq("id", data.inquiryId)
-      .maybeSingle();
-
-    if (!inquiry) {
-      return { found: false as const };
-    }
-
-    if (Date.now() - new Date(inquiry.created_at).getTime() > RECEIPT_LINK_MAX_AGE_MS) {
-      return { found: false as const, expired: true as const };
-    }
-
-    const { data: payment } = await (service as any)
-      .from("payments")
-      .select("*")
-      .eq("inquiry_id", data.inquiryId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const { data: booking } = await (service as any)
-      .from("bookings")
-      .select("*")
-      .eq("inquiry_id", data.inquiryId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const { data: agreement } = payment
-      ? await (service as any)
-          .from("agreements")
-          .select("*")
-          .eq("payment_id", payment.id)
-          .maybeSingle()
-      : { data: null };
-
-    return { found: true as const, inquiry, payment, booking, agreement };
-  });
+  .handler(async ({ data }) => getReceiptData(data.inquiryId));
