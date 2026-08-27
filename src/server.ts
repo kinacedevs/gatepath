@@ -127,6 +127,30 @@ function withNoStore(response: Response): Response {
   });
 }
 
+// No security headers existed anywhere in this codebase (confirmed via
+// repo-wide grep) despite handling real payments and PII. These four carry
+// essentially zero functional risk — unlike a Content-Security-Policy,
+// which this app cannot safely adopt blind: it loads Paystack's inline.js,
+// Google Fonts, YouTube embeds, and Supabase Realtime websockets from
+// several origins, and a wrong CSP could silently break the checkout flow
+// with no visible error. A real CSP is flagged as a follow-up that needs
+// per-route testing, not shipped here as a guess.
+function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "SAMEORIGIN");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  // Field Mode (admin.field-mode.tsx) uses navigator.geolocation for GPS
+  // check-ins — allowed for same-origin only, everything else denied.
+  headers.set("Permissions-Policy", "geolocation=(self), camera=(), microphone=()");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: any, ctx: any) {
     try {
@@ -172,7 +196,9 @@ export default {
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      const normalized = await normalizeCatastrophicSsrResponse(response);
+      // Applied before caching so a cached copy already carries these
+      // headers too, not just the first visitor's response.
+      const normalized = withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
 
       // Cache successful SSR responses
       if (isCacheable && cache && normalized.status === 200) {
