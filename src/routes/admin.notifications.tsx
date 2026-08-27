@@ -141,7 +141,7 @@ function NotificationsCenter() {
         setToast("Your session expired — please sign in again.");
         return;
       }
-      await logInteractionFn({
+      const result = await logInteractionFn({
         data: {
           callerAccessToken: accessToken,
           inquiryId: loggingInquiryId,
@@ -150,6 +150,10 @@ function NotificationsCenter() {
           notes: quickNotes.trim(),
         },
       });
+      if (!(result as any)?.success) {
+        setToast("Error: " + ((result as any)?.error ?? "Failed to log interaction."));
+        return;
+      }
       setLoggingInquiryId(null);
       setToast("Interaction logged.");
       loadData();
@@ -175,13 +179,17 @@ function NotificationsCenter() {
         setToast("Your session expired — please sign in again.");
         return;
       }
-      await logBookingFeedbackFn({
+      const result = await logBookingFeedbackFn({
         data: {
           callerAccessToken: accessToken,
           bookingId: feedbackBookingId,
           feedback: feedbackText.trim(),
         },
       });
+      if (!(result as any)?.success) {
+        setToast("Error: " + ((result as any)?.error ?? "Failed to log feedback."));
+        return;
+      }
       setFeedbackBookingId(null);
       setToast("Feedback logged.");
       loadData();

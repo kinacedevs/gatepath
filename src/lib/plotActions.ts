@@ -21,11 +21,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 
 export async function recomputePhaseCounts(serviceClient: any, phaseId: string) {
-  const { data: rows } = await serviceClient
+  const { data: rows, error } = await serviceClient
     .from("plots")
     .select("status")
     .eq("phase_id", phaseId)
     .eq("is_archived", false);
+
+  // A select failure here (e.g. is_archived missing if migration 0022
+  // isn't applied in some environment) must never fall through to writing
+  // zeros — that would silently show "0 available" on the live public
+  // storefront for a phase that's actually fully stocked. Bail out loudly
+  // instead, leaving the phase's existing counts untouched.
+  if (error) {
+    console.error(`[Plots] recomputePhaseCounts select failed for phase ${phaseId}:`, error);
+    return;
+  }
 
   const plots = (rows as { status: "available" | "booked" | "sold" }[]) ?? [];
   const available = plots.filter((p) => p.status === "available").length;

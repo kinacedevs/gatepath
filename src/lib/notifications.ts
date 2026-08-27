@@ -413,8 +413,19 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
   .handler(async ({ data }) => {
     console.log("[Notification ServerFn] Processing agreement signed notification...");
 
+    // Was reading via the plain anon `supabase` client — server functions
+    // have no authenticated user context, and inquiries/payments are
+    // admin-only under RLS, so this always returned null and this whole
+    // function has been silently doing nothing in production since the day
+    // it shipped: every real CEO signature has actually sent zero email
+    // and zero SMS. Fixed to the same getServiceClient() pattern every
+    // other read-only notification function in this file already uses
+    // (sendPaymentReminderFn's own doc comment already named this exact bug
+    // as a known, undone fix).
+    const service = getServiceClient();
+
     // 1. Fetch details from database
-    const { data: inquiry } = (await supabase
+    const { data: inquiry } = (await service
       .from("inquiries")
       .select("*")
       .eq("id", data.inquiryId)
@@ -424,7 +435,7 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
       return { success: false, error: "Inquiry not found" };
     }
 
-    const { data: payment } = (await supabase
+    const { data: payment } = (await service
       .from("payments")
       .select("*")
       .eq("inquiry_id", data.inquiryId)
@@ -439,31 +450,48 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
       (typeof process !== "undefined" && process.env.SITE_URL) || "https://gatepathrealtors.com";
     const agreementUrl = `${siteBaseUrl}/document/agreement/${data.inquiryId}`;
 
+    // Both nullable per types.ts — a null here previously rendered the
+    // literal string "null" straight into the customer's email/SMS
+    // ("Plot #null", "...at null has been signed").
+    const plotLabel =
+      inquiry.plot_number_ref != null ? `Plot #${inquiry.plot_number_ref}` : "your plot";
+    const phaseLabel = inquiry.phase_name || "your project";
+
     // Generate HTML
     const emailHtml = getAgreementSignedEmailHtml({
       buyerName: inquiry.client_full_name,
-      plotNumber: String(inquiry.plot_number_ref),
-      phaseName: inquiry.phase_name || "",
+      plotNumber: inquiry.plot_number_ref != null ? String(inquiry.plot_number_ref) : "—",
+      phaseName: phaseLabel,
       agreementUrl: agreementUrl,
     });
 
-    const subject = `Agreement Signed: Plot #${inquiry.plot_number_ref} — ${inquiry.phase_name}`;
+    const subject = `Agreement Signed: ${plotLabel} — ${phaseLabel}`;
 
     // 2. Send Email
     const emailResult = await sendResendEmail(inquiry.client_email, subject, emailHtml);
 
     // 3. Send SMS
-    const smsMessage = `Hello ${inquiry.client_full_name}, your Purchase Agreement for Plot #${inquiry.plot_number_ref} at ${inquiry.phase_name} has been signed by the CEO. View/download here: ${agreementUrl}`;
+    const smsMessage = `Hello ${inquiry.client_full_name}, your Purchase Agreement for ${plotLabel} at ${phaseLabel} has been signed by the CEO. View/download here: ${agreementUrl}`;
     const smsResult = await sendAfricaTalkingSms(inquiry.client_phone, smsMessage);
 
+    if (!emailResult.success || !smsResult.success) {
+      console.error(
+        `[Notifications] Agreement-signed notification partially/fully failed for inquiry ${data.inquiryId}:`,
+        { emailResult, smsResult },
+      );
+    }
+
     if (payment) {
-      await (supabase as any)
+      const { error: updateErr } = await (service as any)
         .from("agreements")
         .update({
           email_sent: emailResult.success,
           sms_sent: smsResult.success,
         })
         .eq("payment_id", payment.id);
+      if (updateErr) {
+        console.error("[Notifications] Failed to record email_sent/sms_sent:", updateErr);
+      }
     }
 
     return { success: true, emailResult, smsResult };
