@@ -71,7 +71,7 @@ export async function sendAfricaTalkingSms(
     // opaque SyntaxError instead of surfacing the real reason. Read as text
     // first, parse if possible, and always log the real body either way.
     const rawBody = await response.text();
-    let data: unknown;
+    let data: any;
     try {
       data = JSON.parse(rawBody);
     } catch {

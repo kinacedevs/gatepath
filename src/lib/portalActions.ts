@@ -85,9 +85,22 @@ export const requestPortalOtpFn = createServerFn({ method: "POST" })
     const otpHash = await hashOtp(otp, email);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS).toISOString();
 
-    await (service as any)
+    const { error: insertErr } = await (service as any)
       .from("client_otps")
       .insert({ email, phone, otp_code: otpHash, expires_at: expiresAt, attempts: 0 });
+
+    if (insertErr) {
+      // Never silently proceed to send a code that can't be verified — this
+      // exact failure mode (insert error ignored, real SMS/email sent anyway)
+      // is what caused every portal OTP to be unverifiable until migration
+      // 0036 widened otp_code from varchar(6) to text.
+      console.error("[Portal] Failed to persist OTP record:", insertErr);
+      return {
+        success: false as const,
+        error:
+          "Couldn't generate your verification code. Please try again shortly or contact support.",
+      };
+    }
 
     const [emailResult, smsResult] = await Promise.all([
       sendResendEmail(
