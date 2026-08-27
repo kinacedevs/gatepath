@@ -442,52 +442,69 @@ function ClientPortalPage() {
       return;
     }
 
-    const handler = (window as any).PaystackPop.setup({
-      key: PAYSTACK_KEY,
-      email: payingInquiry.client_email,
-      amount: payAmount * 100,
-      currency: "KES",
-      ref: `INST-${payingInquiry.id.slice(0, 8)}-${Date.now()}`,
-      // Module 3 audit finding: without this, an abandoned-tab installment
-      // payment would be unrecoverable even by the new Paystack webhook —
-      // it has no other way to resolve which inquiry a bare reference
-      // belongs to. Matches the same fix in payment.tsx's initial-deposit
-      // charge.
-      metadata: { inquiry_id: payingInquiry.id },
-      callback: async (response: any) => {
-        try {
-          const result = await (verifyPaymentFn as any)({
-            data: { reference: response.reference, inquiryId: payingInquiry.id },
-          });
+    // Neither PaystackPop.setup() nor handler.openIframe() were ever
+    // wrapped in try/catch — if either throws (a malformed param, the SDK
+    // rejecting something about this specific inquiry/amount, a script
+    // load race), onClose never fires (the popup never existed to close),
+    // and payProcessing stays stuck true forever with no error shown at
+    // all — a real user-reported symptom ("loading a lot instead of
+    // giving the payment interface"). Every other async step in this same
+    // handler already resets payProcessing on failure; this was the one
+    // gap.
+    try {
+      const handler = (window as any).PaystackPop.setup({
+        key: PAYSTACK_KEY,
+        email: payingInquiry.client_email,
+        amount: payAmount * 100,
+        currency: "KES",
+        ref: `INST-${payingInquiry.id.slice(0, 8)}-${Date.now()}`,
+        // Module 3 audit finding: without this, an abandoned-tab installment
+        // payment would be unrecoverable even by the new Paystack webhook —
+        // it has no other way to resolve which inquiry a bare reference
+        // belongs to. Matches the same fix in payment.tsx's initial-deposit
+        // charge.
+        metadata: { inquiry_id: payingInquiry.id },
+        callback: async (response: any) => {
+          try {
+            const result = await (verifyPaymentFn as any)({
+              data: { reference: response.reference, inquiryId: payingInquiry.id },
+            });
 
-          if (!result?.success) {
-            setPayError(
-              result?.error ||
-                `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
+            if (!result?.success) {
+              setPayError(
+                result?.error ||
+                  `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
+              );
+              setPayProcessing(false);
+              return;
+            }
+
+            setPaySuccessMsg(
+              `Payment of Ksh ${payAmount.toLocaleString()} confirmed! Reference: ${response.reference}`,
             );
             setPayProcessing(false);
-            return;
+            setPayingInquiry(null);
+            await fetchClientData(sessionToken);
+          } catch (err: any) {
+            console.error("[Portal] Installment verify failed:", err);
+            setPayError(
+              `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
+            );
+            setPayProcessing(false);
           }
-
-          setPaySuccessMsg(
-            `Payment of Ksh ${payAmount.toLocaleString()} confirmed! Reference: ${response.reference}`,
-          );
+        },
+        onClose: () => {
           setPayProcessing(false);
-          setPayingInquiry(null);
-          await fetchClientData(sessionToken);
-        } catch (err: any) {
-          console.error("[Portal] Installment verify failed:", err);
-          setPayError(
-            `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
-          );
-          setPayProcessing(false);
-        }
-      },
-      onClose: () => {
-        setPayProcessing(false);
-      },
-    });
-    handler.openIframe();
+        },
+      });
+      handler.openIframe();
+    } catch (err: any) {
+      console.error("[Portal] Failed to open Paystack checkout:", err);
+      setPayError(
+        "Could not open the payment window. Please refresh the page and try again, or contact us if this keeps happening.",
+      );
+      setPayProcessing(false);
+    }
   };
 
   // Opens a staff-uploaded vault document (Module 7) in a new tab via a
