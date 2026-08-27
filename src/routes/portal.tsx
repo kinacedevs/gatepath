@@ -464,34 +464,41 @@ function ClientPortalPage() {
         // belongs to. Matches the same fix in payment.tsx's initial-deposit
         // charge.
         metadata: { inquiry_id: payingInquiry.id },
-        callback: async (response: any) => {
-          try {
-            const result = await (verifyPaymentFn as any)({
-              data: { reference: response.reference, inquiryId: payingInquiry.id },
-            });
+        // Paystack's inline.js validates that `callback` is a plain
+        // Function, not an AsyncFunction — an `async (response) => {}`
+        // here throws "Attribute callback must be a valid function" from
+        // inside Paystack's own validateInputTypes, before the popup ever
+        // opens (confirmed live via the browser console). payment.tsx's
+        // own working callback is a plain function using .then()/.catch()
+        // for exactly this reason — matched here.
+        callback: (response: any) => {
+          (verifyPaymentFn as any)({
+            data: { reference: response.reference, inquiryId: payingInquiry.id },
+          })
+            .then((result: any) => {
+              if (!result?.success) {
+                setPayError(
+                  result?.error ||
+                    `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
+                );
+                setPayProcessing(false);
+                return;
+              }
 
-            if (!result?.success) {
-              setPayError(
-                result?.error ||
-                  `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
+              setPaySuccessMsg(
+                `Payment of Ksh ${payAmount.toLocaleString()} confirmed! Reference: ${response.reference}`,
               );
               setPayProcessing(false);
-              return;
-            }
-
-            setPaySuccessMsg(
-              `Payment of Ksh ${payAmount.toLocaleString()} confirmed! Reference: ${response.reference}`,
-            );
-            setPayProcessing(false);
-            setPayingInquiry(null);
-            await fetchClientData(sessionToken);
-          } catch (err: any) {
-            console.error("[Portal] Installment verify failed:", err);
-            setPayError(
-              `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
-            );
-            setPayProcessing(false);
-          }
+              setPayingInquiry(null);
+              fetchClientData(sessionToken);
+            })
+            .catch((err: any) => {
+              console.error("[Portal] Installment verify failed:", err);
+              setPayError(
+                `We couldn't confirm this payment. If money left your account, contact us with reference: ${response.reference}`,
+              );
+              setPayProcessing(false);
+            });
         },
         onClose: () => {
           setPayProcessing(false);
