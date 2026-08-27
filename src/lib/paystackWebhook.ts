@@ -1,11 +1,16 @@
 /**
  * Gatepath Realtors — Real Paystack Webhook (Module 3 / Phase 2a)
  *
- * SERVER-ONLY. Imported exclusively by src/server.ts, dispatched before
- * the TanStack SSR handler — same import-graph discipline as
- * apiRoutes.ts, and for the same reason: this file's call path reaches
- * getServiceClient() (via recordVerifiedPayment), which must never be
- * reachable from client-bundled code.
+ * SERVER-ONLY. Imported exclusively by src/server.ts (and, for unit
+ * testing only, paystackWebhook.test.ts — Vitest runs in Node with its own
+ * module graph, never bundled into dist/client, so this doesn't violate
+ * the rule below), dispatched before the TanStack SSR handler — same
+ * import-graph discipline as apiRoutes.ts, and for the same reason: this
+ * file's call path reaches getServiceClient() (via recordVerifiedPayment),
+ * which must never be reachable from client-bundled code.
+ * computeSignature/constantTimeEqual are exported solely so the test file
+ * can exercise them directly — neither is called from anywhere but this
+ * file's own handler.
  *
  * Closes the one gap docs/SECURITY_HARDENING.md flagged as still open:
  * "the edge case where a buyer's money leaves their account but they
@@ -44,7 +49,7 @@ function jsonResponse(body: unknown, status = 200): Response {
  * guaranteed byte-identical to what was actually sent (key order,
  * whitespace, number formatting can all differ), risking false-negative
  * signature mismatches. */
-async function computeSignature(rawBody: string, secretKey: string): Promise<string> {
+export async function computeSignature(rawBody: string, secretKey: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -61,7 +66,7 @@ async function computeSignature(rawBody: string, secretKey: string): Promise<str
 
 /** Constant-time comparison — a plain === leaks timing information about
  * how many leading bytes matched, which matters for a signature check. */
-function constantTimeEqual(a: string, b: string): boolean {
+export function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let mismatch = 0;
   for (let i = 0; i < a.length; i++) {
