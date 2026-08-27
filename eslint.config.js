@@ -6,7 +6,14 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  // design-refs/ is old Figma/mockup reference source (Billion Dollar
+  // Project Strategy, figma-make) kept for design context — never part of
+  // the shipped app, never built or bundled. Linting it was pure noise
+  // (nearly 5,000 errors across unmaintained reference code) that would
+  // have masked any real issue in the actual codebase and, if CI ever got
+  // past whatever currently fails it earlier, would have failed the lint
+  // step on files nobody intends to fix.
+  { ignores: ["dist", ".output", ".vinxi", "design-refs"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
