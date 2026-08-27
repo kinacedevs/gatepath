@@ -41,6 +41,7 @@ function OfferDocumentPage() {
     inquiry: Inquiry;
     payment: Payment | null;
     offer: Offer | null;
+    totalPaid: number;
   } | null>(null);
 
   useEffect(() => {
@@ -84,13 +85,27 @@ function OfferDocumentPage() {
           .limit(1)
           .maybeSingle();
 
+        // inquiries.balance is only ever written at the FIRST payment
+        // (paymentActions.ts's pricing lock-in) and never updated again for
+        // later installments — the real, current balance is always price
+        // minus everything actually paid so far, computed live.
+        const { data: allPayments } = await (supabase as any)
+          .from("payments")
+          .select("amount")
+          .eq("inquiry_id", inquiry.id)
+          .eq("status", "success");
+        const totalPaid = ((allPayments || []) as { amount: number }[]).reduce(
+          (sum, p) => sum + Number(p.amount),
+          0,
+        );
+
         const { data: offer } = await (supabase as any)
           .from("offers")
           .select("*")
           .eq("inquiry_id", inquiry.id)
           .maybeSingle();
 
-        setData({ inquiry, payment: payment || null, offer: offer || null });
+        setData({ inquiry, payment: payment || null, offer: offer || null, totalPaid });
       } catch (err: any) {
         setError(err.message || "Failed to load document.");
       } finally {
@@ -132,7 +147,7 @@ function OfferDocumentPage() {
     );
   }
 
-  const { inquiry, payment, offer } = data;
+  const { inquiry, payment, offer, totalPaid } = data;
   const isCeoSigned = offer?.ceo_signed || false;
 
   const handlePrint = () => window.print();
@@ -149,9 +164,8 @@ function OfferDocumentPage() {
   }`;
   const price = inquiry.price ?? 0;
   const discount = inquiry.discount ?? 0;
-  const balance =
-    inquiry.balance ?? Math.max(price - discount - (inquiry.deposit ?? payment?.amount ?? 0), 0);
-  const depositAmount = inquiry.deposit ?? payment?.amount ?? 0;
+  const balance = Math.max(price - discount - totalPaid, 0);
+  const depositAmount = payment?.amount ?? inquiry.deposit ?? 0;
   const isInstallment = inquiry.terms_of_payment === "installment";
 
   return (

@@ -42,6 +42,7 @@ function AgreementDocumentPage() {
     inquiry: Inquiry;
     payment: Payment | null;
     agreement: Agreement | null;
+    totalPaid: number;
   } | null>(null);
 
   useEffect(() => {
@@ -89,13 +90,30 @@ function AgreementDocumentPage() {
           .limit(1)
           .maybeSingle();
 
+        // inquiries.balance/deposit are only ever written once, at the
+        // FIRST payment (paymentActions.ts's pricing lock-in) — they never
+        // update again for later installments. A buyer who has since made
+        // more payments would otherwise see this legal document print a
+        // balance that was already paid off, or even show a nonzero
+        // balance on the fully-paid Agreement itself. The real, current
+        // balance is always price minus everything actually paid so far.
+        const { data: allPayments } = await (supabase as any)
+          .from("payments")
+          .select("amount")
+          .eq("inquiry_id", inquiry.id)
+          .eq("status", "success");
+        const totalPaid = ((allPayments || []) as { amount: number }[]).reduce(
+          (sum, p) => sum + Number(p.amount),
+          0,
+        );
+
         const { data: agreement } = await (supabase as any)
           .from("agreements")
           .select("*")
           .eq("inquiry_id", inquiry.id)
           .maybeSingle();
 
-        setData({ inquiry, payment: payment || null, agreement: agreement || null });
+        setData({ inquiry, payment: payment || null, agreement: agreement || null, totalPaid });
       } catch (err: any) {
         setError(err.message || "Failed to load document.");
       } finally {
@@ -137,7 +155,7 @@ function AgreementDocumentPage() {
     );
   }
 
-  const { inquiry, payment, agreement } = data;
+  const { inquiry, payment, agreement, totalPaid } = data;
   const isCeoSigned = agreement?.ceo_signed || false;
   const isFullyPaid = !!agreement;
 
@@ -154,8 +172,12 @@ function AgreementDocumentPage() {
   const year = agreementDate.getFullYear();
 
   const price = inquiry.price ?? 0;
-  const deposit = inquiry.deposit ?? 0;
-  const balance = inquiry.balance ?? Math.max(price - deposit, 0);
+  // "Deposit" clause means the original first payment specifically — real,
+  // historically accurate, unaffected by later installments. "Balance" is
+  // what's actually still owed right now, computed live (see totalPaid
+  // above), never the frozen inquiries.balance column.
+  const deposit = payment?.amount ?? inquiry.deposit ?? 0;
+  const balance = Math.max(price - totalPaid, 0);
   const isInstallment = inquiry.terms_of_payment === "installment";
 
   return (
