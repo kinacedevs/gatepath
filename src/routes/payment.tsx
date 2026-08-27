@@ -48,6 +48,15 @@ function PaymentPage() {
   );
   const [method, setMethod] = useState(form.paymentMethod || "mpesa");
   const [verifying, setVerifying] = useState(false);
+  // Real bug found via live testing: the Pay button only disabled itself
+  // from inside Paystack's own callback, which fires AFTER a popup
+  // completes — it stayed clickable the whole time a popup was open, so
+  // clicking it again (or reopening after closing without paying) created
+  // a genuinely separate Paystack charge each time. 3 successful, separate
+  // deposit charges landed on one real test inquiry this way. This flag is
+  // set the instant Pay is clicked, before the popup even opens, and only
+  // clears on cancel or once the verify cycle fully resolves.
+  const [paymentInFlight, setPaymentInFlight] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -85,6 +94,7 @@ function PaymentPage() {
   const isFullPayment = deposit >= adjustedPrice;
 
   const handlePay = () => {
+    if (paymentInFlight) return;
     setForm({ depositAmount: deposit, loanPeriod: period, paymentMethod: method });
     if (typeof PaystackPop === "undefined") {
       alert("Payment system loading. Please try again in a moment.");
@@ -95,6 +105,7 @@ function PaymentPage() {
       return;
     }
     setVerifyError(null);
+    setPaymentInFlight(true);
 
     // Map our method selection to Paystack channel slugs
     const channels =
@@ -141,6 +152,7 @@ function PaymentPage() {
           .then((result: any) => {
             setVerifying(false);
             if (!result?.success) {
+              setPaymentInFlight(false);
               setVerifyError(
                 result?.error ||
                   "We couldn't confirm your payment. If money left your account, contact us on WhatsApp with your reference: " +
@@ -148,6 +160,8 @@ function PaymentPage() {
               );
               return;
             }
+            // Success navigates away — no need to reset paymentInFlight,
+            // this component is leaving.
             navigate({
               to: "/thank-you",
               search: { inquiryId: form.inquiryId },
@@ -155,6 +169,7 @@ function PaymentPage() {
           })
           .catch((err: any) => {
             setVerifying(false);
+            setPaymentInFlight(false);
             setVerifyError(
               "We couldn't confirm your payment. If money left your account, contact us on WhatsApp with your reference: " +
                 response.reference,
@@ -163,7 +178,8 @@ function PaymentPage() {
           });
       },
       onClose: () => {
-        // user cancelled
+        // User cancelled the popup without paying — safe to let them retry.
+        setPaymentInFlight(false);
       },
     });
     handler.openIframe();
@@ -826,7 +842,7 @@ function PaymentPage() {
 
                   <button
                     onClick={handlePay}
-                    disabled={verifying}
+                    disabled={verifying || paymentInFlight}
                     className="mt-5"
                     style={{
                       width: "100%",
@@ -838,13 +854,15 @@ function PaymentPage() {
                       padding: "18px 0",
                       borderRadius: 8,
                       border: "none",
-                      cursor: verifying ? "not-allowed" : "pointer",
-                      opacity: verifying ? 0.7 : 1,
+                      cursor: verifying || paymentInFlight ? "not-allowed" : "pointer",
+                      opacity: verifying || paymentInFlight ? 0.7 : 1,
                     }}
                   >
                     {verifying
                       ? "Confirming your payment…"
-                      : `Pay Ksh ${deposit.toLocaleString()} Securely →`}
+                      : paymentInFlight
+                        ? "Processing…"
+                        : `Pay Ksh ${deposit.toLocaleString()} Securely →`}
                   </button>
                   <div
                     style={{
