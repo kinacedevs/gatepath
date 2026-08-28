@@ -440,6 +440,19 @@ export type MessageTemplate = {
   updated_at: string;
 };
 
+export type KnowledgeBaseArticle = {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  is_published: boolean;
+  display_order: number;
+  created_by_email: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -651,6 +664,11 @@ export type Database = {
         Row: CustomFieldDefinition;
         Insert: Omit<CustomFieldDefinition, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<CustomFieldDefinition, "id" | "created_at" | "updated_at">>;
+      };
+      knowledge_base_articles: {
+        Row: KnowledgeBaseArticle;
+        Insert: Omit<KnowledgeBaseArticle, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<KnowledgeBaseArticle, "id" | "created_at" | "updated_at">>;
       };
     };
     Views: {

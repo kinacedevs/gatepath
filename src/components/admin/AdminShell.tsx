@@ -35,6 +35,7 @@ import {
   Share2,
   Smartphone,
   Webhook,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
@@ -99,6 +100,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/campaigns", label: "Campaigns & Blog", icon: Megaphone },
       { to: "/admin/site-content", label: "Site Content", icon: Globe },
+      { to: "/admin/knowledge-base", label: "Knowledge Base", icon: BookOpen },
       { to: "/admin/data-governance", label: "Data Governance", icon: ShieldCheck },
       { to: "/admin/integrations", label: "Integrations & API", icon: Webhook },
       { to: "/admin/staff", label: "Staff Accounts", icon: UserCheck },
