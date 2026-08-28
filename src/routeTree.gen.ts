@@ -43,6 +43,7 @@ import { Route as AdminPlotsRouteImport } from './routes/admin.plots'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMeetingsRouteImport } from './routes/admin.meetings'
 import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
+import { Route as AdminKnowledgeBaseRouteImport } from './routes/admin.knowledge-base'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin.integrations'
 import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
 import { Route as AdminInquiriesRouteImport } from './routes/admin.inquiries'
@@ -233,6 +234,11 @@ const AdminLeadsRoute = AdminLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminKnowledgeBaseRoute = AdminKnowledgeBaseRouteImport.update({
+  id: '/knowledge-base',
+  path: '/knowledge-base',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
   id: '/integrations',
   path: '/integrations',
@@ -356,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/knowledge-base': typeof AdminKnowledgeBaseRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
@@ -409,6 +416,7 @@ export interface FileRoutesByTo {
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/knowledge-base': typeof AdminKnowledgeBaseRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
@@ -464,6 +472,7 @@ export interface FileRoutesById {
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/knowledge-base': typeof AdminKnowledgeBaseRoute
   '/admin/leads': typeof AdminLeadsRoute
   '/admin/meetings': typeof AdminMeetingsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
@@ -520,6 +529,7 @@ export interface FileRouteTypes {
     | '/admin/inquiries'
     | '/admin/installments'
     | '/admin/integrations'
+    | '/admin/knowledge-base'
     | '/admin/leads'
     | '/admin/meetings'
     | '/admin/notifications'
@@ -573,6 +583,7 @@ export interface FileRouteTypes {
     | '/admin/inquiries'
     | '/admin/installments'
     | '/admin/integrations'
+    | '/admin/knowledge-base'
     | '/admin/leads'
     | '/admin/meetings'
     | '/admin/notifications'
@@ -627,6 +638,7 @@ export interface FileRouteTypes {
     | '/admin/inquiries'
     | '/admin/installments'
     | '/admin/integrations'
+    | '/admin/knowledge-base'
     | '/admin/leads'
     | '/admin/meetings'
     | '/admin/notifications'
@@ -917,6 +929,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLeadsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/knowledge-base': {
+      id: '/admin/knowledge-base'
+      path: '/knowledge-base'
+      fullPath: '/admin/knowledge-base'
+      preLoaderRoute: typeof AdminKnowledgeBaseRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/integrations': {
       id: '/admin/integrations'
       path: '/integrations'
@@ -1073,6 +1092,7 @@ interface AdminRouteChildren {
   AdminInquiriesRoute: typeof AdminInquiriesRoute
   AdminInstallmentsRoute: typeof AdminInstallmentsRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
+  AdminKnowledgeBaseRoute: typeof AdminKnowledgeBaseRoute
   AdminLeadsRoute: typeof AdminLeadsRoute
   AdminMeetingsRoute: typeof AdminMeetingsRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
@@ -1103,6 +1123,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminInquiriesRoute: AdminInquiriesRoute,
   AdminInstallmentsRoute: AdminInstallmentsRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
+  AdminKnowledgeBaseRoute: AdminKnowledgeBaseRoute,
   AdminLeadsRoute: AdminLeadsRoute,
   AdminMeetingsRoute: AdminMeetingsRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
