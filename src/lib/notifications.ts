@@ -666,3 +666,78 @@ export const sendPaymentReminderFn = createServerFn({ method: "POST" })
 
     return { success: true, emailResult, smsResult, balance };
   });
+
+/**
+ * Real "Email Notifications" staff preference (migration 0040, closes one
+ * of the two "Coming Soon" toggles in /admin/settings). Emails every
+ * admin_users row with email_notifications_enabled = true — a staff-wide
+ * activity feed, not per-assignment, matching how a small team actually
+ * wants to see this ("alert on new bookings & payments", not "alert the
+ * one agent it's assigned to" — assignment already has its own separate
+ * signal on the Leads Kanban).
+ *
+ * Deliberately swallows its own errors — called as a side effect from
+ * inside createFreeSiteVisitBookingFn/recordVerifiedPayment, and a
+ * notification failure must never be allowed to undo or fail the real
+ * booking/payment operation it's reporting on (same reasoning already
+ * applied to recordVerifiedPayment's own client-facing confirmation send).
+ */
+export async function notifyOptedInAdmins(subject: string, html: string): Promise<void> {
+  try {
+    const service = getServiceClient();
+    const { data: admins, error } = await (service as any)
+      .from("admin_users")
+      .select("email")
+      .eq("email_notifications_enabled", true);
+
+    if (error) {
+      console.error("[Notifications] Failed to look up opted-in admins:", error);
+      return;
+    }
+    if (!admins || admins.length === 0) return;
+
+    const results = await Promise.all(
+      admins.map((a: { email: string }) => sendResendEmail(a.email, subject, html)),
+    );
+    const failures = results.filter((r) => !r.success);
+    if (failures.length > 0) {
+      console.error(
+        `[Notifications] ${failures.length}/${admins.length} admin email-notification sends failed:`,
+        failures,
+      );
+    }
+  } catch (err) {
+    console.error("[Notifications] notifyOptedInAdmins threw:", err);
+  }
+}
+
+/**
+ * Lets a staff member control their own email_notifications_enabled flag —
+ * self-service, no role gate needed (identical reasoning to any other
+ * "my own preference" toggle). Same caller-verification pattern as every
+ * other server function in this codebase: re-resolves the caller's real
+ * admin_users row from their access token, never trusts a client-asserted
+ * identity.
+ */
+export const saveEmailNotificationPreferenceFn = createServerFn({ method: "POST" })
+  .validator((d: { callerAccessToken: string; enabled: boolean }) => d)
+  .handler(async ({ data }) => {
+    const anonClient = getAnonClient();
+    const { data: callerData, error: callerErr } = await anonClient.auth.getUser(
+      data.callerAccessToken,
+    );
+    if (callerErr || !callerData.user?.email) {
+      return { success: false, error: "Not authenticated." };
+    }
+
+    const service = getServiceClient();
+    const { error } = await (service as any)
+      .from("admin_users")
+      .update({ email_notifications_enabled: data.enabled })
+      .eq("email", callerData.user.email.toLowerCase());
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  });

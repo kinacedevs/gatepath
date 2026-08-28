@@ -33,6 +33,7 @@ import {
   deactivatePipelineStageFn,
 } from "@/lib/pipelineLabelsActions";
 import { saveMessageTemplateFn, resetMessageTemplateFn } from "@/lib/messageTemplateActions";
+import { saveEmailNotificationPreferenceFn } from "@/lib/notifications";
 import { saveFxRatesFn } from "@/lib/fxRateActions";
 import { exportTableCsvFn } from "@/lib/dataExportActions";
 import {
@@ -112,6 +113,10 @@ function SystemSettings() {
   const [exportingTable, setExportingTable] = useState<string | null>(null);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
 
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(false);
+  const [emailNotifSaving, setEmailNotifSaving] = useState(false);
+  const [emailNotifMsg, setEmailNotifMsg] = useState<string | null>(null);
+
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
@@ -130,12 +135,20 @@ function SystemSettings() {
 
   const loadData = async () => {
     setLoading(true);
-    const [bannersRes, templatesRes, customFieldsRes, pipelineStagesRes] = await Promise.all([
-      supabase.from("site_banners").select("*").in("id", ["pipeline_labels", "fx_rates"]),
-      supabase.from("message_templates").select("*").order("name"),
-      supabase.from("custom_field_definitions").select("*").order("display_order"),
-      supabase.from("pipeline_stages").select("*").order("display_order"),
-    ]);
+    const [bannersRes, templatesRes, customFieldsRes, pipelineStagesRes, myPrefsRes] =
+      await Promise.all([
+        supabase.from("site_banners").select("*").in("id", ["pipeline_labels", "fx_rates"]),
+        supabase.from("message_templates").select("*").order("name"),
+        supabase.from("custom_field_definitions").select("*").order("display_order"),
+        supabase.from("pipeline_stages").select("*").order("display_order"),
+        supabase
+          .from("admin_users")
+          .select("email_notifications_enabled")
+          .eq("email", sessionUser.email.toLowerCase())
+          .maybeSingle(),
+      ]);
+
+    setEmailNotificationsEnabled(Boolean((myPrefsRes.data as any)?.email_notifications_enabled));
 
     const banners = (bannersRes.data as { id: string; data: any }[]) ?? [];
     const labelBanner = banners.find((b) => b.id === "pipeline_labels");
@@ -175,6 +188,32 @@ function SystemSettings() {
       setPipelineMsg("Something went wrong: " + (err?.message || "Unknown error."));
     } finally {
       setPipelineSaving(false);
+    }
+  };
+
+  const toggleEmailNotifications = async () => {
+    if (emailNotifSaving) return;
+    const next = !emailNotificationsEnabled;
+    setEmailNotifSaving(true);
+    setEmailNotifMsg(null);
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setEmailNotifMsg("Your session expired — please sign in again.");
+        return;
+      }
+      const result = await (saveEmailNotificationPreferenceFn as any)({
+        data: { callerAccessToken: token, enabled: next },
+      });
+      if (!result.success) {
+        setEmailNotifMsg("Error: " + result.error);
+        return;
+      }
+      setEmailNotificationsEnabled(next);
+    } catch (err: any) {
+      setEmailNotifMsg("Something went wrong: " + (err?.message || "Unknown error."));
+    } finally {
+      setEmailNotifSaving(false);
     }
   };
 
@@ -569,12 +608,26 @@ function SystemSettings() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5">
-                    <StatusBadge tone="neutral">Coming soon</StatusBadge>
-                    <div className="w-11 h-6 rounded-full bg-accent/40 relative cursor-not-allowed">
-                      <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 right-0.5 shadow-sm" />
-                    </div>
+                    {emailNotifSaving && <Loader2 size={14} className="animate-spin text-accent" />}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={emailNotificationsEnabled}
+                      disabled={emailNotifSaving}
+                      onClick={toggleEmailNotifications}
+                      className={`w-11 h-6 rounded-full relative transition-colors disabled:opacity-60 ${
+                        emailNotificationsEnabled ? "bg-accent" : "bg-outline-variant/40"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white absolute top-0.5 shadow-sm transition-all ${
+                          emailNotificationsEnabled ? "right-0.5" : "left-0.5"
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
+                {emailNotifMsg && <p className="text-xs text-error -mt-2">{emailNotifMsg}</p>}
               </div>
             </SectionCard>
           </div>

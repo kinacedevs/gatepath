@@ -13,6 +13,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
+import { notifyOptedInAdmins } from "./notifications";
 
 export const updateBookingFn = createServerFn({ method: "POST" })
   .validator(
@@ -142,6 +143,22 @@ export const createFreeSiteVisitBookingFn = createServerFn({ method: "POST" })
 
     if (error) {
       return { success: false, error: error.message };
+    }
+
+    // Real "Email Notifications" staff preference (migration 0040) — fire
+    // after the booking is safely committed, never before, and never
+    // allowed to affect the response (notifyOptedInAdmins swallows its
+    // own errors).
+    const { data: inquiry } = await (serviceClient as any)
+      .from("inquiries")
+      .select("client_full_name, phase_name, plot_number_ref")
+      .eq("id", data.inquiryId)
+      .maybeSingle();
+    if (inquiry) {
+      await notifyOptedInAdmins(
+        `New Site Visit Booked: ${inquiry.client_full_name}`,
+        `<p><strong>${inquiry.client_full_name}</strong> booked a site visit${data.visitDate ? ` for ${data.visitDate}${data.visitTime ? ` (${data.visitTime})` : ""}` : ""} — Plot #${inquiry.plot_number_ref ?? "—"} at ${inquiry.phase_name ?? "—"}.</p>`,
+      );
     }
 
     return { success: true };

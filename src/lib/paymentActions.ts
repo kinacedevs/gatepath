@@ -13,7 +13,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getServiceClient } from "./supabaseAdmin";
-import { sendResendEmail, sendAfricaTalkingSms, getReservationEmailHtml } from "./notifications";
+import {
+  sendResendEmail,
+  sendAfricaTalkingSms,
+  getReservationEmailHtml,
+  notifyOptedInAdmins,
+} from "./notifications";
 import { recomputePhaseCounts } from "./plotActions";
 import { computeInstallmentPricing } from "./pricing";
 import { fetchWithRetry } from "./httpRetry";
@@ -338,6 +343,14 @@ export async function recordVerifiedPayment(params: {
     // Notification failure must never undo an already-verified payment.
     console.error("[Payment] Notification dispatch failed:", err);
   }
+
+  // Real "Email Notifications" staff preference (migration 0040) — its own
+  // internal try/catch (notifyOptedInAdmins) already keeps this from ever
+  // affecting the payment result.
+  await notifyOptedInAdmins(
+    `New Payment: Ksh ${amountKes.toLocaleString()} — ${inquiry.client_full_name}`,
+    `<p><strong>${inquiry.client_full_name}</strong> paid <strong>Ksh ${amountKes.toLocaleString()}</strong> for Plot #${inquiry.plot_number_ref ?? "—"} at ${inquiry.phase_name ?? "—"}. Reference: ${params.reference}.</p>`,
+  );
 
   return { success: true as const, payment, plotWarning };
 }
