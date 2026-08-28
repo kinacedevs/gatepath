@@ -175,7 +175,9 @@ function InquiriesQueue() {
 
       alert("Purchase Agreement successfully signed digitally by CEO!");
 
-      (sendAgreementSignedNotificationFn as any)({ data: { inquiryId } }).catch((err: any) => {
+      (sendAgreementSignedNotificationFn as any)({
+        data: { callerAccessToken: accessToken, inquiryId },
+      }).catch((err: any) => {
         console.error("[Gatepath CEO Sign] Notification error:", err);
       });
 

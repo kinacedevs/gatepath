@@ -7,6 +7,22 @@ import { supabase } from "./supabase";
 import { getServiceClient, getAnonClient } from "./supabaseAdmin";
 import { getTemplateOrDefault, renderTemplate } from "./messageTemplateActions";
 import { fetchWithRetry } from "./httpRetry";
+import { checkAndRecordRateLimit } from "./rateLimiter";
+
+/** Minimal HTML-entity escape for values interpolated into an email/SMS
+ * template. Used specifically where the value ultimately traces back to a
+ * publicly-writable field (inquiries is anon-insertable — see the GP-020
+ * audit finding) even after the caller-controlled-relay fix below, so a
+ * malicious inquiry's own name/phase fields still can't inject markup into
+ * an email sent from Gatepath's authentic domain. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 // Neither Resend nor Africa's Talking's own APIs offer an idempotency key,
 // so a retry can only be trusted when we're CERTAIN the provider never
@@ -384,9 +400,30 @@ export function getAgreementSignedEmailHtml(params: {
  * Server Function: Dispatches agreement signed notifications
  */
 export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST" })
-  .validator((d: { inquiryId: string }) => d)
+  .validator((d: { callerAccessToken: string; inquiryId: string }) => d)
   .handler(async ({ data }) => {
     console.log("[Notification ServerFn] Processing agreement signed notification...");
+
+    // Security fix (GP-016, audit Phase 3): this function had no caller
+    // credential at all — anyone holding an inquiry UUID could force a
+    // "your Purchase Agreement has been signed by the CEO" email/SMS to a
+    // real buyer (a false legal-status claim from Gatepath's own authentic
+    // sender, since it never actually checked agreements.ceo_signed),
+    // mutate agreements.email_sent/sms_sent with no authorization, and use
+    // the found/not-found response as an existence oracle for inquiry ids.
+    // The real call site (admin.inquiries.tsx's handleCeoSignature) already
+    // only fires this after signAgreementFn's own verifyCeoCaller check
+    // succeeds, but that ordering was never enforced here — only assumed.
+    // Now requires the same staff-caller verification sendPaymentReminderFn
+    // (below) already uses, and independently re-confirms ceo_signed is
+    // actually true server-side before sending anything.
+    const anonClient = getAnonClient();
+    const { data: callerData, error: callerErr } = await anonClient.auth.getUser(
+      data.callerAccessToken,
+    );
+    if (callerErr || !callerData.user?.email) {
+      return { success: false, error: "Not authenticated." };
+    }
 
     // Was reading via the plain anon `supabase` client — server functions
     // have no authenticated user context, and inquiries/payments are
@@ -399,6 +436,15 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
     // as a known, undone fix).
     const service = getServiceClient();
 
+    const { data: callerRow } = await service
+      .from("admin_users")
+      .select("id")
+      .eq("email", callerData.user.email.toLowerCase())
+      .maybeSingle();
+    if (!callerRow) {
+      return { success: false, error: "Not recognised as Gatepath staff." };
+    }
+
     // 1. Fetch details from database
     const { data: inquiry } = (await service
       .from("inquiries")
@@ -406,15 +452,18 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
       .eq("id", data.inquiryId)
       .maybeSingle()) as { data: import("./types").Inquiry | null; error: any };
 
-    if (!inquiry) {
-      return { success: false, error: "Inquiry not found" };
-    }
-
-    const { data: payment } = (await service
-      .from("payments")
-      .select("*")
+    const { data: agreement } = await (service as any)
+      .from("agreements")
+      .select("id, ceo_signed")
       .eq("inquiry_id", data.inquiryId)
-      .maybeSingle()) as { data: import("./types").Payment | null; error: any };
+      .maybeSingle();
+
+    // One merged message for "doesn't exist" and "isn't actually signed" —
+    // distinguishing them would leak inquiry-id existence to any staff
+    // caller (GP-023's same pattern), and neither case has anything to send.
+    if (!inquiry || !agreement?.ceo_signed) {
+      return { success: false, error: "This agreement isn't available to notify on." };
+    }
 
     // Module 3 audit finding: this was hardcoded to http://localhost:5173,
     // so this exact email link was broken for every real recipient. SITE_URL
@@ -456,17 +505,15 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
       );
     }
 
-    if (payment) {
-      const { error: updateErr } = await (service as any)
-        .from("agreements")
-        .update({
-          email_sent: emailResult.success,
-          sms_sent: smsResult.success,
-        })
-        .eq("payment_id", payment.id);
-      if (updateErr) {
-        console.error("[Notifications] Failed to record email_sent/sms_sent:", updateErr);
-      }
+    const { error: updateErr } = await (service as any)
+      .from("agreements")
+      .update({
+        email_sent: emailResult.success,
+        sms_sent: smsResult.success,
+      })
+      .eq("id", agreement.id);
+    if (updateErr) {
+      console.error("[Notifications] Failed to record email_sent/sms_sent:", updateErr);
     }
 
     return { success: true, emailResult, smsResult };
@@ -476,21 +523,70 @@ export const sendAgreementSignedNotificationFn = createServerFn({ method: "POST"
  * Server Function: Dispatches free site visit booking notifications
  */
 export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
-  .validator(
-    (d: {
-      buyerName: string;
-      buyerEmail: string;
-      buyerPhone: string;
-      plotNumber: string;
-      phaseName: string;
-      visitDate: string;
-      visitTime: string;
-      transportMode: string;
-      pickupLocation: string;
-    }) => d,
-  )
+  .validator((d: { bookingId: string }) => d)
   .handler(async ({ data }) => {
     console.log("[Notification ServerFn] Processing free site visit booking notification...");
+
+    // Security fix (GP-015, audit Phase 3): this function used to accept
+    // buyerName/buyerEmail/buyerPhone/plotNumber/phaseName/transportMode/
+    // pickupLocation directly from an unauthenticated caller, with no
+    // binding to a real booking — an open mail/SMS relay on Gatepath's own
+    // verified sending domain and SMS sender ID, to ANY destination the
+    // caller chose, with several fields interpolated unescaped into the
+    // email HTML. It now takes only a bookingId and re-derives every field
+    // from the real bookings + inquiries rows server-side, so the message
+    // always matches a booking that actually exists and is always sent to
+    // that booking's own real buyer. Every interpolated value is also
+    // HTML-escaped regardless of source, since inquiries is still publicly
+    // insertable at creation time (GP-020) — escaping is real defence here,
+    // not decoration. Rate-limited per booking: nothing legitimate ever
+    // triggers this more than once in quick succession.
+    const rateLimit = await checkAndRecordRateLimit(
+      `site-visit-notify:${data.bookingId}`,
+      3,
+      15 * 60,
+    );
+    if (!rateLimit.allowed) {
+      const err = { success: false as const, error: "Too many notification attempts." };
+      return { emailResult: err, smsResult: err };
+    }
+
+    const service = getServiceClient();
+
+    const { data: booking } = await (service as any)
+      .from("bookings")
+      .select("id, inquiry_id, visit_date, visit_time, transport_mode, pickup_location")
+      .eq("id", data.bookingId)
+      .maybeSingle();
+
+    const { data: inquiry } = booking
+      ? await (service as any)
+          .from("inquiries")
+          .select("client_full_name, client_email, client_phone, plot_number_ref, phase_name")
+          .eq("id", booking.inquiry_id)
+          .maybeSingle()
+      : { data: null };
+
+    if (!booking || !inquiry) {
+      const err = { success: false as const, error: "Booking not found." };
+      return { emailResult: err, smsResult: err };
+    }
+
+    const buyerName = escapeHtml(inquiry.client_full_name || "there");
+    const phaseName = escapeHtml(inquiry.phase_name || "your project");
+    const plotNumber = escapeHtml(
+      inquiry.plot_number_ref != null ? String(inquiry.plot_number_ref) : "—",
+    );
+    const transportMode = booking.transport_mode || "self";
+    const transportLabel = escapeHtml(transportMode.toUpperCase());
+    const pickupLocation = escapeHtml(
+      transportMode === "self" ? "Self Transport" : booking.pickup_location || "Self Transport",
+    );
+    const visitDate = escapeHtml(booking.visit_date || "To be confirmed");
+    const visitTimeLabel =
+      booking.visit_time === "morning"
+        ? "Morning (8:00 AM - 12:00 PM)"
+        : "Afternoon (1:00 PM - 5:00 PM)";
 
     // Generate HTML for site visit confirmation (clean table design)
     const emailHtml = `
@@ -514,7 +610,7 @@ export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
           <tr>
             <td style="padding: 40px 30px 40px 30px;">
               <p style="font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #333333;">
-                Hello <strong>${data.buyerName}</strong>,
+                Hello <strong>${buyerName}</strong>,
               </p>
               <p style="font-family: Arial, sans-serif; font-size: 14px; line-height: 22px; color: #666666; margin-bottom: 20px;">
                 Your free site visit has been scheduled successfully. Our team will contact you shortly to confirm the meeting details.
@@ -522,12 +618,12 @@ export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
               <table border="0" cellpadding="12" cellspacing="0" width="100%" style="background-color: #F8F4EE; border: 1px solid #E5E0D8; border-radius: 8px;">
                 <tr>
                   <td style="font-family: Arial, sans-serif; font-size: 14px; color: #333333;">
-                    <strong>Project:</strong> ${data.phaseName}<br/>
-                    <strong>Plot Reference:</strong> Plot #${data.plotNumber}<br/>
-                    <strong>Visit Date:</strong> ${data.visitDate}<br/>
-                    <strong>Preferred Time:</strong> ${data.visitTime === "morning" ? "Morning (8:00 AM - 12:00 PM)" : "Afternoon (1:00 PM - 5:00 PM)"}<br/>
-                    <strong>Means of Transport:</strong> ${data.transportMode.toUpperCase()}<br/>
-                    <strong>Pickup Location:</strong> ${data.pickupLocation || "Self Transport"}
+                    <strong>Project:</strong> ${phaseName}<br/>
+                    <strong>Plot Reference:</strong> Plot #${plotNumber}<br/>
+                    <strong>Visit Date:</strong> ${visitDate}<br/>
+                    <strong>Preferred Time:</strong> ${visitTimeLabel}<br/>
+                    <strong>Means of Transport:</strong> ${transportLabel}<br/>
+                    <strong>Pickup Location:</strong> ${pickupLocation}
                   </td>
                 </tr>
               </table>
@@ -547,16 +643,16 @@ export const sendSiteVisitNotificationFn = createServerFn({ method: "POST" })
 </html>
     `;
 
-    const subject = `Site Visit Scheduled: Plot #${data.plotNumber} — ${data.phaseName}`;
-    const emailResult = await sendResendEmail(data.buyerEmail, subject, emailHtml);
+    const subject = `Site Visit Scheduled: Plot #${plotNumber} — ${phaseName}`;
+    const emailResult = await sendResendEmail(inquiry.client_email, subject, emailHtml);
 
-    // SMS Message
-    const transportStr =
-      data.transportMode === "self" ? "Self Drive" : data.transportMode.toUpperCase();
-    const pickupStr = data.transportMode === "self" ? "" : `, Pickup: ${data.pickupLocation}`;
-    const smsMessage = `Hello ${data.buyerName}, your free site visit for Plot #${data.plotNumber} at ${data.phaseName} has been scheduled for ${data.visitDate} (${data.visitTime === "morning" ? "Morning" : "Afternoon"}). Transport: ${transportStr}${pickupStr}. Gatepath Realtors!`;
+    // SMS Message — plain text, no HTML escaping needed for this channel.
+    const transportStr = transportMode === "self" ? "Self Drive" : transportMode.toUpperCase();
+    const pickupStr =
+      transportMode === "self" ? "" : `, Pickup: ${booking.pickup_location || "Self Transport"}`;
+    const smsMessage = `Hello ${inquiry.client_full_name}, your free site visit for Plot #${plotNumber} at ${inquiry.phase_name || "your project"} has been scheduled for ${booking.visit_date || "a date to be confirmed"} (${booking.visit_time === "morning" ? "Morning" : "Afternoon"}). Transport: ${transportStr}${pickupStr}. Gatepath Realtors!`;
 
-    const smsResult = await sendAfricaTalkingSms(data.buyerPhone, smsMessage);
+    const smsResult = await sendAfricaTalkingSms(inquiry.client_phone, smsMessage);
 
     return { emailResult, smsResult };
   });

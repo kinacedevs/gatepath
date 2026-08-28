@@ -191,23 +191,12 @@ function BookVisitPage() {
         throw new Error(bookingResult.error ?? "Failed to save your booking.");
       }
 
-      // 2. Dispatch notifications
+      // 2. Dispatch notifications — bookingId only now (GP-015 fix); the
+      // server re-derives every field from the real booking + inquiry
+      // rows instead of trusting this form's own copy of them.
       try {
         await sendSiteVisitNotificationFn({
-          data: {
-            buyerName: form.fullName,
-            buyerEmail: form.email,
-            buyerPhone: form.phone,
-            plotNumber: form.plotNumber,
-            phaseName: form.phaseName,
-            visitDate: form.visitDate,
-            visitTime: form.visitTime,
-            transportMode: skipSiteVisit ? "self" : form.transportMode,
-            pickupLocation:
-              skipSiteVisit || form.transportMode === "self"
-                ? "Self Transport"
-                : form.pickupLocation,
-          },
+          data: { bookingId: bookingResult.bookingId },
         });
       } catch (notifErr) {
         console.warn("[Gatepath] Failed to send free visit notifications:", notifErr);

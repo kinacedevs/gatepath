@@ -129,20 +129,28 @@ export const createFreeSiteVisitBookingFn = createServerFn({ method: "POST" })
       }
     }
 
-    const { error } = await (serviceClient as any).from("bookings").insert({
-      inquiry_id: data.inquiryId,
-      visit_date: data.visitDate,
-      visit_time: data.visitTime,
-      attendees: data.attendees,
-      visit_notes: data.visitNotes,
-      visit_type: data.visitType,
-      transport_mode: data.transportMode,
-      pickup_location: data.pickupLocation,
-      status: "pending",
-    });
+    // .select().single() so the caller gets a real bookingId back — needed
+    // by sendSiteVisitNotificationFn's GP-015 fix, which now re-derives
+    // every notification field from this row server-side instead of
+    // trusting a caller-supplied copy of the form.
+    const { data: booking, error } = await (serviceClient as any)
+      .from("bookings")
+      .insert({
+        inquiry_id: data.inquiryId,
+        visit_date: data.visitDate,
+        visit_time: data.visitTime,
+        attendees: data.attendees,
+        visit_notes: data.visitNotes,
+        visit_type: data.visitType,
+        transport_mode: data.transportMode,
+        pickup_location: data.pickupLocation,
+        status: "pending",
+      })
+      .select("id")
+      .single();
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (error || !booking) {
+      return { success: false, error: error?.message ?? "Failed to save your booking." };
     }
 
     // Real "Email Notifications" staff preference (migration 0040) — fire
@@ -161,5 +169,5 @@ export const createFreeSiteVisitBookingFn = createServerFn({ method: "POST" })
       );
     }
 
-    return { success: true };
+    return { success: true, bookingId: booking.id as string };
   });

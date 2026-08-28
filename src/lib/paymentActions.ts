@@ -43,6 +43,7 @@ type PaystackVerifyData = {
   currency: string;
   reference: string;
   channel?: string;
+  metadata?: Record<string, unknown>;
   [key: string]: unknown;
 };
 
@@ -114,6 +115,28 @@ export async function recordVerifiedPayment(params: {
     return {
       success: false as const,
       error: `Paystack reports this payment as "${paystackData.status}", not successful.`,
+    };
+  }
+
+  // Security fix (GP-014, audit Phase 3): the reference itself is
+  // authenticated (Paystack confirms the charge is real), but nothing
+  // previously confirmed the charge actually belongs to params.inquiryId —
+  // a client-triggered verify (verifyPaymentFn) took inquiryId straight
+  // from the caller with no binding at all. payment.tsx and portal.tsx both
+  // stamp metadata.inquiry_id onto the charge before Paystack ever sees it
+  // (the same value the real webhook, paystackWebhook.ts:145-146, already
+  // trusts instead of a caller-supplied id) — checking it here closes the
+  // gap for the client-triggered path too, using data Paystack itself
+  // returns rather than anything the caller sent this call.
+  const metadata = paystackData.metadata ?? {};
+  const metadataInquiryId = typeof metadata.inquiry_id === "string" ? metadata.inquiry_id : null;
+  if (metadataInquiryId !== params.inquiryId) {
+    console.error(
+      `[Payment] Reference ${params.reference} metadata.inquiry_id (${metadataInquiryId}) does not match the inquiry it was verified against (${params.inquiryId}) — refusing to record.`,
+    );
+    return {
+      success: false as const,
+      error: "This payment reference does not match the specified inquiry.",
     };
   }
 
@@ -391,12 +414,29 @@ const RECEIPT_LINK_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
  * request context — getReceiptFn itself is just a thin createServerFn
  * wrapper around this.
  */
+// Security fix (GP-013, audit Phase 3): this function has no ownership
+// check by design (see the comment above) — the 7-day window bounds how
+// LONG a leaked/shared link works, but does nothing about WHAT it exposes.
+// It previously returned full inquiry rows via select("*"), including
+// client_id_passport/client_kra_pin/client_dob and the same three fields
+// for next of kin — regulated identity data under the Kenya Data Protection
+// Act, reachable by anyone holding the UUID from a public ?inquiryId= query
+// param, no credential required. thank-you.tsx (the sole real consumer,
+// confirmed by grep) never reads any of those fields — only the ones
+// listed below. Selecting exactly that set closes the actual exposure
+// without changing the receipt page's behavior at all.
+const RECEIPT_INQUIRY_COLUMNS =
+  "id, client_full_name, client_phone, client_email, plot_number_ref, phase_name, payment_preference, created_at";
+const RECEIPT_PAYMENT_COLUMNS = "id, inquiry_id, amount, created_at";
+const RECEIPT_BOOKING_COLUMNS = "id, inquiry_id, visit_date, visit_time, transport_mode";
+const RECEIPT_AGREEMENT_COLUMNS = "id, inquiry_id, payment_id, ceo_signed";
+
 export async function getReceiptData(inquiryId: string) {
   const service = getServiceClient();
 
   const { data: inquiry } = await (service as any)
     .from("inquiries")
-    .select("*")
+    .select(RECEIPT_INQUIRY_COLUMNS)
     .eq("id", inquiryId)
     .maybeSingle();
 
@@ -410,7 +450,7 @@ export async function getReceiptData(inquiryId: string) {
 
   const { data: payment } = await (service as any)
     .from("payments")
-    .select("*")
+    .select(RECEIPT_PAYMENT_COLUMNS)
     .eq("inquiry_id", inquiryId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -418,7 +458,7 @@ export async function getReceiptData(inquiryId: string) {
 
   const { data: booking } = await (service as any)
     .from("bookings")
-    .select("*")
+    .select(RECEIPT_BOOKING_COLUMNS)
     .eq("inquiry_id", inquiryId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -427,7 +467,7 @@ export async function getReceiptData(inquiryId: string) {
   const { data: agreement } = payment
     ? await (service as any)
         .from("agreements")
-        .select("*")
+        .select(RECEIPT_AGREEMENT_COLUMNS)
         .eq("payment_id", payment.id)
         .maybeSingle()
     : { data: null };
