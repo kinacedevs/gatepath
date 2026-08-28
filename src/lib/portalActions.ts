@@ -83,7 +83,29 @@ export const requestPortalOtpFn = createServerFn({ method: "POST" })
       return { success: false as const, error: "Connection failure. Please try again." };
     }
 
+    // Security fix (GP-012, audit Phase 3): `inquiries` accepts an open,
+    // unauthenticated insert — anyone can submit /inquire with a victim's
+    // email and their own phone number. "A row exists matching this email"
+    // is therefore not proof of identity; without this check, an attacker
+    // could plant such a row and have the OTP sent straight to themselves,
+    // then use it to open the victim's real portal session (national ID,
+    // KRA PIN, DOB, payment history, documents). A real, Paystack-verified
+    // payment can't be cheaply forged the way an inquiries row can, so a
+    // matched inquiry must have at least one successful payment before an
+    // OTP is even considered — this also matches what the portal actually
+    // shows (payment/deal progress), which is meaningless for a $0 lead.
+    const candidateIds = (inquiries || []).map((i: any) => i.id);
+    const { data: paidPayments } = candidateIds.length
+      ? await (service as any)
+          .from("payments")
+          .select("inquiry_id")
+          .in("inquiry_id", candidateIds)
+          .eq("status", "success")
+      : { data: [] };
+    const paidInquiryIds = new Set((paidPayments || []).map((p: any) => p.inquiry_id));
+
     const matched = (inquiries || []).find((i: any) => {
+      if (!paidInquiryIds.has(i.id)) return false;
       const dbPhone = (i.client_phone || "").replace(/[\s-]/g, "");
       return dbPhone.includes(phone) || phone.includes(dbPhone);
     });
@@ -95,13 +117,22 @@ export const requestPortalOtpFn = createServerFn({ method: "POST" })
       };
     }
 
+    // Deliver to the phone number on file for the matched (paid) record,
+    // never to the phone the request supplied — the request's own value is
+    // attacker-controlled and must never be trusted as a delivery target.
+    const trustedPhone = (matched.client_phone || "").replace(/[\s-]/g, "");
+
     const otp = generateOtp();
     const otpHash = await hashOtp(otp, email);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS).toISOString();
 
-    const { error: insertErr } = await (service as any)
-      .from("client_otps")
-      .insert({ email, phone, otp_code: otpHash, expires_at: expiresAt, attempts: 0 });
+    const { error: insertErr } = await (service as any).from("client_otps").insert({
+      email,
+      phone: trustedPhone,
+      otp_code: otpHash,
+      expires_at: expiresAt,
+      attempts: 0,
+    });
 
     if (insertErr) {
       // Never silently proceed to send a code that can't be verified — this
@@ -123,7 +154,7 @@ export const requestPortalOtpFn = createServerFn({ method: "POST" })
         `<p>Your one-time verification code is <strong style="font-size:20px">${otp}</strong>.</p><p>It expires in 5 minutes. If you didn't request this, you can ignore this email.</p>`,
       ),
       sendAfricaTalkingSms(
-        phone,
+        trustedPhone,
         `Your Gatepath Client Portal code is ${otp}. Expires in 5 minutes.`,
       ),
     ]);
